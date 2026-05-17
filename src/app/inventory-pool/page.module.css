@@ -1,0 +1,252 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.header h1 {
+  margin: 0 0 6px 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.5px;
+}
+
+.header p {
+  margin: 0;
+  color: var(--text-ghost);
+  font-size: 14px;
+}
+
+/* FILTER PANEL */
+.filterPanel {
+  background: white;
+  padding: 20px 24px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filterGroup label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.filterInput {
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  outline: none;
+  background: #f8fafc;
+  transition: all 0.2s;
+  min-width: 180px;
+}
+
+.filterInput:focus {
+  border-color: #3b82f6;
+  background: white;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkboxInput {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.resetBtn {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.resetBtn:hover {
+  background: #e2e8f0;
+}
+
+.poolStatsBadge {
+  margin-left: auto;
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.poolStatsVal {
+  font-size: 18px;
+  color: #1d4ed8;
+  font-weight: 900;
+}
+
+@media (max-width: 900px) {
+  .filterPanel {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  .poolStatsBadge {
+    margin-left: 0;
+    justify-content: center;
+  }
+}
+
+/* SPREADSHEET TABLE */
+.tableWrapper {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  width: 100%;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background: #f8fafc;
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border);
+}
+
+.table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* SORTING STYLES */
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s, color 0.2s;
+  white-space: nowrap;
+}
+
+.sortableHeader:hover {
+  background: #e2e8f0 !important;
+  color: var(--text-main) !important;
+}
+
+.sortIcon {
+  margin-left: 6px;
+  font-size: 10px;
+  color: #94a3b8;
+  display: inline-block;
+}
+
+.sortIconActive {
+  color: #3b82f6;
+  font-weight: 900;
+}
+
+.sizeCol {
+  text-align: center !important;
+}
+
+.table td:nth-child(n+3):nth-child(-n+10) {
+  text-align: center;
+  font-weight: 700;
+}
+
+.hasStock {
+  color: #15803d !important;
+  background: #e8f5e9;
+  border: 1px solid #c8e6c9;
+  font-weight: 800;
+}
+
+.noStock {
+  color: #94a3b8;
+}
+
+.totalCol {
+  text-align: right !important;
+  background: #f1f5f9;
+}
+
+.totalValue {
+  text-align: right;
+  font-weight: 900;
+  font-size: 16px;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.colourBadge {
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.loading, .empty {
+  padding: 60px;
+  text-align: center;
+  color: var(--text-ghost);
+  font-size: 14px;
+}

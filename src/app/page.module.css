@@ -1,142 +1,438 @@
-.page {
-  --background: #fafafa;
-  --foreground: #fff;
-
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
+.container {
   display: flex;
-  flex: 1;
   flex-direction: column;
+  gap: 28px;
+  width: 100%;
+}
+
+/* OPERATIONS SHORTCUTS LAUNCHPAD */
+.launchpadGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.shortcutCard {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 16px 20px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  text-decoration: none;
+  color: var(--text-main);
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01);
+}
+
+.shortcutCard:hover {
+  transform: translateY(-3px);
+  border-color: #3b82f6;
+  box-shadow: 0 10px 20px rgba(59, 130, 246, 0.08);
+}
+
+.shortcutIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
+  font-size: 20px;
+  font-weight: bold;
 }
 
-.main {
+.iconScan {
+  background: #eff6ff;
+  color: #3b82f6;
+}
+
+.iconManual {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.iconCarton {
+  background: #f5f3ff;
+  color: #8b5cf6;
+}
+
+.iconList {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.shortcutText {
   display: flex;
-  flex: 1;
-  width: 100%;
-  max-width: 800px;
   flex-direction: column;
-  align-items: flex-start;
-  justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
+  gap: 2px;
 }
 
-.intro {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
-}
-
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
-}
-
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
-}
-
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.ctas {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
+.shortcutTitle {
+  font-weight: 800;
   font-size: 14px;
 }
 
-.ctas a {
+.shortcutDesc {
+  font-size: 11px;
+  color: var(--text-ghost);
+}
+
+/* METRICS WIDGETS WRAPPER */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.metricCard {
+  background: white;
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.metricCard::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.cardTotalStock::after {
+  background: #6366f1;
+}
+
+.cardStaging::after {
+  background: #3b82f6;
+}
+
+.cardCartons::after {
+  background: #10b981;
+}
+
+.cardInward::after {
+  background: #a855f7;
+}
+
+.cardOutward::after {
+  background: #ef4444;
+}
+
+.cardVstrap::after {
+  background: #f59e0b;
+}
+
+.metricLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metricValue {
+  font-size: 36px;
+  font-weight: 900;
+  margin-top: 10px;
+  color: var(--text-main);
+  letter-spacing: -1px;
+}
+
+.metricSubText {
+  font-size: 12px;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+/* CHARTS SECTION */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chartCard {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chartTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.chartToggleGroup {
+  display: flex;
+  background: #f1f5f9;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.toggleBtn {
+  border: none;
+  background: transparent;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 6px;
   cursor: pointer;
-  width: fit-content;
-  font-weight: 500;
+  color: #64748b;
+  transition: all 0.2s;
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.toggleBtnActive {
+  background: white;
+  color: #0f172a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+/* SVG INTERACTIVE GRAPH CONTAINER */
+.svgContainer {
+  width: 100%;
+  height: 260px;
+  position: relative;
+  margin-top: 16px;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
+.svgFrame {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
 
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
+.chartGridLine {
+  stroke: #e2e8f0;
+  stroke-dasharray: 4 4;
+}
+
+.chartLinePath {
+  stroke: #3b82f6;
+  stroke-width: 3.5;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.chartAreaFill {
+  fill: url(#chartBlueGradient);
+  opacity: 0.15;
+}
+
+.chartPointCircle {
+  fill: white;
+  stroke: #3b82f6;
+  stroke-width: 3;
+  cursor: pointer;
+  transition: r 0.2s;
+}
+
+.chartPointCircle:hover {
+  r: 8;
+  stroke-width: 4;
+}
+
+.barCol {
+  fill: #10b981;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+  cursor: pointer;
+}
+
+.barCol:hover {
+  opacity: 1;
+  fill: #059669;
+}
+
+.chartAxisText {
+  fill: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chartValLabel {
+  fill: #0f172a;
+  font-size: 10px;
+  font-weight: 900;
+  text-anchor: middle;
+}
+
+/* DONUT CHART / DISTRIBUTION */
+.rulesDistributionList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.ruleDistRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ruleDistLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ruleProgressBarBg {
+  background: #f1f5f9;
+  height: 8px;
+  border-radius: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.ruleProgressBarFill {
+  height: 100%;
+  border-radius: 4px;
+  background: #8b5cf6;
+}
+
+/* LOWER HALF ACTIVITY & LEDGER */
+.ledgerGrid {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .ledgerGrid {
+    grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
-  }
-
-  .intro {
-    gap: 16px;
-  }
-
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
-  }
+.ledgerCard {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
-  }
+.ledgerTitleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
 
-  .page {
-    --background: #000;
-    --foreground: #000;
+.ledgerTitle {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
 
-    --text-primary: #ededed;
-    --text-secondary: #999;
+.ledgerViewAllBtn {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b82f6;
+  text-decoration: none;
+  background: #eff6ff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
 
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
-  }
+.ledgerViewAllBtn:hover {
+  background: #dbeafe;
+}
+
+/* LIST METRIC PROFILES */
+.statsList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.statRowItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.statLabelBadge {
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+}
+
+.statValText {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.statProgressBarBg {
+  background: #f1f5f9;
+  height: 6px;
+  border-radius: 3px;
+  width: 120px;
+  overflow: hidden;
+  margin-left: 12px;
+}
+
+.statProgressBarFill {
+  height: 100%;
+  border-radius: 3px;
+  background: #3b82f6;
+}
+
+/* ACTIVITY BADGES */
+.activityTypeBadge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.badgeInward {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.badgeOutward {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.badgeCarton {
+  background: #f5f3ff;
+  color: #7c3aed;
 }

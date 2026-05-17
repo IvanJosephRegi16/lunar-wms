@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local-only (SQLite, offline bundles, dev scripts)
+*.db
+/data/
+/sent_emails/
+/Offline_App/
+/Offline_App.7z
+/Offline_App.tar.gz
+/scripts/
+ts_errors.log
+check_users.js
+force_reset_auth.js
+test-cascade.ts
