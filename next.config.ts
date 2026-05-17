@@ -7,7 +7,8 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       allowedOrigins: ['192.168.0.152:3000', '192.168.0.153:3000', 'localhost:3000']
-    }
+    },
+    cpus: 1
   },
   typescript: {
     ignoreBuildErrors: true,
