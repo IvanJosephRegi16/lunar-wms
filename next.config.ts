@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['better-sqlite3', 'bcryptjs'],
+  serverExternalPackages: ['bcryptjs'],
   output: 'standalone',
   allowedDevOrigins: ['192.168.0.152', '192.168.0.153', 'localhost:3000'],
   experimental: {
