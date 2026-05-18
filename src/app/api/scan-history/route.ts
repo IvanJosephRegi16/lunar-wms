@@ -10,7 +10,7 @@ export async function GET() {
     const db = getDb();
     
     const history = await db.prepare(`
-      SELECT s.*, u.username as operator_name 
+      SELECT s.*, COALESCE(NULLIF(u.full_name, ''), u.username) as operator_name 
       FROM scan_history s
       LEFT JOIN users u ON s.operator_id = u.id
       WHERE s.is_deleted = 0
