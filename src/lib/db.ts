@@ -8,7 +8,6 @@ import { Pool } from 'pg';
 // ─────────────────────────────────────────────────────────────────────────────
 export const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:ivan@localhost:5432/Lunar',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
