@@ -1,5 +1,6 @@
+"use client";
+
 import { useState, useEffect } from 'react';
-import styles from './page.module.css';
 
 export default function MaterialMovementsPage() {
   const [movements, setMovements] = useState<any[]>([]);
@@ -28,31 +29,28 @@ export default function MaterialMovementsPage() {
     loadData();
   }, [filterMaterial, filterType, dateFrom, dateTo]);
 
-  const fmt = (n: number) => '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1>Material Movement History</h1>
-        <p>Audit‑ready immutable log of all inventory changes.</p>
-        <div className={styles.controls}>
-          <select className={styles.filterField} value={filterMaterial} onChange={e => setFilterMaterial(e.target.value)}>
+    <div className="main-content fade-up">
+      <div className="card-clean">
+        <h1 className="title-main">Material Movement History</h1>
+        <p style={{ color: 'var(--text-ghost)', marginBottom: '24px' }}>Audit‑ready immutable log of all inventory changes.</p>
+        <div className="flex-between" style={{ gap: '16px', flexWrap: 'wrap' }}>
+          <select style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }} value={filterMaterial} onChange={e => setFilterMaterial(e.target.value)}>
             <option value="all">All Materials</option>
-            {/* In a real app, populate this dropdown from a materials lookup API */}
           </select>
-          <select className={styles.filterField} value={filterType} onChange={e => setFilterType(e.target.value)}>
+          <select style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }} value={filterType} onChange={e => setFilterType(e.target.value)}>
             <option value="all">All Types</option>
             <option value="Purchase">Purchase</option>
             <option value="Adjustment">Adjustment</option>
             <option value="Transfer">Transfer</option>
           </select>
-          <input type="date" className={styles.filterField} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-          <input type="date" className={styles.filterField} value={dateTo} onChange={e => setDateTo(e.target.value)} />
+          <input type="date" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }} value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <input type="date" style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--border)' }} value={dateTo} onChange={e => setDateTo(e.target.value)} />
         </div>
       </div>
 
-      <div className={styles.historyTable}>
-        <table className={styles.table}>
+      <div className="card-clean table-responsive">
+        <table className="table-corporate">
           <thead>
             <tr>
               <th>Date</th>
@@ -72,12 +70,14 @@ export default function MaterialMovementsPage() {
               <tr><td colSpan={8} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-ghost)' }}>No movements recorded.</td></tr>
             ) : (
               movements.map(m => (
-                <tr key={m.id}>
+                <tr key={m.id} className="tr-hover">
                   <td>{m.created_at?.split(' ')[0] || m.movement_date}</td>
                   <td>{m.material_name}{m.colour ? ` (${m.colour})` : ''}</td>
                   <td>{m.movement_type}</td>
                   <td>{m.before_qty}</td>
-                  <td>{m.change_qty > 0 ? `+${m.change_qty}` : m.change_qty}</td>
+                  <td style={{ color: m.change_qty > 0 ? 'var(--success)' : 'var(--danger)', fontWeight: 'bold' }}>
+                    {m.change_qty > 0 ? `+${m.change_qty}` : m.change_qty}
+                  </td>
                   <td>{m.after_qty}</td>
                   <td>{m.source_reference}</td>
                   <td>{m.remarks}</td>
