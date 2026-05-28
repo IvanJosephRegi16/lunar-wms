@@ -1,16 +1,16 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 40px;
   width: 100%;
 }
 
 .header {
-  padding: 24px;
-  background: white;
+  padding: 32px 40px;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -118,11 +118,11 @@
 
 /* SEARCH & FILTER PANEL */
 .filterPanel {
-  background: white;
-  padding: 24px;
+  background: var(--bg-card);
+  padding: 32px 40px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -183,20 +183,21 @@
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  background: #f8fafc;
+  background: var(--bg-app);
+  color: var(--text-main);
   transition: all 0.2s;
   width: 100%;
 }
 
 .filterInput:focus {
-  border-color: #3b82f6;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .clearBtn {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-app);
+  color: var(--text-muted);
   border: 1px solid var(--border);
   padding: 12px 20px;
   font-size: 14px;
@@ -212,7 +213,7 @@
 }
 
 .clearBtn:hover {
-  background: #e2e8f0;
+  background: var(--bg-card);
 }
 
 /* REAL-TIME STATS ROW */
@@ -229,11 +230,11 @@
 }
 
 .statBox {
-  background: white;
+  background: var(--bg-card);
   padding: 20px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   gap: 16px;
@@ -276,11 +277,11 @@
 
 /* SPREADSHEET TABLE LAYOUT */
 .tableCard {
-  background: white;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  padding: 32px 40px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -303,8 +304,8 @@
 }
 
 .countBadge {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-app);
+  color: var(--text-muted);
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
@@ -342,15 +343,15 @@
 }
 
 .tableSpreadsheet tr:hover {
-  background: #f8fafc;
+  background: var(--bg-app);
 }
 
 .cartonPill {
   font-family: monospace;
   font-weight: 800;
-  color: #0f172a;
-  background: #f8fafc;
-  border: 1.5px solid #cbd5e1;
+  color: var(--text-main);
+  background: var(--bg-app);
+  border: 1.5px solid var(--border);
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 13px;
@@ -360,15 +361,15 @@
 .articleCodeText {
   font-weight: 800;
   font-size: 15px;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .colourBadge {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-app);
+  color: var(--text-muted);
   padding: 4px 8px;
   border-radius: 6px;
   display: inline-block;
@@ -388,7 +389,7 @@
 .pairsText {
   font-weight: 800;
   font-size: 15px;
-  color: #0f172a;
+  color: var(--text-main);
 }
 
 .statusCompleted {

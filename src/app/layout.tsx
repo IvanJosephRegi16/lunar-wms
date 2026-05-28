@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import AppLayoutWrapper from './AppLayoutWrapper';
+import FloatingBackground from '@/components/FloatingBackground';
 import fs from 'fs';
 import path from 'path';
 import './globals.css';
@@ -20,7 +21,7 @@ export default async function RootLayout({
 
   if (isMaintenance) {
     return (
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <body>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0a0a0a', color: '#fff', fontFamily: 'sans-serif' }}>
             <h1 style={{ fontSize: '2rem', marginBottom: '1rem', color: '#f59e0b' }}>⚠️ System Maintenance</h1>
@@ -41,8 +42,9 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
+        <FloatingBackground />
         <AppLayoutWrapper user={user}>
           {children}
         </AppLayoutWrapper>

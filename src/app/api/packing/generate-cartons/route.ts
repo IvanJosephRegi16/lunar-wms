@@ -32,8 +32,8 @@ export async function POST(request: Request) {
 
       const configSizes = await db.prepare(`SELECT size, quantity FROM carton_generation_sizes WHERE config_id = ?`).all(configId) as any[];
 
-      // 2. Fetch inventory pool with ROW-LEVEL LOCK to prevent concurrent double-deductions
-      const aggInv = await db.prepare(`SELECT * FROM inventory_pool WHERE id = ? FOR UPDATE`).get(inventoryId) as any;
+      // 2. Fetch inventory pool
+      const aggInv = await db.prepare(`SELECT * FROM inventory_pool WHERE id = ?`).get(inventoryId) as any;
       if (!aggInv) throw new Error('Inventory pool not found');
 
       // 3. Validate stock for generation

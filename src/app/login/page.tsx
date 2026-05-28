@@ -1,10 +1,50 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+
+import ParticleBackground from '@/components/ParticleBackground';
+
+const EyeTracker = () => {
+  const [pupilPosition, setPupilPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 100;
+      const y = (e.clientY / window.innerHeight) * 100;
+      
+      const maxOffset = 12; 
+      const xOffset = ((x - 50) / 50) * maxOffset;
+      const yOffset = ((y - 50) / 50) * maxOffset;
+
+      setPupilPosition({ x: xOffset, y: yOffset });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  return (
+    <div className="avatar-eye-unit" style={{ marginBottom: '24px' }}>
+      <div className="eye-socket">
+        <div 
+          className="pupil" 
+          style={{ transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)` }}
+        />
+      </div>
+      <div className="eye-socket">
+        <div 
+          className="pupil" 
+          style={{ transform: `translate(${pupilPosition.x}px, ${pupilPosition.y}px)` }}
+        />
+      </div>
+    </div>
+  );
+};
 
 export default function LoginPage() {
   const [view, setView] = useState<'login' | 'forgot_phone' | 'forgot_otp' | 'forgot_reset'>('login');
+  const searchParams = useSearchParams();
   
   // Login states
   const [username, setUsername] = useState('');
@@ -13,6 +53,30 @@ export default function LoginPage() {
   // Recovery states
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
+
+  useEffect(() => {
+    setOtp(otpDigits.join(''));
+  }, [otpDigits]);
+
+  const handleOtpChange = (index: number, value: string) => {
+    const newDigits = [...otpDigits];
+    newDigits[index] = value;
+    setOtpDigits(newDigits);
+    
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`otp-input-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpDigits[index] && index > 0) {
+      const prevInput = document.getElementById(`otp-input-${index - 1}`);
+      if (prevInput) prevInput.focus();
+    }
+  };
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [devOtp, setDevOtp] = useState('');
@@ -22,6 +86,15 @@ export default function LoginPage() {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const reason = searchParams.get('reason');
+    if (reason === 'expired') {
+      setError('Your session has expired. Please log in again.');
+    } else if (reason === 'logged_out_elsewhere') {
+      setError('You were logged out from another tab.');
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,6 +209,7 @@ export default function LoginPage() {
           setView('login');
           setPhone('');
           setOtp('');
+          setOtpDigits(['', '', '', '', '', '']);
           setNewPassword('');
           setConfirmPassword('');
           setDevOtp('');
@@ -153,20 +227,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="login-vortex">
-      <div className="login-card-6d" style={{ transition: 'all 0.3s ease-in-out' }}>
+    <div className="login-vortex" style={{ position: 'relative', overflow: 'hidden' }}>
+      <ParticleBackground />
+      
+      <div className="login-card-6d" style={{ transition: 'all 0.3s ease-in-out', position: 'relative', zIndex: 10 }}>
         
         {/* ── VIEW: SIGN IN ────────────────────────────────────────────────── */}
         {view === 'login' && (
           <>
             <div className="silk-header">
-               <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔒</div>
-               <h1>System Access</h1>
-               <p style={{ color: '#64748b', fontWeight: 600 }}>Secure Stock Management Portal</p>
+               <img src="/lunars-logo.png" alt="Lunar's" style={{ height: '48px', marginBottom: '16px' }} />
+               <EyeTracker />
+               <h1>LUNAR'S System Access</h1>
+               <p style={{ color: 'rgba(148, 163, 184, 0.9)', fontWeight: 600 }}>Secure Stock Management Portal</p>
             </div>
 
             {error && (
-              <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(239, 68, 68, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ⚠️ {error}
               </div>
             )}
@@ -190,7 +267,7 @@ export default function LoginPage() {
                   <button 
                     type="button" 
                     onClick={() => { setView('forgot_phone'); setError(''); setSuccess(''); }}
-                    style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', outline: 'none', padding: 0 }}
+                    style={{ background: 'none', border: 'none', color: '#a78bfa', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', outline: 'none', padding: 0 }}
                   >
                     Forgot Access Protocol?
                   </button>
@@ -208,11 +285,15 @@ export default function LoginPage() {
                 type="submit" 
                 className="btn-sentinel" 
                 disabled={loading}
-                style={{ backgroundColor: loading ? '#64748b' : '#0f172a' }}
+                style={{ backgroundColor: loading ? 'rgba(100, 116, 139, 0.6)' : undefined }}
               >
                 {loading ? 'VERIFYING...' : 'SIGN IN NOW'}
               </button>
             </form>
+
+            <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: 'rgba(148, 163, 184, 0.7)', fontWeight: 600, position: 'relative', zIndex: 1 }}>
+              New user? <a href="/signup" style={{ color: '#a78bfa', textDecoration: 'none', fontWeight: 800 }}>Apply for Access</a>
+            </div>
           </>
         )}
 
@@ -220,18 +301,19 @@ export default function LoginPage() {
         {view === 'forgot_phone' && (
           <>
             <div className="silk-header">
-               <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔑</div>
-               <h1>Recover Access</h1>
-               <p style={{ color: '#64748b', fontWeight: 600 }}>Enter your linked phone number</p>
+               <img src="/lunars-logo.png" alt="Lunar's" style={{ height: '48px', marginBottom: '16px' }} />
+               <EyeTracker />
+               <h1>LUNAR'S Recover Access</h1>
+               <p style={{ color: 'rgba(148, 163, 184, 0.9)', fontWeight: 600 }}>Enter your linked phone number</p>
             </div>
 
             {error && (
-              <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(239, 68, 68, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ⚠️ {error}
               </div>
             )}
             {success && (
-              <div style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#6ee7b7', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ✅ {success}
               </div>
             )}
@@ -253,7 +335,7 @@ export default function LoginPage() {
                 type="submit" 
                 className="btn-sentinel" 
                 disabled={loading}
-                style={{ backgroundColor: loading ? '#64748b' : '#0f172a' }}
+                style={{ backgroundColor: loading ? 'rgba(100, 116, 139, 0.6)' : undefined }}
               >
                 {loading ? 'TRANSMITTING...' : 'SEND OTP CODE'}
               </button>
@@ -261,7 +343,7 @@ export default function LoginPage() {
               <button 
                 type="button"
                 onClick={() => { setView('login'); setError(''); setSuccess(''); }}
-                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', textAlign: 'center', marginTop: '8px' }}
+                style={{ background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.6)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', textAlign: 'center', marginTop: '8px', position: 'relative', zIndex: 1 }}
               >
                 ← Back to Sign In
               </button>
@@ -273,50 +355,66 @@ export default function LoginPage() {
         {view === 'forgot_otp' && (
           <>
             <div className="silk-header">
-               <div style={{ fontSize: '40px', marginBottom: '16px' }}>💬</div>
-               <h1>Verification</h1>
-               <p style={{ color: '#64748b', fontWeight: 600 }}>Enter the 6-digit verification code</p>
+               <img src="/lunars-logo.png" alt="Lunar's" style={{ height: '48px', marginBottom: '16px' }} />
+               <EyeTracker />
+               <h1>LUNAR'S Verification</h1>
+               <p style={{ color: 'rgba(148, 163, 184, 0.9)', fontWeight: 600 }}>Enter the 6-digit verification code</p>
             </div>
 
             {error && (
-              <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(239, 68, 68, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ⚠️ {error}
               </div>
             )}
             {success && (
-              <div style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#6ee7b7', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ✅ {success}
               </div>
             )}
 
-            {/* Development Mock OTP Helper Banner */}
-            {devOtp && (
-              <div style={{ backgroundColor: '#eff6ff', border: '1.5px dashed #3b82f6', color: '#1e40af', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5' }}>
-                <strong>[DEV HELPER MOCK NOTIFICATION]</strong><br />
-                Simulated SMS sent code: <strong style={{ fontSize: '16px', color: '#2563eb' }}>{devOtp}</strong><br />
-                <span style={{ fontSize: '10px', color: '#60a5fa' }}>(Logged to terminal and data/sent_otps.txt)</span>
-              </div>
-            )}
 
             <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
               <div className="silk-field">
                 <label>6-DIGIT OTP CODE</label>
-                <input 
-                  type="text" 
-                  placeholder="Enter code..." 
-                  maxLength={6}
-                  value={otp} 
-                  onChange={e => setOtp(e.target.value)}
-                  required 
-                  autoFocus
-                />
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'space-between', marginTop: '4px' }}>
+                  {otpDigits.map((digit, index) => (
+                    <input 
+                      key={index}
+                      id={`otp-input-${index}`}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      autoFocus={index === 0}
+                      onChange={(e) => handleOtpChange(index, e.target.value.replace(/[^0-9]/g, ''))}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      style={{
+                        width: '100%',
+                        height: '56px',
+                        fontSize: '24px',
+                        textAlign: 'center' as const,
+                        borderRadius: '14px',
+                        border: '2px solid rgba(255, 255, 255, 0.1)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                        color: '#f1f5f9',
+                        fontWeight: '800',
+                        outline: 'none',
+                        transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                        position: 'relative' as const,
+                        zIndex: 1
+                      }}
+                      onFocus={(e) => { e.target.style.borderColor = 'rgba(99, 102, 241, 0.5)'; e.target.style.boxShadow = '0 0 0 4px rgba(99, 102, 241, 0.12)'; }}
+                      onBlur={(e) => { e.target.style.borderColor = 'rgba(255, 255, 255, 0.1)'; e.target.style.boxShadow = 'none'; }}
+                    />
+                  ))}
+                </div>
               </div>
 
               <button 
                 type="submit" 
                 className="btn-sentinel" 
                 disabled={loading}
-                style={{ backgroundColor: loading ? '#64748b' : '#0f172a' }}
+                style={{ backgroundColor: loading ? 'rgba(100, 116, 139, 0.6)' : undefined }}
               >
                 {loading ? 'VERIFYING...' : 'VERIFY CODE'}
               </button>
@@ -324,7 +422,7 @@ export default function LoginPage() {
               <button 
                 type="button"
                 onClick={() => { setView('forgot_phone'); setError(''); setSuccess(''); }}
-                style={{ background: 'none', border: 'none', color: '#64748b', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', textAlign: 'center', marginTop: '8px' }}
+                style={{ background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.6)', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', textAlign: 'center', marginTop: '8px', position: 'relative', zIndex: 1 }}
               >
                 ← Back to Resend
               </button>
@@ -336,18 +434,19 @@ export default function LoginPage() {
         {view === 'forgot_reset' && (
           <>
             <div className="silk-header">
-               <div style={{ fontSize: '40px', marginBottom: '16px' }}>🔐</div>
-               <h1>Reset Protocol</h1>
-               <p style={{ color: '#64748b', fontWeight: 600 }}>Establish your new access credentials</p>
+               <img src="/lunars-logo.png" alt="Lunar's" style={{ height: '48px', marginBottom: '16px' }} />
+               <EyeTracker />
+               <h1>LUNAR'S Reset Protocol</h1>
+               <p style={{ color: 'rgba(148, 163, 184, 0.9)', fontWeight: 600 }}>Establish your new access credentials</p>
             </div>
 
             {error && (
-              <div style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#fca5a5', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(239, 68, 68, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ⚠️ {error}
               </div>
             )}
             {success && (
-              <div style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '12px', borderRadius: '8px', marginBottom: '24px', fontSize: '13px', fontWeight: 700 }}>
+              <div style={{ backgroundColor: 'rgba(16, 185, 129, 0.12)', color: '#6ee7b7', padding: '12px 16px', borderRadius: '12px', marginBottom: '24px', fontSize: '13px', fontWeight: 700, border: '1px solid rgba(16, 185, 129, 0.2)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
                  ✅ {success}
               </div>
             )}
@@ -380,7 +479,7 @@ export default function LoginPage() {
                 type="submit" 
                 className="btn-sentinel" 
                 disabled={loading}
-                style={{ backgroundColor: loading ? '#64748b' : '#0f172a' }}
+                style={{ backgroundColor: loading ? 'rgba(100, 116, 139, 0.6)' : undefined }}
               >
                 {loading ? 'RESETTING...' : 'RESET ACCESS KEY'}
               </button>
@@ -388,8 +487,8 @@ export default function LoginPage() {
           </>
         )}
 
-        <div style={{ marginTop: '32px', color: '#94a3b8', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-           Protected by Enterprise Encryption
+        <div style={{ marginTop: '32px', color: 'rgba(148, 163, 184, 0.4)', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', position: 'relative', zIndex: 1 }}>
+           🛡️ Protected by Enterprise Encryption
         </div>
       </div>
     </div>

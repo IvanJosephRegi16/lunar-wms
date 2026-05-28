@@ -5,6 +5,7 @@ import Link from 'next/link';
 
 export default function AdminPOQueue() {
   const [user, setUser] = useState<any>(null);
+  const [menuVisibility, setMenuVisibility] = useState<any>(null);
   const [pos, setPos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,12 +24,21 @@ export default function AdminPOQueue() {
       
       const meRes = await fetch('/api/auth/me');
       const meData = await meRes.json();
-      if (meData.error || meData.user.role !== 'admin') {
-        setError('Access Denied: Only System Administrators can review pending purchase orders.');
+      if (meData.error) {
+        setError('Access Denied: Please log in to view the queue.');
         setLoading(false);
         return;
       }
+      
+      const isAllowed = meData.user.role === 'admin' || meData.menuVisibility?.po_pending !== false;
+      if (!isAllowed) {
+        setError('Access Denied: Your current role profile does not have visibility authorization for this module.');
+        setLoading(false);
+        return;
+      }
+
       setUser(meData.user);
+      setMenuVisibility(meData.menuVisibility);
 
       const poRes = await fetch('/api/po');
       const poData = await poRes.json();
@@ -249,7 +259,6 @@ export default function AdminPOQueue() {
                   <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>
                     Created by: {po.creator_name?.toUpperCase()}
                   </div>
-                  
                   <div style={{ display: 'flex', gap: '12px' }}>
                     <button className="btn-corp" style={{ color: 'var(--success)', border: '1px solid #10b981', background: '#f0fdf4' }} onClick={() => {
                       setSelectedPo(po);
@@ -276,7 +285,6 @@ export default function AdminPOQueue() {
                     </button>
                   </div>
                 </div>
-
               </div>
             );
           })}

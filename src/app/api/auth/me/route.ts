@@ -19,6 +19,10 @@ const DEFAULT_MENU_VISIBILITY = {
   po_section: false,
   po_dashboard: true,
   po_create: false,
+  po_pending: true,
+  po_returned: true,
+  po_approved: true,
+  po_rejected: true,
   po_accountant: true,
   po_completed: true,
   po_history: true,
@@ -27,11 +31,17 @@ const DEFAULT_MENU_VISIBILITY = {
 
 export async function GET() {
   try {
+    const db = getDb();
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const db = getDb();
-    const configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+    const configKey = `menu_visibility_config_${user.role}`;
+    let configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+
+    // Fallback to global config if no role-specific configuration has been saved yet
+    if (!configRow) {
+      configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+    }
 
     let menuVisibility = DEFAULT_MENU_VISIBILITY;
     if (configRow) {

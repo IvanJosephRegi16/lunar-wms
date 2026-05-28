@@ -8,6 +8,7 @@ export default function DailySheets() {
   const [loading, setLoading] = useState(true);
   const [resetLoading, setResetLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
 
   const loadData = () => {
     setLoading(true);
@@ -15,7 +16,7 @@ export default function DailySheets() {
       .then(res => res.json())
       .then(d => {
         setSheets(d.sheets || []);
-        setLoading(false);
+        setLoading(false)
       })
       .catch(() => setLoading(false));
   };
@@ -23,6 +24,13 @@ export default function DailySheets() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 250);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const handleReset = async () => {
     const confirmStr = prompt('CAUTION: To RESET ALL STOCK DATA, type "RESET ALL DATA" exactly:');
@@ -48,21 +56,93 @@ export default function DailySheets() {
     }
   };
 
-  if (loading) return <div className="loading-dot" style={{ margin: '100px auto', display: 'table' }}>Authenticating Ledger History...</div>;
+  if (loading) {
+    return (
+      <div className="fade-up">
+        <div className="flex-between mb-8 no-print">
+          <div className="skeleton-box skeleton-pulse" style={{ height: '42px', width: '280px', background: 'rgba(0,0,0,0.05)', borderRadius: '8px' }}></div>
+          <div className="skeleton-box skeleton-pulse" style={{ height: '42px', width: '180px', background: 'rgba(0,0,0,0.05)', borderRadius: '8px' }}></div>
+        </div>
+        <div className="card-clean">
+          <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '24px', marginBottom: '24px' }}>
+            <div className="skeleton-box skeleton-pulse" style={{ height: '24px', width: '200px', background: 'rgba(0,0,0,0.05)', borderRadius: '4px', marginBottom: '8px' }}></div>
+            <div className="skeleton-box skeleton-pulse" style={{ height: '14px', width: '320px', background: 'rgba(0,0,0,0.03)', borderRadius: '4px' }}></div>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="table-corporate">
+              <thead>
+                <tr>
+                  <th style={{ width: '180px' }}>Log Date</th>
+                  <th>Weekday</th>
+                  <th style={{ textAlign: 'right' }}>Transaction Count</th>
+                  <th style={{ textAlign: 'right' }}>Total Volume (Pairs)</th>
+                  <th style={{ width: '120px' }}>State</th>
+                  <th style={{ width: '150px' }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <tr key={i}>
+                    <td><div className="skeleton-box skeleton-pulse" style={{ height: '16px', width: '110px', background: 'rgba(0,0,0,0.05)', borderRadius: '4px' }}></div></td>
+                    <td><div className="skeleton-box skeleton-pulse" style={{ height: '16px', width: '80px', background: 'rgba(0,0,0,0.03)', borderRadius: '4px' }}></div></td>
+                    <td><div className="skeleton-box skeleton-pulse" style={{ height: '16px', width: '50px', background: 'rgba(0,0,0,0.03)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
+                    <td><div className="skeleton-box skeleton-pulse" style={{ height: '16px', width: '70px', background: 'rgba(0,0,0,0.05)', borderRadius: '4px', marginLeft: 'auto' }}></div></td>
+                    <td><div className="skeleton-box skeleton-pulse" style={{ height: '20px', width: '60px', background: 'rgba(0,0,0,0.03)', borderRadius: '4px' }}></div></td>
+                    <td><div className="skeleton-box skeleton-pulse" style={{ height: '30px', width: '90px', background: 'rgba(0,0,0,0.05)', borderRadius: '6px' }}></div></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <style jsx>{`
+          @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+          }
+          .skeleton-pulse {
+            animation: pulse 1.5s infinite ease-in-out;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
-  const filteredSheets = sheets?.filter(s => s.sheet_date.includes(searchTerm));
+  const filteredSheets = sheets?.filter(s => s.sheet_date.includes(debouncedSearchTerm));
 
   return (
     <div className="fade-up">
       <div className="flex-between mb-8 no-print">
-        <div className="corp-search">
+        <div className="corp-search" style={{ position: 'relative' }}>
            <span>🔍</span>
            <input 
               type="text" 
               placeholder="Search by date (YYYY-MM-DD)..." 
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
+              style={{ paddingRight: '36px' }}
            />
+           {searchTerm && (
+             <button 
+               onClick={() => setSearchTerm('')} 
+               style={{ 
+                 position: 'absolute', 
+                 right: '12px', 
+                 background: 'none', 
+                 border: 'none', 
+                 cursor: 'pointer', 
+                 color: 'var(--text-ghost)',
+                 fontSize: '14px',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 padding: '4px'
+               }}
+             >
+               ✖
+             </button>
+           )}
         </div>
         <button className="btn-corp" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleReset} disabled={resetLoading}>
           {resetLoading ? 'Wiping...' : 'Clear All System Data'}

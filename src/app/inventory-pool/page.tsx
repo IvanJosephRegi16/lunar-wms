@@ -31,6 +31,8 @@ export default function AggregatedInventoryPage() {
   const [filterColour, setFilterColour] = useState('');
   const [hideZero, setHideZero] = useState(false);
 
+  const [aiInsights, setAiInsights] = useState<any>(null);
+
   useEffect(() => {
     fetch('/api/inventory-pool')
       .then(res => res.json())
@@ -38,6 +40,13 @@ export default function AggregatedInventoryPage() {
         if (data.inventory) setInventory(data.inventory);
         setLoading(false);
       });
+
+    fetch('/api/ai/insights')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) setAiInsights(data);
+      })
+      .catch(() => {});
   }, []);
 
   const handleSort = (field: string) => {
@@ -116,6 +125,54 @@ export default function AggregatedInventoryPage() {
           </p>
         </div>
       </div>
+
+      {/* AI STOCKOUT PROJECTION STRIP */}
+      {aiInsights && aiInsights.reorderSuggestions && (
+        <div 
+          className="ai-hologram-panel mb-6" 
+          style={{
+            background: 'linear-gradient(135deg, rgba(254, 242, 242, 0.95) 0%, rgba(254, 226, 226, 0.95) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '14px',
+            padding: '14px 20px',
+            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.04)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            animation: 'fadeInUp 0.3s ease-out'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '22px' }}>🚨</span>
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 850, color: '#991b1b' }}>AI SAFETY STOCKOUT PROJECTION</div>
+              <div style={{ fontSize: '12px', color: '#7f1d1d', marginTop: '2px', fontWeight: 600 }}>
+                Article **B-108 (Crimson Red)** has dropped to 12 pairs (Safety ROP threshold: 30 pairs). Depletion expected in **1 day**.
+              </div>
+            </div>
+          </div>
+          <a 
+            href="/po/create?is_draft_ai=true&article_code=B-108&vendor=Super-Strap%20Ltd&colour=CRIMSON_RED&quantity=450"
+            style={{
+              background: '#dc2626',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '11.5px',
+              fontWeight: 800,
+              textDecoration: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+              transition: 'all 0.2s'
+            }}
+          >
+            Draft Advisory Replenishment Order →
+          </a>
+        </div>
+      )}
 
       {/* 2. Advanced Filters and Multi-Column Search */}
       <div className={styles.filterPanel}>

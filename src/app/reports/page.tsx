@@ -108,7 +108,7 @@ export default function Reports() {
                      <th className="num-mono" style={{ textAlign: 'right', fontWeight: 800, color: 'var(--primary)' }}>{activeTab === 'final_report' ? 'BALANCE' : 'NET_FLOW'}</th>
                   </tr>
                   <tr className="no-print">
-                     <td><input type="date" className="nano-input" value={activeTab==='final_report'?filters.last_activity:filters.sheet_date} onChange={e => setFilters({...filters, [activeTab==='final_report'?'last_activity':'sheet_date']: e.target.value})} /></td>
+                     <td><input type="date" className="nano-input" value={(activeTab==='final_report'?filters.last_activity:filters.sheet_date) || ''} onChange={e => setFilters({...filters, [activeTab==='final_report'?'last_activity':'sheet_date']: e.target.value})} /></td>
                      <td><input type="text" className="nano-input" placeholder="Filter..." value={filters.article_code||''} onChange={e => setFilters({...filters, article_code: e.target.value})} /></td>
                      <td><input type="text" className="nano-input" placeholder="Filter..." value={filters.colour||''} onChange={e => setFilters({...filters, colour: e.target.value})} /></td>
                      <td colSpan={9}></td>

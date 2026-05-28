@@ -11,7 +11,7 @@ export async function GET() {
     }
 
     const db = getDb();
-    const user = await db.prepare('SELECT id, username, full_name, role, phone FROM users WHERE id = ?').get(authUser.id) as any;
+    const user = await db.prepare('SELECT id, username, full_name, role, phone, avatar_url FROM users WHERE id = ?').get(authUser.id) as any;
     
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { full_name, username, phone, password } = body;
+    const { full_name, username, phone, password, avatar_url } = body;
     const db = getDb();
 
     // Validate username uniqueness if changed
@@ -73,6 +73,11 @@ export async function POST(req: NextRequest) {
       
       updates.push('plain_password=?');
       vals.push(password);
+    }
+
+    if (avatar_url !== undefined) {
+      updates.push('avatar_url=?');
+      vals.push(avatar_url || null);
     }
 
     if (updates.length === 0) {

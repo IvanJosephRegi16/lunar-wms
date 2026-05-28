@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const userAgent = req.headers.get('user-agent') || 'unknown';
 
     console.log(`[DEBUG] Login attempt for user: ${username} from host: ${req.headers.get('host')}`);
-    const user = await db.prepare('SELECT * FROM users WHERE username = ? AND is_active = 1').get(username) as any;
+    const user = await db.prepare('SELECT * FROM users WHERE username = ?').get(username) as any;
 
     if (!user) {
       console.log(`[DEBUG] User not found: ${username}`);
@@ -30,6 +30,13 @@ export async function POST(req: NextRequest) {
       await logAudit({ userId: user.id, username, action: 'LOGIN_FAILED', module: 'auth', description: `Wrong password. IP: ${ipAddress}` });
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    if (user.is_active === 0) {
+      console.log(`[DEBUG] User pending approval: ${username}`);
+      await logAudit({ userId: user.id, username, action: 'LOGIN_FAILED', module: 'auth', description: `Pending admin approval. IP: ${ipAddress}` });
+      return NextResponse.json({ error: 'Your account is pending Admin approval.' }, { status: 403 });
+    }
+    
     console.log(`[DEBUG] Login successful for user: ${username}`);
 
     const token = await signToken({

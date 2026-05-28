@@ -1,21 +1,81 @@
-export function formatDate(dateStr: string): string {
-  if (!dateStr) return '';
+export const IST_TIMEZONE = 'Asia/Kolkata';
+
+function parseDbDate(dateStr: string): Date | null {
+  if (!dateStr) return null;
   let parsedStr = dateStr;
   if (!dateStr.includes('T') && !dateStr.includes('Z') && dateStr.includes(' ')) {
     parsedStr = dateStr.replace(' ', 'T') + 'Z';
   }
   const d = new Date(parsedStr);
-  return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric' });
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+/** YYYY-MM-DD for today in IST (Mumbai). */
+export function getTodayIST(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: IST_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+/** Live clock string for chatbot — Indian date & time, IST · Mumbai. */
+export function formatNowIST(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-IN', {
+    timeZone: IST_TIMEZONE,
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }).formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('weekday')}, ${get('day')} ${get('month')} ${get('year')} · ${get('hour')}:${get('minute')}:${get('second')} ${get('dayPeriod')} IST · Mumbai`;
+}
+
+/** Stable header date (SSR + client) — avoids en-IN locale string differences in Node vs browser. */
+export function formatTodayHeader(timeZone = IST_TIMEZONE): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).formatToParts(new Date());
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('weekday')}, ${get('day')} ${get('month')} ${get('year')}`;
+}
+
+export function formatDate(dateStr: string): string {
+  const d = parseDbDate(dateStr);
+  if (!d) return dateStr || '';
+  return d.toLocaleDateString('en-IN', {
+    timeZone: IST_TIMEZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 export function formatDateTime(dateStr: string): string {
-  if (!dateStr) return '';
-  let parsedStr = dateStr;
-  if (!dateStr.includes('T') && !dateStr.includes('Z') && dateStr.includes(' ')) {
-    parsedStr = dateStr.replace(' ', 'T') + 'Z';
-  }
-  const d = new Date(parsedStr);
-  return d.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+  const d = parseDbDate(dateStr);
+  if (!d) return dateStr || '';
+  return d.toLocaleString('en-IN', {
+    timeZone: IST_TIMEZONE,
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  }) + ' IST';
 }
 
 export function getMayDates(year = 2026): string[] {

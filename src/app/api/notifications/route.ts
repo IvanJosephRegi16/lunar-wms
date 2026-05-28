@@ -46,3 +46,29 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+// DELETE: Delete single or all notifications for logged-in user
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+    const clearAll = url.searchParams.get('clearAll');
+
+    const db = getDb();
+
+    if (clearAll === 'true') {
+      // Clear all notifications for this user
+      await db.prepare(`DELETE FROM po_notifications WHERE user_id = ?`).run(user.id);
+    } else if (id) {
+      // Delete a single notification
+      await db.prepare(`DELETE FROM po_notifications WHERE id = ? AND user_id = ?`).run(id, user.id);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     const po = await db.prepare('SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0').get(id) as any;
     if (!po) return NextResponse.json({ error: 'PO not found' }, { status: 404 });
     
-    // Allow payment/financial updates on both accountant_processing and completed POs
-    if (po.status !== 'accountant_processing' && po.status !== 'completed') {
+    // Allow payment/financial updates on accountant_processing, supervisor_review, and completed POs
+    if (po.status !== 'accountant_processing' && po.status !== 'supervisor_review' && po.status !== 'completed') {
       return NextResponse.json({ error: 'PO is not in an active or completed stage for payment' }, { status: 400 });
     }
 
@@ -45,13 +45,14 @@ export async function POST(req: NextRequest) {
           const itemId = it.id;
           const required_qty = Number(it.required_qty ?? it.required_quantity ?? 0);
           const order_rate = Number(it.order_rate ?? 0);
+          const itemAmount = required_qty * order_rate;
           if (itemId) {
             await db.prepare(`
               UPDATE purchase_order_items 
-              SET required_qty = ?, order_rate = ?, amount = ? * ? 
+              SET required_qty = ?, order_rate = ?, amount = ?
               WHERE id = ?
-            `).run(required_qty, order_rate, required_qty, order_rate, itemId);
-            calculatedGross += required_qty * order_rate;
+            `).run(required_qty, order_rate, itemAmount, itemId);
+            calculatedGross += itemAmount;
           }
         }
       } else {
@@ -75,8 +76,11 @@ export async function POST(req: NextRequest) {
       if (balance <= 0) paymentStatus = 'paid';
       else if (paid > 0) paymentStatus = 'partial';
 
-      // Determine new status (keep completed POs as completed)
-      const targetStatus = (finalize || po.status === 'completed') ? 'completed' : 'accountant_processing';
+      // Determine new status (keep completed or supervisor POs as is if just updating payment)
+      let targetStatus = po.status;
+      if (po.status === 'accountant_processing') {
+        targetStatus = finalize ? 'supervisor_review' : 'accountant_processing';
+      }
 
       // 3. Update the purchase_orders record with inputs and computed financials
       await db.prepare(`
@@ -125,6 +129,19 @@ export async function POST(req: NextRequest) {
           ? `Recorded payment of ₹${paid.toLocaleString()} against completed PO invoice`
           : (finalize ? 'Finalized PO and completed accounting check' : 'Saved draft updates to PO items and ledger')
       );
+
+      // 5. Notify Supervisors if finalized
+      if (finalize && po.status !== 'completed') {
+        const supervisors = await db.prepare(`SELECT id FROM users WHERE role = 'supervisor'`).all() as any[];
+        const timestampStr = new Date().toISOString();
+        const msg = `🔍 Purchase Order ${po.po_number} finalized by Accountant and ready for Verification`;
+        for (const sup of supervisors) {
+          await db.prepare(`
+            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, is_read, created_at)
+            VALUES (?, ?, ?, 'supervisor_review', ?, 0, ?)
+          `).run(sup.id, po.id, po.po_number, msg, timestampStr);
+        }
+      }
 
       success = true;
     });

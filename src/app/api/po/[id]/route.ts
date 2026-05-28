@@ -225,6 +225,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
           VALUES (?, 'submit', ?, ?, 'Resubmitted Procurement after Return/Draft', ?)
         `).run(poId, user.id, user.full_name, istStr);
+
+        // 🔔 MNC-grade Notification: Insert separate row for each Admin user so they can read independently
+        const admins = await db.prepare(`SELECT id FROM users WHERE role = 'admin'`).all() as any[];
+        for (const adm of admins) {
+          await db.prepare(`
+            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+            VALUES (?, ?, ?, 'pending_admin_approval', ?, ?)
+          `).run(
+            adm.id, poId, po.po_number,
+            `⏳ Purchase Order ${po.po_number} was resubmitted by ${user.full_name} and is pending your approval.`,
+            new Date().toISOString()
+          );
+        }
       } else {
         await db.prepare(`
           INSERT INTO po_activity_logs (po_id, user_id, username, action, description)

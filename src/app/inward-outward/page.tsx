@@ -68,30 +68,67 @@ export default function InwardOutward() {
                
                {/* SEARCH INPUTS FOR ARTICLE TAB */}
                {activeTab === 'article' && (
-                 <div style={{ display: 'flex', gap: '12px' }}>
-                    <div className="corp-search">
+                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                    <div className="corp-search" style={{ position: 'relative' }}>
                        <span>🔍</span>
-                       <input type="text" placeholder="Article..." value={articleSearch} onChange={e => setArticleSearch(e.target.value)} />
+                       <input 
+                         type="text" 
+                         placeholder="Article..." 
+                         value={articleSearch} 
+                         onChange={e => setArticleSearch(e.target.value)} 
+                         style={{ paddingRight: '28px' }}
+                       />
+                       {articleSearch && (
+                         <button 
+                           onClick={() => setArticleSearch('')} 
+                           style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-ghost)', fontSize: '11px', padding: '4px' }}
+                         >
+                           ✖
+                         </button>
+                       )}
                     </div>
-                    <div className="corp-search">
+                    <div className="corp-search" style={{ position: 'relative' }}>
                        <span>🔍</span>
-                       <input type="text" placeholder="Colour..." value={colourSearch} onChange={e => setColourSearch(e.target.value)} />
+                       <input 
+                         type="text" 
+                         placeholder="Colour..." 
+                         value={colourSearch} 
+                         onChange={e => setColourSearch(e.target.value)} 
+                         style={{ paddingRight: '28px' }}
+                       />
+                       {colourSearch && (
+                         <button 
+                           onClick={() => setColourSearch('')} 
+                           style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-ghost)', fontSize: '11px', padding: '4px' }}
+                         >
+                           ✖
+                         </button>
+                       )}
                     </div>
+                    {(articleSearch || colourSearch) && (
+                      <button 
+                        className="btn-corp" 
+                        onClick={() => { setArticleSearch(''); setColourSearch(''); }}
+                        style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--danger)', borderColor: 'var(--danger)', borderRadius: '8px' }}
+                      >
+                        Clear All
+                      </button>
+                    )}
                  </div>
                )}
             </div>
          </div>
 
-         <div style={{ overflowX: 'auto' }}>
+         <div className="scroll-table-wrapper" style={{ overflowY: 'auto', maxHeight: '600px', overflowX: 'auto', borderBottom: '1px solid var(--border)' }}>
             {activeTab === 'daily' ? (
-               <table className="table-corporate">
+               <table className="table-corporate" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Weekday</th>
-                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--success)' }}>Total Inward</th>
-                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)' }}>Total Outward</th>
-                    <th className="num-mono" style={{ textAlign: 'right', background: '#f8fafc', width: '200px' }}>Daily Net Change</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Date</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Weekday</th>
+                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--success)', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Total Inward</th>
+                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Total Outward</th>
+                    <th className="num-mono" style={{ textAlign: 'right', backgroundColor: '#f8fafc', width: '200px', position: 'sticky', top: 0, zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Daily Net Change</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -104,8 +141,18 @@ export default function InwardOutward() {
                        <td style={{ color: 'var(--text-muted)', fontSize: '13px' }}>{dateObj.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long' })}</td>
                        <td className="num-mono" style={{ textAlign: 'right', color: 'var(--success)' }}>{(d.inward_total || 0).toLocaleString()}</td>
                        <td className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)' }}>{(d.outward_total || 0).toLocaleString()}</td>
-                       <td className="num-mono" style={{ textAlign: 'right', background: '#f8fafc', fontWeight: 800, color: net >= 0 ? 'var(--success)' : 'var(--danger)', fontSize: '16px' }}>
-                         {net > 0 ? '+' : ''}{net.toLocaleString()}
+                       <td className="num-mono" style={{ textAlign: 'right', background: '#f8fafc', fontWeight: 800, fontSize: '16px' }}>
+                         <span style={{
+                           display: 'inline-block',
+                           padding: '4px 12px',
+                           borderRadius: '20px',
+                           fontWeight: 800,
+                           fontSize: '13px',
+                           background: net >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                           color: net >= 0 ? 'var(--success)' : 'var(--danger)',
+                         }}>
+                           {net > 0 ? '+' : ''}{net.toLocaleString()}
+                         </span>
                        </td>
                      </tr>
                     );
@@ -113,15 +160,15 @@ export default function InwardOutward() {
                 </tbody>
                </table>
             ) : (
-               <table className="table-corporate bordered">
+               <table className="table-corporate bordered" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
                 <thead>
                   <tr>
-                    <th>Article Code</th>
-                    <th>Spectrum</th>
-                    <th style={{ textAlign: 'center' }}>Unit Size</th>
-                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--success)' }}>Total Inward</th>
-                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)' }}>Total Outward</th>
-                    <th className="num-mono" style={{ textAlign: 'right', background: '#f8fafc', fontWeight: 800 }}>Asset Inventory</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Article Code</th>
+                    <th style={{ position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Spectrum</th>
+                    <th style={{ textAlign: 'center', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Unit Size</th>
+                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--success)', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Total Inward</th>
+                    <th className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Total Outward</th>
+                    <th className="num-mono" style={{ textAlign: 'right', backgroundColor: '#f8fafc', fontWeight: 800, position: 'sticky', top: 0, zIndex: 10, borderBottom: '2px solid var(--border)', boxShadow: 'inset 0 -1px 0 var(--border)' }}>Asset Inventory</th>
                   </tr>
                 </thead>
                 <tbody>

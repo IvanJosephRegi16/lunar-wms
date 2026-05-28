@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       }
 
       // 2. Upsert into Inventory Pool
-      const checkAgg = await db.prepare(`SELECT id FROM inventory_pool WHERE article_code = ? AND colour = ? FOR UPDATE`).get(article, color) as any;
+      const checkAgg = await db.prepare(`SELECT id FROM inventory_pool WHERE article_code = ? AND colour = ?`).get(article, color) as any;
       
       if (checkAgg) {
          let updateSets = [];

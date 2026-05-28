@@ -16,13 +16,25 @@ interface ScanHistory {
 }
 
 export default function ScanHistoryPage() {
+  const [user, setUser] = useState<any>(null);
+  const [menuVisibility, setMenuVisibility] = useState<any>(null);
   const [history, setHistory] = useState<ScanHistory[]>([]);
   const [loading, setLoading] = useState(true);
   
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [copiedId, setCopiedId] = useState<number | null>(null);
 
   useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setUser(data.user);
+          setMenuVisibility(data.menuVisibility);
+        }
+      });
+
     fetch('/api/scan-history')
       .then(res => res.json())
       .then(data => {
@@ -54,11 +66,22 @@ export default function ScanHistoryPage() {
     }
   };
 
+  const handleCopy = (barcode: string, id: number) => {
+    navigator.clipboard.writeText(barcode)
+      .then(() => {
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 1500);
+      })
+      .catch(err => {
+        console.error('Clipboard copy failed:', err);
+      });
+  };
+
   const filteredHistory = history.filter(scan => {
     const matchesSearch = 
-      scan.barcode.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      scan.article_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      scan.operator_name?.toLowerCase().includes(searchTerm.toLowerCase());
+      (scan.barcode || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (scan.article_code || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (scan.operator_name || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || scan.status.includes(statusFilter);
     return matchesSearch && matchesStatus;
@@ -77,12 +100,11 @@ export default function ScanHistoryPage() {
       s.status
     ]);
     
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
-      
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
+    link.setAttribute("href", url);
     link.setAttribute("download", `scan_history_${new Date().getTime()}.csv`);
     document.body.appendChild(link);
     link.click();
@@ -109,15 +131,29 @@ export default function ScanHistoryPage() {
           onChange={e => setSearchTerm(e.target.value)}
           className={styles.searchInput}
         />
-        <select 
-          value={statusFilter} 
-          onChange={e => setStatusFilter(e.target.value)}
-          className={styles.statusSelect}
-        >
-          <option value="all">All Statuses</option>
-          <option value="success">Success</option>
-          <option value="error">Errors</option>
-        </select>
+        <div className={styles.pillSelector}>
+          <button 
+            type="button"
+            className={`${styles.pill} ${statusFilter === 'all' ? styles.pillActive : ''}`}
+            onClick={() => setStatusFilter('all')}
+          >
+            All
+          </button>
+          <button 
+            type="button"
+            className={`${styles.pill} ${statusFilter === 'success' ? styles.pillActive : ''}`}
+            onClick={() => setStatusFilter('success')}
+          >
+            Success
+          </button>
+          <button 
+            type="button"
+            className={`${styles.pill} ${statusFilter === 'error' ? styles.pillActive : ''}`}
+            onClick={() => setStatusFilter('error')}
+          >
+            Errors
+          </button>
+        </div>
       </div>
 
       <div className={styles.tableWrapper}>
@@ -141,7 +177,22 @@ export default function ScanHistoryPage() {
               {filteredHistory.map(scan => (
                 <tr key={scan.id}>
                   <td>{formatDate(scan.created_at)}</td>
-                  <td className={styles.mono}>{scan.barcode}</td>
+                  <td>
+                    <div className={styles.barcodeCell}>
+                      <span className={styles.mono}>{scan.barcode}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => handleCopy(scan.barcode, scan.id)}
+                        className={styles.copyBtn}
+                        title="Copy barcode to clipboard"
+                      >
+                        📋 Copy
+                        {copiedId === scan.id && (
+                          <span className={styles.tooltip}>Copied!</span>
+                        )}
+                      </button>
+                    </div>
+                  </td>
                   <td><strong>{scan.article_code}</strong></td>
                   <td>{scan.colour}</td>
                   <td>{scan.size}</td>

@@ -1,16 +1,16 @@
 .packingContainer {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 40px;
 }
 
 .tabNav {
   display: flex;
   gap: 12px;
-  background: white;
+  background: var(--bg-card);
   padding: 8px;
   border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   overflow-x: auto;
 }
@@ -23,21 +23,21 @@
   border-radius: 12px;
   font-weight: 700;
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-ghost);
   text-decoration: none;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
 }
 
 .tab:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--bg-app);
+  color: var(--text-main);
 }
 
 .tab.active {
-  background: #0f172a;
+  background: var(--primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  box-shadow: var(--shadow-sm);
 }
 
 .icon {

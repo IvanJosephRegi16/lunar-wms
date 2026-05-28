@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized credential reset attempt or invalid session.' }, { status: 400 });
     }
 
-    // Locate the user linked to this phone
-    const user = await db.prepare('SELECT * FROM users WHERE phone = ?').get(phone) as any;
+    // Locate the user linked to this phone or username
+    const user = await db.prepare('SELECT * FROM users WHERE phone = ? OR username = ?').get(phone, phone) as any;
     if (!user) {
       return NextResponse.json({ error: 'User account not found.' }, { status: 404 });
     }

@@ -231,6 +231,19 @@ export async function POST(req: NextRequest) {
           INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
           VALUES (?, 'submit', ?, ?, 'Initial Procurement Submit', ?)
         `).run(poId, user.id, user.full_name, istStr);
+
+        // 🔔 MNC-grade Notification: Insert separate row for each Admin user so they can read independently
+        const admins = await db.prepare(`SELECT id FROM users WHERE role = 'admin'`).all() as any[];
+        for (const adm of admins) {
+          await db.prepare(`
+            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+            VALUES (?, ?, ?, 'pending_admin_approval', ?, ?)
+          `).run(
+            adm.id, poId, po_number,
+            `⏳ Purchase Order ${po_number} was submitted by ${user.full_name} and is pending your approval.`,
+            new Date().toISOString()
+          );
+        }
       }
 
       return poId;

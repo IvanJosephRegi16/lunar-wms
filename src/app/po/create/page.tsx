@@ -1,8 +1,252 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+
+const MATERIAL_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro', 'Others'];
+
+// Custom, highly attractive, search-supported premium dropdown component
+function PremiumSearchDropdown({
+  value,
+  onChange,
+  options,
+  onSelectOption,
+  placeholder,
+  required = false,
+  style = {}
+}: any) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState(value || '');
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 });
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Sync search state when external value changes
+  useEffect(() => {
+    setSearch(value || '');
+  }, [value]);
+
+  // Click outside detection
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        const target = event.target as HTMLElement;
+        if (target.closest('.dropdown-fixed-portal')) return;
+
+        setIsOpen(false);
+        const matched = options.find((o: any) => o.value.toUpperCase() === (value || '').toUpperCase());
+        setSearch(matched ? matched.value : value);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [value, options]);
+
+  // Position calculation dynamically on open, scroll or resize
+  useEffect(() => {
+    function updateCoords() {
+      if (isOpen && containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setCoords({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        });
+      }
+    }
+
+    if (isOpen) {
+      updateCoords();
+      // Recalculate positions on scroll or resize events
+      window.addEventListener('resize', updateCoords);
+      window.addEventListener('scroll', updateCoords, true);
+    }
+    return () => {
+      window.removeEventListener('resize', updateCoords);
+      window.removeEventListener('scroll', updateCoords, true);
+    };
+  }, [isOpen]);
+
+  // Filter options based on search input
+  const filtered = options.filter((o: any) =>
+    (o.value || '').toLowerCase().includes((search || '').toLowerCase()) ||
+    (o.label || '').toLowerCase().includes((search || '').toLowerCase())
+  );
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    if (onSelectOption) {
+      onSelectOption(val);
+    }
+    setIsOpen(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setSearch(val);
+    onChange(val); // Update live as they type
+    setIsOpen(true);
+  };
+
+  const isExactMatch = options.some((o: any) => (o.value || '').toUpperCase() === (search || '').toUpperCase());
+
+  return (
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', ...style }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          type="text"
+          placeholder={placeholder}
+          required={required}
+          value={search}
+          onChange={handleInputChange}
+          onFocus={() => setIsOpen(true)}
+          style={{
+            width: '100%',
+            padding: '10px 36px 10px 14px',
+            border: isOpen ? '2px solid var(--primary)' : '1px solid var(--border)',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: 600,
+            background: 'white',
+            outline: 'none',
+            transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+            boxShadow: isOpen ? '0 0 0 3px rgba(99, 102, 241, 0.15)' : 'none'
+          }}
+        />
+        
+        {/* Animated Chevron Arrow */}
+        <div
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            position: 'absolute',
+            right: '12px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--text-ghost)',
+            transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s ease',
+            pointerEvents: 'auto',
+            fontSize: '10px'
+          }}
+        >
+          ▼
+        </div>
+      </div>
+
+      {isOpen && mounted && typeof document !== 'undefined' && createPortal(
+        <div
+          className="dropdown-fixed-portal"
+          style={{
+            position: 'absolute',
+            top: `${coords.top + 6}px`,
+            left: `${coords.left}px`,
+            width: `${coords.width}px`,
+            background: 'white',
+            border: '1px solid rgba(0, 0, 0, 0.15)',
+            borderRadius: '12px',
+            boxShadow: '0 20px 45px rgba(0, 0, 0, 0.18), 0 10px 20px rgba(0, 0, 0, 0.08)',
+            maxHeight: '320px', // Substantially taller options list
+            overflowY: 'auto',
+            zIndex: 999999999, // Floating on top of everything!
+            padding: '6px'
+          }}
+        >
+          {filtered.length > 0 ? (
+            filtered.map((opt: any, idx: number) => {
+              const isSelected = (opt.value || '').toUpperCase() === (value || '').toUpperCase();
+              return (
+                <div
+                  key={idx}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelect(opt.value);
+                  }}
+                  style={{
+                    padding: '10px 14px', // Bigger touch target
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                    color: isSelected ? 'var(--primary)' : 'var(--text-main)',
+                    fontWeight: isSelected ? 700 : 600,
+                    fontSize: '13px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'background 0.15s ease',
+                    marginBottom: '3px'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = '#f1f5f9';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{opt.value}</span>
+                    {isSelected && <span style={{ fontSize: '10.5px', color: 'var(--primary)' }}>✓ Active</span>}
+                  </div>
+                  {opt.label && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px', fontWeight: 500 }}>
+                      {opt.label}
+                    </span>
+                  )}
+                </div>
+              );
+            })
+          ) : (
+            <div style={{ padding: '12px 14px', color: 'var(--text-ghost)', fontSize: '12.5px', fontWeight: 500, textAlign: 'center' }}>
+              No matches found
+            </div>
+          )}
+
+          {/* Special option to type a custom code if search is not empty and not an exact match */}
+          {search.trim() !== '' && !isExactMatch && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                handleSelect(search.trim());
+              }}
+              style={{
+                padding: '11px 14px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                background: 'rgba(16, 185, 129, 0.08)',
+                color: '#059669',
+                fontWeight: 700,
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                marginTop: '4px',
+                borderTop: '1px dashed rgba(0, 0, 0, 0.1)'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(16, 185, 129, 0.08)';
+              }}
+            >
+              <span>✨ Use custom code:</span>
+              <span style={{ fontFamily: 'monospace', background: 'white', padding: '2px 6px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                {search}
+              </span>
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
 
 function CreatePOFormContent() {
   const router = useRouter();
@@ -16,6 +260,17 @@ function CreatePOFormContent() {
   const [success, setSuccess] = useState('');
   const [correctionNotes, setCorrectionNotes] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showNewMaterialModal, setShowNewMaterialModal] = useState(false);
+  const [newMaterialData, setNewMaterialData] = useState({ category: '', material_code: '', material_name: '', date: '' });
+  const [savingMaterial, setSavingMaterial] = useState(false);
+  const [showNewVendorModal, setShowNewVendorModal] = useState(false);
+  const [newVendorName, setNewVendorName] = useState('');
+  const [savingVendor, setSavingVendor] = useState(false);
+
+  // Registered Hub Data Lists
+  const [materialsList, setMaterialsList] = useState<any[]>([]);
+  const [vendorsList, setVendorsList] = useState<any[]>([]);
+  const [historicalPoItems, setHistoricalPoItems] = useState<any[]>([]);
 
   // PO Header Details
   const [vendor, setVendor] = useState('');
@@ -26,7 +281,7 @@ function CreatePOFormContent() {
 
   // Spreadsheet Dynamic Rows
   const [items, setItems] = useState<any[]>([
-    { material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+    { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
   ]);
 
   // Fetch session and prefill edit details if applicable
@@ -44,6 +299,34 @@ function CreatePOFormContent() {
         }
         setUser(meData.user);
 
+        // Fetch dynamic registry lists (Materials & Vendors)
+        const registryRes = await fetch('/api/po/materials');
+        const registryData = await registryRes.json();
+        if (registryData.success) {
+          setMaterialsList(registryData.materials || []);
+          setVendorsList(registryData.vendors || []);
+        }
+
+        // Fetch Historical PO Items for bottom grid
+        const historyRes = await fetch('/api/po');
+        const historyData = await historyRes.json();
+        if (historyData.pos) {
+          const allItems: any[] = [];
+          historyData.pos.forEach((po: any) => {
+            if (Array.isArray(po.items)) {
+              po.items.forEach((it: any) => {
+                allItems.push({
+                  ...it,
+                  po_number: po.po_number,
+                  vendor: po.vendor || it.vendor || po.vendor_name,
+                  status: po.status
+                });
+              });
+            }
+          });
+          setHistoricalPoItems(allItems);
+        }
+
         // Auto-generate default PO number based on today's IST date
         const nowIST = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' });
         const todayIST = nowIST.split(',')[0].trim(); // YYYY-MM-DD
@@ -52,9 +335,40 @@ function CreatePOFormContent() {
         const mm = dateParts.slice(4, 6);
         const dd = dateParts.slice(6, 8);
         setPoDate(todayIST);
+        
         if (!editId) {
-          // Generate suggested PO number (user can override)
-          setPoNumber(`PO-${yy}${mm}${dd}-`);
+          // Generate a guaranteed unique sequential & timestamp PO number PO-YYMMDD-XXXX
+          const randSuffix = Math.floor(1000 + Math.random() * 9000);
+          setPoNumber(`PO-${yy}${mm}${dd}-${randSuffix}`);
+
+          // Check for AI Draft prefilling
+          const aiCode = searchParams.get('article_code');
+          const aiColour = searchParams.get('colour');
+          const aiQty = searchParams.get('quantity');
+          const aiVendor = searchParams.get('vendor');
+          const isDraftAi = searchParams.get('is_draft_ai');
+
+          if (isDraftAi && aiCode) {
+            setVendor(aiVendor || '');
+            setRemarks(`Advisory Draft PO compiled by AI/ML Intelligence for Article ${aiCode} (${aiColour}).`);
+            setItems([
+              {
+                category: aiCode.startsWith('PU') ? 'Others' : 'Eva',
+                material_code: aiCode,
+                material_name: `Polymer Compound - Article ${aiCode}`,
+                size_thickness: '9mm Standard',
+                order_rate: 120, // standard baseline rate
+                current_stock: 0,
+                current_stock_unit: 'Pair',
+                custom_current_stock_unit: '',
+                required_qty: Number(aiQty) || 600,
+                unit: 'Pair',
+                custom_unit: '',
+                remarks: `AI Recommended Safety Stock replenishment.`,
+                vendor: aiVendor || ''
+              }
+            ]);
+          }
         }
 
         if (editId) {
@@ -87,6 +401,7 @@ function CreatePOFormContent() {
               const isPredefined = ['Pair', 'piece', 'Meter'].includes(it.unit);
               const isCsuPredefined = ['Pair', 'piece', 'Meter'].includes(it.current_stock_unit);
               return {
+                category: it.category || '',
                 material_code: it.material_code || '',
                 material_name: it.material_name || '',
                 size_thickness: it.size_thickness || '',
@@ -113,10 +428,69 @@ function CreatePOFormContent() {
   }, [editId]);
 
   // Dynamic Row Actions
+  const handleAddMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingMaterial(true);
+    try {
+      const res = await fetch('/api/po/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'material',
+          material_code: newMaterialData.material_code,
+          material_name: newMaterialData.material_name,
+          category: newMaterialData.category
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        // Refresh materials list locally to avoid full page reload
+        setMaterialsList([...materialsList, {
+          material_code: newMaterialData.material_code.toUpperCase(),
+          material_name: newMaterialData.material_name,
+          category: newMaterialData.category
+        }]);
+        setShowNewMaterialModal(false);
+        setNewMaterialData({ category: '', material_code: '', material_name: '', date: '' });
+      }
+    } catch (err) {
+      alert('Failed to save material');
+    } finally {
+      setSavingMaterial(false);
+    }
+  };
+
+  const handleAddVendor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingVendor(true);
+    try {
+      const res = await fetch('/api/po/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'vendor', vendor_name: newVendorName })
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        setVendorsList([...vendorsList, { vendor_name: newVendorName.trim() }]);
+        setVendor(newVendorName.trim());
+        setShowNewVendorModal(false);
+        setNewVendorName('');
+      }
+    } catch (err) {
+      alert('Failed to save vendor');
+    } finally {
+      setSavingVendor(false);
+    }
+  };
+
   const addRow = () => {
     setItems([
       ...items,
-      { material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
     ]);
   };
 
@@ -129,13 +503,17 @@ function CreatePOFormContent() {
 
   const clearTable = () => {
     setItems([
-      { material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
     ]);
   };
 
-  const handleItemChange = (index: number, key: string, val: any) => {
+  const handleItemChange = (index: number, keyOrObj: string | Record<string, any>, val?: any) => {
     const updated = [...items];
-    updated[index] = { ...updated[index], [key]: val };
+    if (typeof keyOrObj === 'string') {
+      updated[index] = { ...updated[index], [keyOrObj]: val };
+    } else {
+      updated[index] = { ...updated[index], ...keyOrObj };
+    }
     setItems(updated);
   };
 
@@ -154,7 +532,7 @@ function CreatePOFormContent() {
     setSuccess('');
 
     if (!vendor) {
-      setError('Please specify a Vendor for this procurement order.');
+      setError('Please select a Vendor for this procurement order.');
       return;
     }
 
@@ -293,9 +671,9 @@ function CreatePOFormContent() {
                   type="text"
                   placeholder="e.g. PO-260517-0001"
                   required
+                  readOnly
                   value={poNumber}
-                  onChange={e => setPoNumber(e.target.value)}
-                  style={{ paddingRight: '36px' }}
+                  style={{ paddingRight: '36px', background: '#f1f5f9', cursor: 'not-allowed', fontWeight: 800 }}
                 />
                 <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', pointerEvents: 'none' }}>🔑</span>
               </div>
@@ -308,7 +686,6 @@ function CreatePOFormContent() {
                 required
                 value={poDate}
                 onClick={e => {
-                  // Auto-fill today if empty, then open calendar
                   if (!poDate) {
                     const todayIST = new Date().toLocaleString('en-CA', { timeZone: 'Asia/Kolkata' }).split(',')[0].trim();
                     setPoDate(todayIST);
@@ -321,8 +698,16 @@ function CreatePOFormContent() {
             </div>
 
             <div className="form-group-lux">
-              <label>Vendor / Supplier *</label>
-              <input type="text" placeholder="e.g. Standard Polymer Ltd." required value={vendor} onChange={e => setVendor(e.target.value)} />
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>Vendor / Supplier *
+                <button type="button" onClick={() => setShowNewVendorModal(true)} style={{ fontSize: '10px', fontWeight: 700, color: 'var(--primary)', background: 'none', border: '1px solid var(--primary)', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}>+ New Vendor</button>
+              </label>
+              <PremiumSearchDropdown
+                value={vendor}
+                onChange={(val: string) => setVendor(val)}
+                options={vendorsList.map(v => ({ value: v.vendor_name, label: 'Registered Vendor' }))}
+                placeholder="Search or select vendor..."
+                required
+              />
             </div>
           </div>
 
@@ -341,6 +726,9 @@ function CreatePOFormContent() {
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Enter required material specifications, quantities, and operational rates.</p>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn-corp" onClick={() => setShowNewMaterialModal(true)} style={{ padding: '6px 12px', fontSize: '12px', borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                ✨ Register New Material
+              </button>
               <button className="btn-corp" onClick={clearTable} style={{ padding: '6px 12px', fontSize: '12px', borderColor: 'var(--danger)', color: 'var(--danger)' }}>
                 🧹 Clear Table
               </button>
@@ -355,8 +743,9 @@ function CreatePOFormContent() {
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '40px' }}>#</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '130px' }}>Material Code *</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Material Name *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Category *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Name *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Current Stock & Unit</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Required Qty & Unit *</th>
@@ -374,17 +763,77 @@ function CreatePOFormContent() {
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', textAlign: 'center' }}>{idx + 1}</td>
                       <td style={{ padding: '8px' }}>
-                        <input type="text" placeholder="e.g. PU-CHEM-01" required value={item.material_code} onChange={e => handleItemChange(idx, 'material_code', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
+                        <select
+                          value={item.category || ''}
+                          onChange={e => {
+                            const newCategory = e.target.value;
+                            handleItemChange(idx, {
+                              category: newCategory,
+                              material_code: '', // Reset when category changes
+                              material_name: ''
+                            });
+                          }}
+                          style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: 'white' }}
+                          required
+                        >
+                          <option value="">-- Category --</option>
+                          {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                      </td>
+                      <td style={{ padding: '8px', minWidth: '220px' }}>
+                        <PremiumSearchDropdown
+                          value={item.material_code}
+                          onChange={(val: string) => {
+                            const selected = materialsList.find(m => m.material_code.toUpperCase() === val.toUpperCase());
+                            if (selected) {
+                              handleItemChange(idx, {
+                                material_code: val,
+                                material_name: selected.material_name,
+                                category: selected.category || item.category || 'Others'
+                              });
+                            } else {
+                              handleItemChange(idx, 'material_code', val);
+                            }
+                          }}
+                          options={materialsList
+                            .filter(m => !item.category || (m.category || 'Others') === item.category)
+                            .map(m => ({ value: m.material_code, label: m.material_name }))}
+                          placeholder={!item.category ? "Select Category First..." : "Search or type code..."}
+                          required
+                        />
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <input type="text" placeholder="e.g. Polyurethane Resin A" required value={item.material_name} onChange={e => handleItemChange(idx, 'material_name', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
+                        {(() => {
+                          const isRegistered = materialsList.some(m => m.material_code.toUpperCase() === (item.material_code || '').toUpperCase());
+                          return (
+                            <PremiumSearchDropdown
+                              value={item.material_name}
+                              onChange={(val: string) => {
+                                const selected = materialsList.find(m => m.material_name.toUpperCase() === val.toUpperCase());
+                                if (selected) {
+                                  handleItemChange(idx, {
+                                    material_code: selected.material_code,
+                                    material_name: val,
+                                    category: selected.category || item.category || 'Others'
+                                  });
+                                } else {
+                                  handleItemChange(idx, 'material_name', val);
+                                }
+                              }}
+                              options={materialsList
+                                .filter(m => !item.category || (m.category || 'Others') === item.category)
+                                .map(m => ({ value: m.material_name, label: m.material_code }))}
+                              placeholder={isRegistered ? "Populated from registry..." : "Search or type name..."}
+                              required
+                            />
+                          );
+                        })()}
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input type="text" placeholder="e.g. 5mm" required value={item.size_thickness} onChange={e => handleItemChange(idx, 'size_thickness', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          {/* Current Stock unit selector */}
                           <select
                             value={item.current_stock_unit || ''}
                             onChange={e => {
@@ -559,6 +1008,73 @@ function CreatePOFormContent() {
 
         </div>
 
+        {/* Historical PO Items reference ledger */}
+        <div className="card-clean font-inter" style={{ borderTop: '4px solid #10b981', padding: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>📋</span> Historical Purchase Order Ledger Reference (Read Only)
+              </h3>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                Review all past items ordered across all approved, completed, or draft purchase orders.
+              </p>
+            </div>
+            <span style={{ fontSize: '12px', background: '#d1fae5', color: '#065f46', padding: '4px 10px', borderRadius: '6px', fontWeight: 700 }}>
+              {historicalPoItems.length} Past Items
+            </span>
+          </div>
+
+          <div style={{ overflowX: 'auto', maxHeight: '350px' }}>
+            {historicalPoItems.length === 0 ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-ghost)', fontSize: '13px', fontWeight: 600 }}>
+                No historical purchase orders recorded.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border)' }}>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>PO Ref</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Material Code</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Material Name</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Size / Thickness</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Required Qty & Unit</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Order Rate (₹)</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Amount (₹)</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Vendor</th>
+                    <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {historicalPoItems.map((it, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
+                      <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text-ghost)' }}>{it.po_number}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 700, color: '#4f46e5' }}>{it.material_code}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{it.material_name}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{it.size_thickness}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>{it.required_qty} {it.unit}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>₹{Number(it.order_rate).toLocaleString()}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--primary)' }}>₹{Number(it.amount).toLocaleString()}</td>
+                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{it.vendor}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontWeight: 800,
+                          background: it.status === 'completed' ? '#dcfce7' : it.status === 'pending_admin_approval' ? '#fef9c3' : '#eff6ff',
+                          color: it.status === 'completed' ? '#15803d' : it.status === 'pending_admin_approval' ? '#854d0e' : '#1e40af'
+                        }}>
+                          {it.status?.toUpperCase()?.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+
       </div>
 
       {showSuccessPopup && (
@@ -633,6 +1149,68 @@ function CreatePOFormContent() {
             </button>
           </div>
         </div>
+      )}
+
+      {showNewMaterialModal && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div className="card-clean fade-up" style={{ width: '90%', maxWidth: '400px', padding: '24px', background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>✨ Register New Material</h3>
+              <button onClick={() => setShowNewMaterialModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-ghost)' }}>×</button>
+            </div>
+            <form onSubmit={handleAddMaterial} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="form-group-lux">
+                <label>Date (Auto)</label>
+                <input type="text" value={poDate} readOnly style={{ background: '#f1f5f9', cursor: 'not-allowed' }} />
+              </div>
+              <div className="form-group-lux">
+                <label>Category *</label>
+                <select
+                  value={newMaterialData.category}
+                  onChange={e => setNewMaterialData({...newMaterialData, category: e.target.value})}
+                  style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', fontWeight: 600, background: 'white' }}
+                  required
+                >
+                  <option value="">-- Select Category --</option>
+                  {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              </div>
+              <div className="form-group-lux">
+                <label>Material Code *</label>
+                <input type="text" placeholder="e.g. EVA-001" required value={newMaterialData.material_code} onChange={e => setNewMaterialData({...newMaterialData, material_code: e.target.value})} />
+              </div>
+              <div className="form-group-lux">
+                <label>Material Name *</label>
+                <input type="text" placeholder="e.g. Standard EVA Sheet" required value={newMaterialData.material_name} onChange={e => setNewMaterialData({...newMaterialData, material_name: e.target.value})} />
+              </div>
+              <button type="submit" disabled={savingMaterial} className="btn-corp btn-primary-corp" style={{ width: '100%', marginTop: '10px', padding: '12px', fontSize: '14px' }}>
+                {savingMaterial ? 'Saving...' : 'Register Material'}
+              </button>
+            </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showNewVendorModal && typeof document !== 'undefined' && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 999999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+          <div className="card-clean fade-up" style={{ width: '90%', maxWidth: '380px', padding: '24px', background: 'white', borderRadius: '16px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ fontSize: '18px', fontWeight: 800 }}>🏭 Register New Vendor</h3>
+              <button onClick={() => setShowNewVendorModal(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-ghost)' }}>×</button>
+            </div>
+            <form onSubmit={handleAddVendor} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div className="form-group-lux">
+                <label>Vendor / Supplier Name *</label>
+                <input type="text" placeholder="e.g. ABC Traders Pvt Ltd" required value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
+              </div>
+              <button type="submit" disabled={savingVendor} className="btn-corp btn-primary-corp" style={{ width: '100%', marginTop: '10px', padding: '12px', fontSize: '14px' }}>
+                {savingVendor ? 'Saving...' : 'Register Vendor'}
+              </button>
+            </form>
+          </div>
+        </div>,
+        document.body
       )}
 
       <style jsx>{`

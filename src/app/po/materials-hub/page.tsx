@@ -1,0 +1,263 @@
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import styles from '../../pm/articles/page.module.css'; // Reuse the exact same premium styles
+
+const MATERIAL_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro', 'Others'];
+
+export default function MaterialsHub() {
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Material Library States
+  const [activeMainTab, setActiveMainTab] = useState<'materials' | 'vendors'>('materials');
+  const [selectedMatCategory, setSelectedMatCategory] = useState(MATERIAL_CATEGORIES[0]);
+  const [vendors, setVendors] = useState<any[]>([]);
+  const [newVendorName, setNewVendorName] = useState('');
+  const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
+  const [isMatFormOpen, setIsMatFormOpen] = useState(false);
+  const [newMatCode, setNewMatCode] = useState('');
+  const [newMatName, setNewMatName] = useState('');
+  const [newMatCategory, setNewMatCategory] = useState(MATERIAL_CATEGORIES[0]);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, []);
+
+  const fetchMaterials = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/po/materials');
+      if (res.ok) {
+        const data = await res.json();
+        setMaterials(data.materials || []);
+        setVendors(data.vendors || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch hub data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newMatCode || !newMatName) return alert('Code and Name are required');
+    setSaving(true);
+    try {
+      const res = await fetch('/api/po/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'material',
+          material_code: newMatCode,
+          material_name: newMatName,
+          category: newMatCategory
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsMatFormOpen(false);
+        setNewMatCode('');
+        setNewMatName('');
+        fetchMaterials();
+      } else {
+        alert(data.error || 'Failed to create material');
+      }
+    } catch (err) {
+      alert('Network Error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCreateVendor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVendorName) return alert('Vendor Name is required');
+    setSaving(true);
+    try {
+      const res = await fetch('/api/po/materials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'vendor',
+          vendor_name: newVendorName
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsVendorFormOpen(false);
+        setNewVendorName('');
+        fetchMaterials();
+      } else {
+        alert(data.error || 'Failed to create vendor');
+      }
+    } catch (err) {
+      alert('Network Error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filteredMaterials = useMemo(() => {
+    return materials.filter(m => (m.category || 'Others') === selectedMatCategory);
+  }, [materials, selectedMatCategory]);
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>Loading Registry...</div>;
+  }
+
+  return (
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <div className={styles.titleBox}>
+          <h1>Master Hub Data</h1>
+          <p>Enterprise Registry for Raw Materials & Vendor Suppliers</p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            className={styles.btnPrimary} 
+            style={{ background: activeMainTab === 'materials' ? 'var(--primary)' : 'white', color: activeMainTab === 'materials' ? 'white' : 'var(--text-main)', border: '1px solid var(--border)' }}
+            onClick={() => setActiveMainTab('materials')}
+          >
+            📦 Materials
+          </button>
+          <button 
+            className={styles.btnPrimary} 
+            style={{ background: activeMainTab === 'vendors' ? '#8b5cf6' : 'white', color: activeMainTab === 'vendors' ? 'white' : 'var(--text-main)', border: '1px solid var(--border)' }}
+            onClick={() => setActiveMainTab('vendors')}
+          >
+            🏢 Vendors
+          </button>
+        </div>
+      </header>
+
+      {activeMainTab === 'materials' ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+            <button className={styles.btnPrimary} onClick={() => setIsMatFormOpen(true)}>
+              <span style={{ fontSize: '16px' }}>+</span> Create Material
+            </button>
+          </div>
+          {/* Category Tabs */}
+          <div className={styles.tabsContainer}>
+            {MATERIAL_CATEGORIES.map(cat => (
+              <button 
+                key={cat}
+                className={`${styles.tabBtn} ${selectedMatCategory === cat ? styles.tabActive : ''}`}
+                onClick={() => setSelectedMatCategory(cat)}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Materials Grid */}
+          <div className={styles.materialsGrid}>
+            {filteredMaterials.map(mat => (
+              <div key={mat.id} className={styles.materialCard}>
+                <div className={styles.matCode}>{mat.material_code}</div>
+                <div className={styles.matName}>{mat.material_name}</div>
+                <div className={styles.matDate}>Added: {new Date(mat.created_at || Date.now()).toLocaleDateString()}</div>
+              </div>
+            ))}
+            {filteredMaterials.length === 0 && (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                No materials found in {selectedMatCategory}.
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+            <button className={styles.btnPrimary} style={{ background: '#8b5cf6' }} onClick={() => setIsVendorFormOpen(true)}>
+              <span style={{ fontSize: '16px' }}>+</span> Register Vendor
+            </button>
+          </div>
+          <div className={styles.materialsGrid}>
+            {vendors.map(v => (
+              <div key={v.id} className={styles.materialCard} style={{ borderLeftColor: '#8b5cf6' }}>
+                <div className={styles.matCode} style={{ color: '#8b5cf6' }}>VENDOR</div>
+                <div className={styles.matName}>{v.vendor_name}</div>
+                <div className={styles.matDate}>Added: {new Date(v.created_at || Date.now()).toLocaleDateString()}</div>
+              </div>
+            ))}
+            {vendors.length === 0 && (
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                No vendors registered.
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Create Material Modal */}
+      {isMatFormOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsMatFormOpen(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h2>Create New Material</h2>
+              <button className={styles.closeBtn} onClick={() => setIsMatFormOpen(false)}>×</button>
+            </div>
+            <form onSubmit={handleCreateMaterial} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className={styles.modalBody}>
+                <div className={styles.fieldGroup}>
+                  <label>Material Category</label>
+                  <select className={styles.input} value={newMatCategory} onChange={e => setNewMatCategory(e.target.value)}>
+                    {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Material Code *</label>
+                  <input required className={styles.input} placeholder="e.g. RXN-001" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Material Name *</label>
+                  <input required className={styles.input} placeholder="e.g. Black Rexin Premium" value={newMatName} onChange={e => setNewMatName(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Creation Date</label>
+                  <input disabled className={styles.input} value={new Date().toLocaleDateString()} />
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button type="button" className={styles.btnPrimary} style={{ background: 'white', color: '#0f172a', border: '1px solid #cbd5e1' }} onClick={() => setIsMatFormOpen(false)}>Cancel</button>
+                <button type="submit" className={styles.btnPrimary} disabled={saving}>{saving ? 'Saving...' : 'Save Material'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Vendor Modal */}
+      {isVendorFormOpen && (
+        <div className={styles.modalOverlay} onClick={() => setIsVendorFormOpen(false)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h2>Register New Vendor</h2>
+              <button className={styles.closeBtn} onClick={() => setIsVendorFormOpen(false)}>×</button>
+            </div>
+            <form onSubmit={handleCreateVendor} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className={styles.modalBody}>
+                <div className={styles.fieldGroup}>
+                  <label>Vendor / Supplier Name *</label>
+                  <input required className={styles.input} placeholder="e.g. Alpha Chemicals Ltd." value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Registration Date</label>
+                  <input disabled className={styles.input} value={new Date().toLocaleDateString()} />
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button type="button" className={styles.btnPrimary} style={{ background: 'white', color: '#0f172a', border: '1px solid #cbd5e1' }} onClick={() => setIsVendorFormOpen(false)}>Cancel</button>
+                <button type="submit" className={styles.btnPrimary} style={{ background: '#8b5cf6' }} disabled={saving}>{saving ? 'Saving...' : 'Register Vendor'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

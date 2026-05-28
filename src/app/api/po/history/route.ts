@@ -19,7 +19,63 @@ export async function GET(req: NextRequest) {
       LIMIT 200
     `).all() as any[];
 
-    return NextResponse.json({ logs });
+    // Fetch POs for tracking view with full details
+    const rawPos = await db.prepare(`
+      SELECT po.*
+      FROM purchase_orders po
+      ORDER BY po.id DESC
+    `).all() as any[];
+
+    // On-the-fly Self-healing Database Recalculator
+    async function healPoData(poObj: any) {
+      if (!poObj) return poObj;
+      const itemsList = await db.prepare(`SELECT * FROM purchase_order_items WHERE po_id = ?`).all(poObj.id) as any[];
+      if (itemsList.length === 0) return poObj;
+
+      let calculatedGross = 0;
+      for (const it of itemsList) {
+        calculatedGross += (Number(it.order_rate) || 0) * (Number(it.required_qty) || 0);
+      }
+
+      const discount = Number(poObj.discount_percent) || 0;
+      const net = calculatedGross * (1 - discount / 100);
+      const transport = Number(poObj.transport_charge) || 0;
+      const grand = net + transport;
+      const paid = Number(poObj.amount_paid) || 0;
+      const balance = grand - paid;
+
+      const expectedStatus = balance <= 0 ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+
+      const needsNumericalHeal = calculatedGross > 0 && (poObj.gross_amount === 0 || poObj.net_amount === 0 || poObj.grand_total === 0);
+      const needsStatusHeal = poObj.payment_status !== expectedStatus;
+
+      if (needsNumericalHeal || needsStatusHeal) {
+        await db.prepare(`
+          UPDATE purchase_orders
+          SET gross_amount = ?, net_amount = ?, grand_total = ?, balance_amount = ?, payment_status = ?
+          WHERE id = ?
+        `).run(calculatedGross, net, grand, balance, expectedStatus, poObj.id);
+
+        poObj.gross_amount = calculatedGross;
+        poObj.net_amount = net;
+        poObj.grand_total = grand;
+        poObj.balance_amount = balance;
+        poObj.payment_status = expectedStatus;
+      }
+      return poObj;
+    }
+
+    const pos = await Promise.all(rawPos.map(async (po) => {
+      const healed = await healPoData(po);
+      const items = await db.prepare(`
+        SELECT id, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks 
+        FROM purchase_order_items 
+        WHERE po_id = ?
+      `).all(healed.id) as any[];
+      return { ...healed, items };
+    }));
+
+    return NextResponse.json({ logs, pos });
   } catch (error: any) {
     console.error('Error fetching PO history:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

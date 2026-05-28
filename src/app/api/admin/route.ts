@@ -65,18 +65,19 @@ export async function POST(req: NextRequest) {
   if (action === 'delete_user') {
     if (body.user_id === user.id) return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 });
     try {
+      // Temporarily disable foreign key checks to forcefully delete the user
+      // This leaves their history (orders, entries) intact but unlinked (orphaned or NULL created_by).
+      const db = getDb();
+      db.exec('PRAGMA foreign_keys = OFF;');
+      
       await db.prepare('DELETE FROM users WHERE id=?').run(body.user_id);
+      
+      db.exec('PRAGMA foreign_keys = ON;');
+
       await logAudit({ userId: user.id, username: user.username, action: 'DELETE_USER', module: 'admin', description: `Permanently deleted user: ${body.user_id}` });
       return NextResponse.json({ success: true });
     } catch (e: any) {
-      if (e.message?.includes('foreign key') || e.message?.includes('FOREIGN KEY') || e.message?.includes('violates foreign key')) {
-        await db.prepare('UPDATE users SET is_active=0 WHERE id=?').run(body.user_id);
-        await logAudit({ userId: user.id, username: user.username, action: 'DEACTIVATE_USER', module: 'admin', description: `Deactivated user ID: ${body.user_id} due to operational records constraint` });
-        return NextResponse.json({ 
-          success: true, 
-          message: 'User cannot be permanently deleted because they have associated history records (e.g. purchase orders or daily stock sheets). The user has been deactivated instead.' 
-        });
-      }
+      db.exec('PRAGMA foreign_keys = ON;'); // ensure it's turned back on in case of error
       return NextResponse.json({ error: e.message }, { status: 500 });
     }
   }
@@ -92,14 +93,55 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'get_menu_visibility') {
-    const configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+    const role = body.role || 'operator';
+    const configKey = `menu_visibility_config_${role}`;
+    let configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+    
+    // Fallback to global if role-specific is not set yet
+    if (!configRow) {
+      configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+    }
+    
     return NextResponse.json({ config: configRow ? JSON.parse(configRow.value) : null });
   }
 
   if (action === 'update_menu_visibility') {
+    const role = body.role || 'operator';
+    const configKey = `menu_visibility_config_${role}`;
     const valueString = JSON.stringify(body.config);
-    await db.prepare(`INSERT INTO system_settings (key, value, updated_at, updated_by) VALUES ('menu_visibility_config',?,CURRENT_TIMESTAMP,?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`).run(valueString, user.id);
-    await logAudit({ userId: user.id, username: user.username, action: 'UPDATE_MENU_VISIBILITY', module: 'admin', description: `Updated sidebar menu visibility configurations` });
+
+    // Get previous menu visibility configuration to calculate differences
+    const configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+    const prevConfig = configRow ? JSON.parse(configRow.value) : {};
+    const newConfig = body.config || {};
+
+    const changes: string[] = [];
+    const allKeys = Array.from(new Set([...Object.keys(prevConfig), ...Object.keys(newConfig)]));
+    for (const key of allKeys) {
+      const prevVal = !!prevConfig[key];
+      const newVal = !!newConfig[key];
+      if (prevVal !== newVal) {
+        changes.push(`${key}: ${prevVal ? 'ON' : 'OFF'} ➔ ${newVal ? 'ON' : 'OFF'}`);
+      }
+    }
+
+    const now = new Date();
+    const istOffset = 5.5 * 60 * 60 * 1000;
+    const istTime = new Date(now.getTime() + istOffset);
+    const timestampIST = istTime.toISOString().replace('T', ' ').substring(0, 19) + ' IST';
+
+    const auditDescription = changes.length > 0
+      ? `Role "${role.toUpperCase()}" menu config updated. Changes: [${changes.join(', ')}] at ${timestampIST}`
+      : `Role "${role.toUpperCase()}" menu config saved (no changes) at ${timestampIST}`;
+
+    await db.prepare(`INSERT INTO system_settings (key, value, updated_at, updated_by) VALUES (?,?,CURRENT_TIMESTAMP,?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`).run(configKey, valueString, user.id);
+    await logAudit({ 
+      userId: user.id, 
+      username: user.username, 
+      action: 'UPDATE_MENU_VISIBILITY', 
+      module: 'admin', 
+      description: auditDescription 
+    });
     return NextResponse.json({ success: true });
   }
 

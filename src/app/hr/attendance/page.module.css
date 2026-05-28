@@ -1,0 +1,210 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 40px); /* Fill the screen */
+  gap: 16px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card);
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.5px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.monthPicker {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-app);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-main);
+  outline: none;
+}
+
+.monthPicker:focus {
+  border-color: var(--primary);
+}
+
+.saveBtn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saveBtn:hover {
+  background: var(--primary-glow);
+}
+
+.saveBtn:disabled {
+  background: var(--border);
+  color: var(--text-ghost);
+  cursor: not-allowed;
+}
+
+.matrixWrapper {
+  flex: 1;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: auto;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  /* Hardware acceleration for scrolling */
+  will-change: transform;
+}
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  font-family: ui-monospace, monospace;
+}
+
+.table th {
+  background: #f8fafc;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-ghost);
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  text-align: center;
+  min-width: 40px;
+}
+
+.table th.empHeader {
+  left: 0;
+  z-index: 20;
+  min-width: 250px;
+  text-align: left;
+  background: #f1f5f9;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.table td {
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  text-align: center;
+  position: relative;
+}
+
+.table td.empCell {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: white;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+  box-shadow: 2px 0 5px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.empCode {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.empName {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 230px;
+}
+
+/* Cell Input Styling */
+.cellInput {
+  width: 100%;
+  height: 38px;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-weight: 800;
+  font-size: 13px;
+  outline: none;
+  cursor: cell;
+  font-family: inherit;
+  transition: background 0.1s;
+}
+
+.cellInput:focus {
+  background: #e0f2fe;
+  box-shadow: inset 0 0 0 2px var(--primary);
+  z-index: 2;
+}
+
+/* Status Colors */
+.status_P { color: #166534; background: #f0fdf4; }
+.status_A { color: #991b1b; background: #fef2f2; }
+.status_WO { color: #854d0e; background: #fefce8; }
+.status_HL { color: #075985; background: #f0f9ff; }
+.status_OT { color: #3730a3; background: #e0e7ff; }
+
+/* Keyboard Shortcuts Legend */
+.legend {
+  display: flex;
+  gap: 16px;
+  padding: 12px 24px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-ghost);
+}
+
+.legendKey {
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-main);
+}

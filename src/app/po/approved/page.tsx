@@ -241,9 +241,9 @@ export default function ApprovedPOs() {
                       <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code}</td>
                       <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name}</td>
                       <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{item.required_qty?.toLocaleString()} {item.unit || 'Pair'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{item.order_rate?.toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{item.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{Number(item.required_qty || 0).toLocaleString()} {item.unit || 'Pair'}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>

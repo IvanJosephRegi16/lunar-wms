@@ -74,7 +74,12 @@ export default function AccountantWorkspace() {
     });
   };
 
-  const grandTotal = (selectedPo?.net_amount ?? 0) + (Number(form.transport_charge) || 0);
+  const grossTotal = editedItems.reduce((sum, item) => sum + ((Number(item.required_qty) || 0) * (Number(item.order_rate) || 0)), 0);
+  const discountPercent = Number(selectedPo?.discount_percent) || 0;
+  const discountValue = grossTotal * (discountPercent / 100);
+  const liveNetAmount = grossTotal - discountValue;
+
+  const grandTotal = liveNetAmount + (Number(form.transport_charge) || 0);
   const balanceAmount = grandTotal - (Number(form.amount_paid) || 0);
   let paymentStatus: 'unpaid' | 'partial' | 'paid' = 'unpaid';
   if (balanceAmount <= 0) paymentStatus = 'paid';
@@ -365,15 +370,17 @@ export default function AccountantWorkspace() {
             <div className="card-clean" style={{ padding: '24px', position: 'sticky', top: '24px' }}>
               <div style={{ fontWeight: 800, fontSize: '15px', marginBottom: '20px' }}>Live Ledger</div>
               {[
-                { label: 'Net Total', value: `₹${(selectedPo.net_amount ?? 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--text-main)' },
-                { label: 'Transport', value: `₹${(Number(form.transport_charge) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#374151' },
-                { label: 'Grand Total', value: `₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#1e3a5f' },
-                { label: 'Amount Paid', value: `₹${(Number(form.amount_paid) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981' },
-                { label: 'Balance', value: `₹${balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: balanceAmount > 0 ? '#f59e0b' : '#10b981' },
-              ].map(({ label, value, color }) => (
+                { label: 'Gross Total', value: `₹${grossTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--text-main)', fontWeight: 700 },
+                { label: `Discount (${discountPercent}%)`, value: `-₹${discountValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--danger)', fontWeight: 700, show: discountPercent > 0 },
+                { label: 'Net Total', value: `₹${liveNetAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--primary)', fontWeight: 800 },
+                { label: 'Transport', value: `₹${(Number(form.transport_charge) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#374151', fontWeight: 700 },
+                { label: 'Grand Total', value: `₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#1e3a5f', fontWeight: 900 },
+                { label: 'Amount Paid', value: `₹${(Number(form.amount_paid) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: '#10b981', fontWeight: 700 },
+                { label: 'Balance', value: `₹${balanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: balanceAmount > 0 ? '#f59e0b' : '#10b981', fontWeight: 900 },
+              ].filter(item => item.show !== false).map(({ label, value, color, fontWeight }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
                   <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: 600 }}>{label}</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 800, color, fontSize: '14px' }}>{value}</span>
+                  <span style={{ fontFamily: 'monospace', fontWeight: fontWeight || 800, color, fontSize: '14px' }}>{value}</span>
                 </div>
               ))}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
@@ -388,23 +395,19 @@ export default function AccountantWorkspace() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '20px' }}>
                 <button
-                  onClick={() => handleSave(false)}
-                  disabled={submitting}
-                  className="btn-corp"
-                  style={{ width: '100%', padding: '11px', fontWeight: 700 }}
-                >
-                  💾 Save Draft
-                </button>
-                <button
                   onClick={() => handleSave(true)}
                   disabled={submitting}
                   style={{
-                    width: '100%', padding: '11px', fontWeight: 800,
-                    background: '#7c3aed', color: 'white', border: 'none',
-                    borderRadius: '10px', cursor: 'pointer', fontSize: '14px'
+                    width: '100%', padding: '13px', fontWeight: 800,
+                    background: 'linear-gradient(135deg, #7c3aed, #6d28d9)', color: 'white', border: 'none',
+                    borderRadius: '10px', cursor: 'pointer', fontSize: '14px',
+                    boxShadow: '0 4px 14px rgba(124,58,237,0.35)',
+                    transition: 'transform 0.15s, box-shadow 0.15s'
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.45)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(124,58,237,0.35)'; }}
                 >
-                  {submitting ? 'Processing...' : '✅ Finalize & Close PO'}
+                  {submitting ? '⏳ Sending...' : '📤 Finalize and Send to Supervisor'}
                 </button>
               </div>
             </div>

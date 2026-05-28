@@ -40,8 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Local-only (SQLite, offline bundles, dev scripts)
+# Local-only files (never commit to GitHub)
 *.db
+*.db-shm
+*.db-wal
 /data/
 /sent_emails/
 /Offline_App/
@@ -52,3 +54,10 @@ ts_errors.log
 check_users.js
 force_reset_auth.js
 test-cascade.ts
+migrate-pg-tables.js
+lunars.db
+
+# Railway / Docker — do NOT ignore these (they must be committed)
+# Dockerfile
+# railway.json
+# .env.example  ← safe to commit (no real secrets)

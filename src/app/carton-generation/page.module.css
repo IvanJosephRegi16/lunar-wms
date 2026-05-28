@@ -1,23 +1,23 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 40px;
   width: 100%;
   max-width: 100%;
 }
 
 .header {
-  padding: 24px;
-  background: white;
+  padding: 32px 40px;
+  background: var(--bg-card);
   border-radius: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
 }
 
 .mainGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 40px;
 }
 
 @media (max-width: 1024px) {
@@ -27,8 +27,8 @@
 }
 
 .selectionPanel {
-  background: white;
-  padding: 24px;
+  background: var(--bg-card);
+  padding: 32px 40px;
   border-radius: 16px;
   border: 1px solid var(--border);
   display: flex;
@@ -64,21 +64,23 @@
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  background: #f8fafc;
+  background: var(--bg-app);
+  color: var(--text-main);
   transition: all 0.2s;
   width: 100%;
 }
 
 .formGroup select:focus, .formGroup input:focus {
-  border-color: #3b82f6;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+  border-color: var(--primary);
+  background: var(--bg-card);
+  box-shadow: 0 0 0 3px var(--primary-glow);
 }
 
 .generationBox {
   margin-top: 12px;
   padding: 20px;
-  background: #f8fafc;
+  background: var(--bg-app);
+  color: var(--text-main);
   border-radius: 12px;
   border: 1px solid #cbd5e1;
   display: flex;
@@ -131,7 +133,7 @@
 }
 
 .generateBtn {
-  background: #10b981;
+  background: var(--success);
   color: white;
   border: none;
   padding: 16px;
@@ -148,13 +150,13 @@
 }
 
 .generateBtn:disabled {
-  background: #94a3b8;
+  background: var(--text-ghost);
   cursor: not-allowed;
 }
 
 .previewPanel {
-  background: white;
-  padding: 24px;
+  background: var(--bg-card);
+  padding: 32px 40px;
   border-radius: 16px;
   border: 1px solid var(--border);
   display: flex;
@@ -202,6 +204,7 @@
   text-align: right;
   padding: 12px;
   font-size: 14px;
+  color: var(--text-main);
   border-bottom: 1px solid var(--border);
 }
 
@@ -237,7 +240,7 @@
 
 .statBox {
   flex: 1;
-  background: #f1f5f9;
+  background: var(--bg-app);
   padding: 16px;
   border-radius: 12px;
   display: flex;
@@ -300,11 +303,11 @@
 }
 
 .builderCard {
-  background: white;
-  padding: 24px;
+  background: var(--bg-card);
+  padding: 32px 40px;
   border-radius: 16px;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -359,13 +362,14 @@
   font-size: 14px;
   font-weight: 700;
   text-align: center;
-  background: #f8fafc;
+  background: var(--bg-app);
+  color: var(--text-main);
   width: 100%;
 }
 
 .sizeInputBox input:focus {
-  border-color: #3b82f6;
-  background: white;
+  border-color: var(--primary);
+  background: var(--bg-card);
 }
 
 .builderBottom {
@@ -428,7 +432,7 @@
 }
 
 .saveBtn {
-  background: #3b82f6;
+  background: var(--primary);
   color: white;
   border: none;
   padding: 12px 24px;
@@ -444,13 +448,13 @@
 }
 
 .saveBtn:disabled {
-  background: #94a3b8;
+  background: var(--text-ghost);
   cursor: not-allowed;
 }
 
 .cancelBtn {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--bg-app);
+  color: var(--text-muted);
   border: 1px solid var(--border);
   padding: 12px 20px;
   font-size: 14px;
@@ -461,12 +465,12 @@
 }
 
 .cancelBtn:hover {
-  background: #e2e8f0;
+  background: var(--bg-card);
 }
 
 /* FILTER & SEARCH PANEL */
 .filterPanel {
-  background: #f8fafc;
+  background: var(--bg-app);
   padding: 16px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -511,7 +515,8 @@
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  background: white;
+  background: var(--bg-card);
+  color: var(--text-main);
   width: 100%;
 }
 
@@ -522,7 +527,8 @@
   font-size: 14px;
   font-weight: 600;
   outline: none;
-  background: white;
+  background: var(--bg-card);
+  color: var(--text-main);
   min-width: 180px;
   width: 100%;
 }
@@ -553,6 +559,7 @@
 .rulesTable td {
   padding: 14px 12px;
   font-size: 14px;
+  color: var(--text-main);
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
 }
@@ -563,7 +570,7 @@
 }
 
 .rulesTable tr:hover {
-  background: #f8fafc;
+  background: var(--bg-app);
 }
 
 .rulesTable td strong {

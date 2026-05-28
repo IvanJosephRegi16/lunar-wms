@@ -6,8 +6,31 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin' && user.role !== 'supervisor') {
-      return NextResponse.json({ error: 'Only administrators can review POs' }, { status: 403 });
+    const db = getDb();
+    const configKey = `menu_visibility_config_${user.role}`;
+    let configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+    if (!configRow) {
+      configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+    }
+
+    let hasApprovePermission = user.role === 'admin';
+    if (!hasApprovePermission) {
+      let isPoPendingVisible = true; // default is true
+      if (configRow) {
+        try {
+          const parsed = JSON.parse(configRow.value);
+          if (parsed.po_pending === false) {
+            isPoPendingVisible = false;
+          }
+        } catch {}
+      }
+      if (isPoPendingVisible) {
+        hasApprovePermission = true;
+      }
+    }
+
+    if (!hasApprovePermission) {
+      return NextResponse.json({ error: 'Unauthorized: Your role profile does not possess visibility authorization for the pending PO approval queue.' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -16,8 +39,6 @@ export async function POST(req: NextRequest) {
     if (!id || !action) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
-
-    const db = getDb();
 
     // Fetch PO including creator details
     const po = await db.prepare(`
@@ -78,7 +99,7 @@ export async function POST(req: NextRequest) {
         `).run(
           po.creator_user_id, id, po.po_number, 'approved',
           `✅ Your Purchase Order ${po.po_number} was approved by Admin and sent to Accountant for processing.`,
-          timestampStr
+          new Date().toISOString()
         );
 
         // 🔔 Notify all Accountants — approved and in their queue
@@ -89,7 +110,7 @@ export async function POST(req: NextRequest) {
           `).run(
             acct.id, id, po.po_number, 'approved',
             `📋 Purchase Order ${po.po_number} has been approved and is now ready in your processing queue.`,
-            timestampStr
+            new Date().toISOString()
           );
         }
 
@@ -119,7 +140,7 @@ export async function POST(req: NextRequest) {
         `).run(
           po.creator_user_id, id, po.po_number, 'rejected',
           `❌ Your Purchase Order ${po.po_number} was rejected by Admin. Reason: ${rejection_reason || comments || 'No reason provided'}`,
-          timestampStr
+          new Date().toISOString()
         );
 
       } else if (action === 'return') {
@@ -148,7 +169,7 @@ export async function POST(req: NextRequest) {
         `).run(
           po.creator_user_id, id, po.po_number, 'returned_for_edit',
           `🔄 Your Purchase Order ${po.po_number} was returned for correction by Admin. Notes: ${correction_notes || comments || 'Please review inputs'}. You can edit and resubmit.`,
-          timestampStr
+          new Date().toISOString()
         );
 
       } else {

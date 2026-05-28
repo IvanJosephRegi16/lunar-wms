@@ -266,7 +266,7 @@ CREATE TABLE IF NOT EXISTS po_notifications (
   user_id INTEGER NOT NULL REFERENCES users(id),
   po_id INTEGER NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
   po_number TEXT NOT NULL,
-  type TEXT NOT NULL CHECK(type IN ('approved', 'rejected', 'returned_for_edit')),
+  type TEXT NOT NULL,
   message TEXT NOT NULL,
   is_read INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()

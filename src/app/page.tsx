@@ -8,15 +8,49 @@ export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeChart, setActiveChart] = useState<'staging' | 'dispatched'>('staging');
+  const [alerts, setAlerts] = useState<any[]>([]);
+  const [aiInsights, setAiInsights] = useState<any>(null);
+  const [insightsLoading, setInsightsLoading] = useState(true);
 
   useEffect(() => {
+    fetch('/api/ai/insights')
+      .then(res => res.json())
+      .then(d => {
+        setAiInsights(d);
+        setInsightsLoading(false);
+      })
+      .catch(() => setInsightsLoading(false));
+
     fetch('/api/dashboard')
       .then(res => res.json())
       .then(d => {
         setStats(d);
         setLoading(false);
       });
+
+    // Fetch user access request approval alerts
+    fetch('/api/user/notifications')
+      .then(res => res.json())
+      .then(d => {
+        setAlerts(d.alerts || []);
+      })
+      .catch(() => {});
   }, []);
+
+  const handleDismissAlert = async (id: number) => {
+    try {
+      const res = await fetch('/api/user/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'dismiss', requestId: id })
+      });
+      if (res.ok) {
+        setAlerts(prev => prev.filter(a => a.id !== id));
+        // Instantly notify sidebar layout to refresh approved visibility menu keys!
+        window.dispatchEvent(new Event('menu_settings_updated'));
+      }
+    } catch {}
+  };
 
   if (loading) return <div className="loading-dot" style={{ margin: '100px auto', display: 'table' }}>Establishing System Parity...</div>;
 
@@ -122,6 +156,132 @@ export default function Dashboard() {
 
   return (
     <div className={styles.container}>
+
+      {/* Dynamic One-Time Action Notifications Banners */}
+      {alerts.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }} className="no-print">
+          {alerts.map(alert => {
+            const isApprove = alert.status === 'approved';
+            return (
+              <div 
+                key={alert.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  background: isApprove ? 'linear-gradient(135deg, #ecfdf5, #f0fdf4)' : 'linear-gradient(135deg, #fff5f5, #fff8f8)',
+                  border: isApprove ? '1.5px solid #10b981' : '1.5px solid #ef4444',
+                  borderRadius: '12px',
+                  padding: '16px 24px',
+                  boxShadow: isApprove ? '0 4px 14px rgba(16,185,129,0.08)' : '0 4px 14px rgba(239,68,68,0.06)',
+                  animation: 'fadeInUp 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transition: 'transform 0.2s',
+                  gap: '16px'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                  <span style={{ fontSize: '28px' }}>{isApprove ? '🎉' : '❌'}</span>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: isApprove ? '#065f46' : '#991b1b' }}>
+                      {isApprove ? 'Access Request Approved!' : 'Access Request Denied'}
+                    </h4>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: isApprove ? '#047857' : '#b91c1c', opacity: 0.9 }}>
+                      {isApprove 
+                        ? `The administrator approved your request for visibility of "${alert.module_name}". You can now access this sheet in your sidebar!`
+                        : `The administrator declined your request for visibility of "${alert.module_name}".`
+                      }
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDismissAlert(alert.id)}
+                  style={{
+                    background: isApprove ? '#10b981' : '#ef4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    padding: '8px 16px',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+           {/* ── ENTERPRISE OPERATIONS COMMAND CENTER HEADER ── */}
+      <div 
+        className="mb-6"
+        style={{
+          background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(243, 244, 246, 0.95) 100%)',
+          border: '1px solid var(--border)',
+          borderRadius: '20px',
+          padding: '24px',
+          boxShadow: '0 12px 36px rgba(0, 0, 0, 0.02)',
+          position: 'relative',
+          overflow: 'hidden'
+        }}
+      >
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '4px', background: 'linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%)' }} />
+        
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '20px' }}>🏢</span>
+              <span style={{ fontSize: '11px', fontWeight: 900, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.12em' }}>WMS Network Active</span>
+            </div>
+            <h2 style={{ fontSize: '24px', fontWeight: 900, color: 'var(--text-main)', margin: '4px 0 2px 0', letterSpacing: '-0.02em' }}>LUNAR'S OPERATION HUB</h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, fontWeight: 500 }}>Live overview of staging pool, packing dispatches, raw materials, and transaction logs.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* RAW MATERIALS WARNING WIDGET */}
+      {stats?.materialWarnings && stats.materialWarnings.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }} className="no-print">
+          <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#991b1b', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>⚠️</span> Raw Material Stock Alerts
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '12px' }}>
+            {stats.materialWarnings.map((warn: any) => {
+              const isCritical = warn.min_stock_level > 0 && warn.current_stock <= warn.min_stock_level;
+              return (
+                <div key={warn.id} style={{
+                  background: isCritical ? '#fef2f2' : '#fefce8',
+                  border: isCritical ? '1px solid #f87171' : '1px solid #facc15',
+                  borderRadius: '10px',
+                  padding: '12px 16px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#1f2937' }}>
+                      {warn.material_name} <span style={{ color: 'var(--text-ghost)', fontWeight: 400 }}>{warn.colour ? `(${warn.colour})` : ''}</span>
+                    </h4>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: isCritical ? '#b91c1c' : '#a16207', fontWeight: 600 }}>
+                      {isCritical ? 'CRITICAL SHORTAGE' : 'LOW STOCK'} • Min: {isCritical ? warn.min_stock_level : warn.warning_threshold} {warn.unit_abbr}
+                    </p>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 900, color: isCritical ? '#dc2626' : '#ca8a04', fontFamily: 'monospace' }}>
+                      {warn.current_stock}
+                    </div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700 }}>{warn.unit_abbr}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* SECTION 1: GENERAL WAREHOUSE INVENTORY (OUTSTOCK) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

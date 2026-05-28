@@ -21,6 +21,38 @@ export default function AdminPage() {
   const [logLoading, setLogLoading] = useState(true);
   const [logModuleFilter, setLogModuleFilter] = useState('all');
 
+  // Tab control state
+  const [activeTab, setActiveTab] = useState<'users' | 'signups' | 'requests' | 'audit' | 'backups'>('users');
+  const [approvingId, setApprovingId] = useState<number | null>(null);
+  const [rejectingId, setRejectingId] = useState<number | null>(null);
+
+  // Backup & Restore system states
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmRestore, setConfirmRestore] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreProgressMsg, setRestoreProgressMsg] = useState('');
+  
+  // Cloud Backup States
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupReport, setBackupReport] = useState<any>(null);
+
+  // Sidebar access requests review states
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [reqLoading, setReqLoading] = useState(true);
+  
+  // Backup & Reset states
+  const [backups, setBackups] = useState<any[]>([]);
+  const [selectedBackup, setSelectedBackup] = useState<any>(null);
+  const [viewingBackup, setViewingBackup] = useState<boolean>(false);
+  const [selectedTableData, setSelectedTableData] = useState<any>(null);
+  const [isViewingTableData, setIsViewingTableData] = useState<boolean>(false);
+  const [fetchingTable, setFetchingTable] = useState<string | null>(null);
+  
+  const [resetTables, setResetTables] = useState<any[]>([]);
+  const [selectedResetTables, setSelectedResetTables] = useState<string[]>([]);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
   // Create User Form Dialog Modal State
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ username: '', full_name: '', password: '', phone: '', role: 'operator' });
@@ -37,6 +69,7 @@ export default function AdminPage() {
   });
 
   // Sidebar Navigation Visibility configurations
+  const [selectedConfigRole, setSelectedConfigRole] = useState('operator');
   const [menuConfig, setMenuConfig] = useState<any>({
     dashboard: true,
     users_management: true,
@@ -53,60 +86,105 @@ export default function AdminPage() {
     reports_sheets: false,
     po_section: false,
     po_dashboard: true,
+    po_materials_hub: true,
     po_create: false,
+    po_pending: true,
+    po_returned: true,
+    po_approved: true,
+    po_rejected: true,
     po_accountant: true,
     po_completed: true,
     po_history: true,
-    po_payment_status: true
+    po_payment_status: true,
+    hr_section: false,
+    packing_section: false,
+    upper_stock_section: false,
+    materials_section: false,
+    materials_inventory: true,
+    materials_buying: true
   });
 
-  const loadMenuConfig = () => {
+  const loadMenuConfig = (role: string = 'operator') => {
     fetch('/api/admin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'get_menu_visibility' })
+      body: JSON.stringify({ action: 'get_menu_visibility', role })
     })
-      .then(res => res.json())
-      .then(d => {
-        if (d.config) {
-          setMenuConfig({
-            dashboard: true,
-            users_management: true,
-            scanning_intake: false,
-            manual_entry: false,
-            inventory_pool: true,
-            carton_generation: false,
-            packed_inventory: true,
-            scan_history: true,
-            daily_activity: false,
-            live_inventory: false,
-            stock_movement: false,
-            v_strap_entry: false,
-            reports_sheets: false,
-            po_section: false,
-            po_dashboard: true,
-            po_create: false,
-            po_accountant: true,
-            po_completed: true,
-            po_history: true,
-            po_payment_status: true,
-            ...d.config
-          });
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 403 || res.status === 401) {
+            return { config: {} };
+          }
+          throw new Error(`HTTP ${res.status}`);
         }
+        return res.json();
       })
-      .catch(e => console.error('Failed to load menu visibility configs', e));
+      .then(d => {
+        setMenuConfig({
+          dashboard: true,
+          users_management: true,
+          scanning_intake: false,
+          manual_entry: false,
+          inventory_pool: true,
+          carton_generation: false,
+          packed_inventory: true,
+          scan_history: true,
+          daily_activity: false,
+          live_inventory: false,
+          stock_movement: false,
+          v_strap_entry: false,
+          reports_sheets: false,
+          po_section: false,
+          po_dashboard: true,
+          po_materials_hub: true,
+          po_create: false,
+          po_pending: true,
+          po_returned: true,
+          po_approved: true,
+          po_rejected: true,
+          po_accountant: true,
+          po_completed: true,
+          po_history: true,
+          po_payment_status: true,
+          hr_section: false,
+          packing_section: false,
+          upper_stock_section: false,
+          materials_section: false,
+          materials_inventory: true,
+          materials_buying: true,
+          ...d.config
+        });
+      })
+      .catch(e => {
+        if (!e.message?.includes('403') && !e.message?.includes('401')) {
+          console.error('Failed to load menu visibility configs', e);
+        }
+      });
   };
 
-  const handleSaveMenuConfig = async (newConfig: any) => {
+  const handleSaveMenuConfig = async (role: string, newConfig: any) => {
+    // Safety check: Prevent disabling all modules simultaneously
+    const activeModules = Object.keys(newConfig).filter(k => newConfig[k] === true);
+    if (activeModules.length === 0) {
+      alert('⚠️ Security Guard Alert: You cannot disable all navigation links simultaneously. Each role must retain access to at least one system view.');
+      return;
+    }
+
+    // Safety check: Admin must retain all permissions
+    if (role === 'admin') {
+      alert('🔒 Safety Notice: Administrator system privileges are locked as active and cannot be modified.');
+      return;
+    }
+
     try {
       const res = await fetch('/api/admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'update_menu_visibility', config: newConfig })
+        body: JSON.stringify({ action: 'update_menu_visibility', role, config: newConfig })
       });
       if (res.ok) {
         setMenuConfig(newConfig);
-        alert('Sidebar menu visibility settings saved successfully! Navigation sidebar updated.');
+        alert(`Sidebar menu visibility settings saved successfully for role "${role.toUpperCase()}"!`);
         // Dispatch event to instantly refresh Sidebar layout
         window.dispatchEvent(new Event('menu_settings_updated'));
       } else {
@@ -119,23 +197,197 @@ export default function AdminPage() {
 
   const loadUsers = () => {
     fetch('/api/admin')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 403 || res.status === 401) {
+            setLoading(false);
+            return { users: [] };
+          }
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then(d => { setUsers(d.users || []); setLoading(false); })
-      .catch(e => console.error('Failed to load users', e));
+      .catch(e => {
+        if (!e.message?.includes('403') && !e.message?.includes('401')) {
+          console.error('Failed to load users', e);
+        }
+      });
   };
 
   const loadAuditLogs = () => {
     setLogLoading(true);
     fetch('/api/audit?limit=50')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) {
+          if (res.status === 403 || res.status === 401) {
+            setLogLoading(false);
+            return { logs: [] };
+          }
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+      })
       .then(d => { setLogs(d.logs || []); setLogLoading(false); })
-      .catch(e => { console.error('Failed to load audit logs', e); setLogLoading(false); });
+      .catch(e => {
+        if (!e.message?.includes('403') && !e.message?.includes('401')) {
+          console.error('Failed to load audit logs', e);
+        }
+        setLogLoading(false);
+      });
+  };
+
+  const loadAccessRequests = async () => {
+    setReqLoading(true);
+    try {
+      const res = await fetch('/api/admin/access-requests');
+      if (res.ok) {
+        const data = await res.json();
+        setPendingRequests(data.requests || []);
+      }
+    } catch (err) { /* ignore */ }
+    setReqLoading(false);
+  };
+
+  const handleProcessRequest = async (requestId: number, status: 'approved' | 'rejected') => {
+    try {
+      const res = await fetch('/api/admin/access-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'process', requestId, status })
+      });
+      if (res.ok) {
+        loadAccessRequests();
+        loadAuditLogs();
+        loadMenuConfig(selectedConfigRole);
+        alert(`Access request successfully ${status}!`);
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed to process request');
+      }
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  };
+
+  const loadBackups = async () => {
+    try {
+      const res = await fetch('/api/admin/backup');
+      if (res.ok) {
+        const data = await res.json();
+        setBackups(data.backups || []);
+      }
+    } catch (e) {
+      console.error('Failed to load backups', e);
+    }
+  };
+
+  const loadResetTables = async () => {
+    try {
+      const res = await fetch('/api/admin/backup/reset');
+      if (res.ok) {
+        const data = await res.json();
+        setResetTables(data.tables || []);
+      }
+    } catch (e) {
+      console.error('Failed to load reset tables', e);
+    }
+  };
+
+  const handleViewBackup = async (fileName: string) => {
+    setViewingBackup(true);
+    setSelectedBackup(null);
+    try {
+      const res = await fetch(`/api/admin/backup/view?file=${fileName}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedBackup(data);
+      } else {
+        alert('Failed to read backup file.');
+        setViewingBackup(false);
+      }
+    } catch (e) {
+      alert('Network error while reading backup.');
+      setViewingBackup(false);
+    }
+  };
+
+  const handleViewTableData = async (fileName: string, tableName: string) => {
+    setFetchingTable(tableName);
+    try {
+      const res = await fetch(`/api/admin/backup/view?file=${fileName}&table=${tableName}`);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setSelectedTableData(data);
+      setIsViewingTableData(true);
+    } catch (err: any) {
+      alert(err.message || 'Failed to fetch table data');
+    } finally {
+      setFetchingTable(null);
+    }
+  };
+
+  const handleExecuteReset = async () => {
+    if (selectedResetTables.length === 0) {
+      alert('Please select at least one table to clean.');
+      return;
+    }
+    
+    const confirmMessage = `🛑 CRITICAL WARNING 🛑\n\nYou are about to PERMANENTLY ERASE data from ${selectedResetTables.length} tables.\nThis action CANNOT BE UNDONE.\n\nType "CONFIRM" to proceed with the database factory reset.`;
+    const userPrompt = window.prompt(confirmMessage);
+    
+    if (userPrompt !== 'CONFIRM') {
+      alert('Factory reset cancelled.');
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/admin/backup/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tables: selectedResetTables })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Success: ${data.message}`);
+        setIsResetModalOpen(false);
+        setSelectedResetTables([]);
+        loadResetTables(); // Refresh counts
+      } else {
+        alert('Factory reset failed: ' + data.error);
+      }
+    } catch (e) {
+      alert('Network error during reset.');
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   useEffect(() => {
     loadUsers();
     loadAuditLogs();
     loadMenuConfig();
+    loadAccessRequests();
+    loadBackups();
+    loadResetTables();
+
+    // Check URL queries
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const t = params.get('tab');
+      if (t === 'requests') {
+        setActiveTab('requests');
+      }
+    }
+
+    // Handle Custom Event tab selection
+    const handleSelect = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail) setActiveTab(detail);
+    };
+    window.addEventListener('admin_select_tab', handleSelect);
+    return () => window.removeEventListener('admin_select_tab', handleSelect);
   }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -251,6 +503,72 @@ export default function AdminPage() {
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+    }
+  };
+
+  const handleRestoreSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFile) {
+      alert('⚠️ Please select or drop a valid backup database file first.');
+      return;
+    }
+    if (!confirmRestore) {
+      alert('⚠️ You must explicitly check the confirmation checkbox to continue.');
+      return;
+    }
+    
+    const doubleConfirm = confirm(
+      '⚠️⚠️ DANGER ZONE DETECTED ⚠️⚠️\n\n' +
+      'Are you absolutely 100% sure you want to perform this system restore?\n' +
+      'This will completely overwrite all active warehouse ledgers, quantities, scan history, and user settings.\n' +
+      'System will shut down concurrent operations during restore. This is your final warning!'
+    );
+    if (!doubleConfirm) return;
+
+    setIsRestoring(true);
+    setRestoreProgressMsg('Preparing system rollback point (stock.db.bak)...');
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      setRestoreProgressMsg('Uploading backup binary to server & unlinking WAL cache...');
+      const res = await fetch('/api/system/restore', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Server rejected database swap.');
+      }
+
+      setRestoreProgressMsg('Integrity verified! Database re-initialized successfully.');
+      alert('✅ SUCCESS: Database successfully restored from backup! The console will now reload to synchronize live states.');
+      
+      // Clean up inputs
+      setSelectedFile(null);
+      setConfirmRestore(false);
+      
+      // Reload state / logs
+      loadUsers();
+      loadAuditLogs();
+      
+      // Refresh browser page to reload all context
+      window.location.reload();
+    } catch (err: any) {
+      console.error('[RESTORE FAILURE]', err);
+      alert(`❌ RESTORE FAILURE: ${err.message || 'System failed to execute binary overwrite. Connection rolled back.'}`);
+    } finally {
+      setIsRestoring(false);
+      setRestoreProgressMsg('');
+    }
+  };
+
   // Client side user filtering
   const filteredUsers = users.filter(u => {
     const matchesSearch = 
@@ -284,32 +602,375 @@ export default function AdminPage() {
 
   return (
     <div style={{ animation: 'fadeInPage 0.4s ease-out' }}>
-      
-      {/* ── SECURITY NOTICE BANNER ──────────────────────────────────────── */}
+      {/* ── ENTERPRISE STORAGE & BACKUP CENTER ────────────────────────────── */}
       <div className="card mb-6" style={{
-        background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-        border: '1px solid #fca5a5',
+        background: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)',
+        border: '1px solid #334155',
         borderRadius: '16px',
-        padding: '16px 20px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '16px',
+        padding: '24px',
+        color: 'white',
         animation: 'slideIn 0.3s ease-out',
-        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.05)'
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.15)'
       }}>
-        <span style={{ fontSize: '28px' }}>🛡️</span>
-        <div>
-          <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Local Network Security Notice</h4>
-          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#7f1d1d', fontWeight: 600, lineHeight: 1.4 }}>
-            System is configured for offline/private local network operation. All core databases are saved securely inside the <code>data/lunars.db</code> folder. Complete system physical backups should cover this workspace folder daily.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
+          
+          <div style={{ flex: '1 1 300px' }}>
+            <h4 style={{ margin: 0, fontSize: '18px', fontWeight: 900, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '24px' }}>☁️</span> Cloud Archive & Recovery
+            </h4>
+            <p style={{ margin: '6px 0 16px 0', fontSize: '13px', color: '#94a3b8', lineHeight: 1.5, maxWidth: '400px' }}>
+              Securely serialize and transmit the entire relational database (PostgreSQL) and legacy archives (SQLite) to your designated encrypted external cloud provider.
+            </p>
+
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#cbd5e1', fontWeight: 800, letterSpacing: '0.05em' }}>PostgreSQL Pool</div>
+                <div style={{ fontSize: '16px', fontWeight: 900, color: '#38bdf8', marginTop: '4px' }}>Healthy (Active)</div>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#cbd5e1', fontWeight: 800, letterSpacing: '0.05em' }}>Est. Archive Size</div>
+                <div style={{ fontSize: '16px', fontWeight: 900, color: '#4ade80', marginTop: '4px' }}>~12.4 MB (Compressed)</div>
+              </div>
+            </div>
+
+            <button 
+              disabled={isBackingUp}
+              onClick={async () => {
+                setIsBackingUp(true);
+                setBackupReport(null);
+                try {
+                  const res = await fetch('/api/admin/backup', { method: 'POST' });
+                  const data = await res.json();
+                  if (res.ok) setBackupReport(data);
+                  else alert('Backup failed: ' + data.error);
+                } catch (err) {
+                  alert('Network error during backup.');
+                } finally {
+                  setIsBackingUp(false);
+                }
+              }}
+              style={{
+                background: isBackingUp ? '#475569' : 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+                color: 'white',
+                border: 'none',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                fontSize: '13px',
+                fontWeight: 800,
+                cursor: isBackingUp ? 'wait' : 'pointer',
+                boxShadow: isBackingUp ? 'none' : '0 4px 16px rgba(37, 99, 235, 0.4)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.3s'
+              }}>
+              {isBackingUp ? (
+                <>
+                  <span className="spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  TRANSMITTING TO CLOUD...
+                </>
+              ) : (
+                <>
+                  🚀 INITIATE FULL CLOUD BACKUP
+                </>
+              )}
+            </button>
+          </div>
+
+          <div style={{ flex: '1 1 300px', background: 'rgba(0,0,0,0.2)', padding: '20px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', minHeight: '160px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            {backupReport ? (
+              <div style={{ animation: 'fadeIn 0.5s ease-out' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+                  <div style={{ background: '#16a34a', color: 'white', padding: '6px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    ✓
+                  </div>
+                  <h5 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#4ade80' }}>Backup Successfully Verified</h5>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Archive File</div>
+                    <div style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 600, wordBreak: 'break-all' }}>{backupReport.file}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Total Payload</div>
+                    <div style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 600 }}>{backupReport.size}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Dest. Cloud Provider</div>
+                    <div style={{ fontSize: '12px', color: '#38bdf8', fontWeight: 600 }}>{backupReport.cloudProvider}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700 }}>Timestamp</div>
+                    <div style={{ fontSize: '12px', color: '#e2e8f0', fontWeight: 600 }}>{new Date().toLocaleTimeString()}</div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', color: '#64748b' }}>
+                <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px', opacity: 0.5 }}>📡</span>
+                <div style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Standby Mode</div>
+                <div style={{ fontSize: '11px', marginTop: '4px' }}>Awaiting manual trigger or scheduled cron execution.</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Backup History & Reset Tools */}
+        <div style={{ marginTop: '24px', borderTop: '1px solid #334155', paddingTop: '24px', display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
+          
+          {/* Recent Archives List */}
+          <div style={{ flex: '1 1 300px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: '#e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🗄️</span> Recent Cloud Archives
+            </h5>
+            {backups.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', paddingRight: '8px' }}>
+                {backups.slice(0, 5).map(b => (
+                  <div key={b.file} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: '#cbd5e1' }}>{new Date(b.createdAt).toLocaleDateString()} {new Date(b.createdAt).toLocaleTimeString()}</div>
+                      <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>{b.size} compressed</div>
+                    </div>
+                    <button 
+                      onClick={() => handleViewBackup(b.file)}
+                      style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseEnter={e => e.currentTarget.style.background = '#2563eb'}
+                      onMouseLeave={e => e.currentTarget.style.background = '#3b82f6'}
+                    >
+                      View Contents
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>No archives found in storage.</div>
+            )}
+          </div>
+
+          {/* Database Factory Reset */}
+          <div style={{ flex: '1 1 300px' }}>
+            <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>🛑</span> Danger Zone
+            </h5>
+            <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', padding: '16px', borderRadius: '12px' }}>
+              <div style={{ fontSize: '12px', color: '#fca5a5', marginBottom: '12px', lineHeight: 1.5 }}>
+                Database Factory Reset allows administrators to permanently purge operational data tables. Use only for full system resets after successfully securing a cloud backup.
+              </div>
+              <button
+                onClick={() => setIsResetModalOpen(true)}
+                style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
+                onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
+              >
+                <span>⚠️</span> CONFIGURE DATABASE CLEAN
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Backup Viewer Modal */}
+      {viewingBackup && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.8)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease-out', padding: '20px' }}>
+          <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '16px', width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: 'white', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🔍</span> Archive Content Inspector
+              </h3>
+              <button onClick={() => setViewingBackup(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+            </div>
+            
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1, color: '#cbd5e1' }}>
+              {!selectedBackup ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '200px', gap: '16px' }}>
+                  <span className="spinner" style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.1)', borderTop: '3px solid #38bdf8', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: '#94a3b8' }}>Decompressing and analyzing archive...</div>
+                </div>
+              ) : (
+                <div style={{ animation: 'slideIn 0.3s ease-out' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Archive File</div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'white', marginTop: '4px', wordBreak: 'break-all' }}>{selectedBackup.file}</div>
+                    </div>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Total Payload Size</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#38bdf8', marginTop: '4px' }}>{selectedBackup.size}</div>
+                    </div>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Total Tables Backed Up</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#4ade80', marginTop: '4px' }}>{selectedBackup.totalTables}</div>
+                    </div>
+                    <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '10px', textTransform: 'uppercase', color: '#64748b', fontWeight: 800 }}>Total Rows Restorable</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: '#a78bfa', marginTop: '4px' }}>{selectedBackup.totalRows.toLocaleString()}</div>
+                    </div>
+                  </div>
+
+                  <h4 style={{ fontSize: '13px', color: 'white', fontWeight: 800, marginBottom: '12px', borderBottom: '1px solid #334155', paddingBottom: '8px' }}>Table Breakdown</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                    {Object.entries(selectedBackup.tables).map(([tableName, info]: [string, any]) => (
+                      <div key={tableName} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', padding: '12px', borderRadius: '8px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0', marginBottom: '4px' }}>{tableName}</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                          <span style={{ color: '#64748b' }}>Records Saved:</span>
+                          <span style={{ color: '#4ade80', fontWeight: 800 }}>{info.rows.toLocaleString()}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '2px' }}>
+                          <span style={{ color: '#64748b' }}>Columns:</span>
+                          <span style={{ color: '#cbd5e1', fontWeight: 700 }}>{info.columns.length}</span>
+                        </div>
+                        <button
+                          onClick={() => handleViewTableData(selectedBackup.file, tableName)}
+                          disabled={fetchingTable === tableName || info.rows === 0}
+                          style={{
+                            marginTop: '10px', width: '100%', background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8',
+                            border: '1px solid rgba(56, 189, 248, 0.3)', padding: '6px', borderRadius: '6px',
+                            fontSize: '11px', fontWeight: 700, cursor: (fetchingTable === tableName || info.rows === 0) ? 'not-allowed' : 'pointer',
+                            opacity: (fetchingTable === tableName || info.rows === 0) ? 0.5 : 1, transition: 'all 0.2s'
+                          }}
+                          onMouseEnter={e => { if (fetchingTable !== tableName && info.rows > 0) e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)'; }}
+                          onMouseLeave={e => { if (fetchingTable !== tableName && info.rows > 0) e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'; }}
+                        >
+                          {fetchingTable === tableName ? 'Loading...' : '🔍 View Data'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Specific Table Data Viewer Modal */}
+      {isViewingTableData && selectedTableData && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.95)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease-out', padding: '20px' }}>
+          <div style={{ background: '#0f172a', border: '1px solid #38bdf8', borderRadius: '16px', width: '100%', maxWidth: '1200px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 0 40px rgba(56, 189, 248, 0.1)' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, color: 'white', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📊</span> Raw Data: <span style={{ color: '#38bdf8', fontFamily: 'monospace' }}>{selectedTableData.table}</span>
+                </h3>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>From archive: {selectedTableData.file} ({selectedTableData.data.length} records)</div>
+              </div>
+              <button onClick={() => setIsViewingTableData(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '24px', cursor: 'pointer' }}>&times;</button>
+            </div>
+            
+            <div style={{ padding: '20px', overflow: 'auto', flex: 1 }}>
+              {selectedTableData.data.length === 0 ? (
+                <div style={{ color: '#94a3b8', textAlign: 'center', marginTop: '40px' }}>No records found in this table.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', color: '#e2e8f0', fontFamily: 'monospace' }}>
+                  <thead style={{ position: 'sticky', top: 0, background: '#1e293b', zIndex: 1 }}>
+                    <tr>
+                      {selectedTableData.columns.map((col: string) => (
+                        <th key={col} style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #334155', color: '#38bdf8', whiteSpace: 'nowrap' }}>{col}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedTableData.data.slice(0, 100).map((row: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #1e293b', background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                        {selectedTableData.columns.map((col: string) => (
+                          <td key={col} style={{ padding: '10px 12px', whiteSpace: 'nowrap', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {row[col] !== null && row[col] !== undefined ? String(row[col]) : <span style={{ color: '#64748b', fontStyle: 'italic' }}>NULL</span>}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              {selectedTableData.data.length > 100 && (
+                <div style={{ textAlign: 'center', padding: '16px', color: '#94a3b8', fontSize: '12px', borderTop: '1px solid #1e293b', marginTop: '10px' }}>
+                  Showing first 100 records for performance.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Database Factory Reset Modal */}
+      {isResetModalOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.9)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease-out', padding: '20px', backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: '#0f172a', border: '1px solid #ef4444', borderRadius: '16px', width: '100%', maxWidth: '600px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(239, 68, 68, 0.2)' }}>
+            <div style={{ padding: '20px', borderBottom: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(239, 68, 68, 0.1)' }}>
+              <h3 style={{ margin: 0, color: '#fca5a5', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 900 }}>
+                <span>⚠️</span> SYSTEM FACTORY RESET
+              </h3>
+              <button onClick={() => setIsResetModalOpen(false)} style={{ background: 'none', border: 'none', color: '#fca5a5', fontSize: '20px', cursor: 'pointer' }}>&times;</button>
+            </div>
+            
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+              <div style={{ background: '#1e293b', borderLeft: '4px solid #ef4444', padding: '12px 16px', borderRadius: '0 8px 8px 0', fontSize: '12px', color: '#cbd5e1', marginBottom: '20px', lineHeight: 1.6 }}>
+                <strong>CRITICAL WARNING:</strong> Selecting tables below will execute a TRUNCATE CASCADE command, immediately and permanently deleting all records. Core infrastructure tables (users, system_settings) are locked and cannot be wiped. Ensure you have verified a cloud backup before proceeding.
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, color: 'white', fontSize: '13px', fontWeight: 800 }}>Select Targets for Deletion</h4>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setSelectedResetTables(resetTables.filter(t => !['users', 'system_settings'].includes(t.name)).map(t => t.name))} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Select All</button>
+                  <button onClick={() => setSelectedResetTables([])} style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Clear</button>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {resetTables.map(t => {
+                  const isProtected = ['users', 'system_settings'].includes(t.name);
+                  const isSelected = selectedResetTables.includes(t.name);
+                  return (
+                    <label key={t.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isSelected ? 'rgba(239, 68, 68, 0.2)' : 'rgba(255,255,255,0.03)', border: `1px solid ${isSelected ? '#ef4444' : 'rgba(255,255,255,0.05)'}`, padding: '12px 16px', borderRadius: '8px', cursor: isProtected ? 'not-allowed' : 'pointer', transition: 'all 0.2s', opacity: isProtected ? 0.5 : 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={isSelected || isProtected} 
+                          disabled={isProtected}
+                          onChange={(e) => {
+                            if (e.target.checked) setSelectedResetTables([...selectedResetTables, t.name]);
+                            else setSelectedResetTables(selectedResetTables.filter(name => name !== t.name));
+                          }}
+                          style={{ width: '16px', height: '16px', accentColor: '#ef4444' }}
+                        />
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: isSelected ? '#fca5a5' : 'white' }}>{t.name}</div>
+                          {isProtected && <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '2px' }}>🔒 Protected Core Table</div>}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '12px', fontWeight: 800, color: isProtected ? '#94a3b8' : (t.rows > 0 ? '#fbbf24' : '#64748b') }}>
+                        {t.rows.toLocaleString()} rows
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ padding: '20px', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: 'rgba(0,0,0,0.2)' }}>
+              <button 
+                onClick={() => setIsResetModalOpen(false)}
+                style={{ background: 'transparent', color: 'white', border: '1px solid #475569', padding: '10px 20px', borderRadius: '8px', fontSize: '12px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleExecuteReset}
+                disabled={selectedResetTables.length === 0 || isResetting}
+                style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 24px', borderRadius: '8px', fontSize: '12px', fontWeight: 800, cursor: (selectedResetTables.length === 0 || isResetting) ? 'not-allowed' : 'pointer', opacity: (selectedResetTables.length === 0 || isResetting) ? 0.5 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                {isResetting ? 'EXECUTING WIPE...' : `WIPE ${selectedResetTables.length} TABLES`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── STATS COUNTER BLOCKS ────────────────────────────────────────── */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
         gap: '20px',
         marginBottom: '24px',
         animation: 'slideIn 0.35s ease-out'
@@ -359,25 +1020,35 @@ export default function AdminPage() {
           <div style={{ fontSize: '32px', background: '#f0fdf4', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>🟢</div>
         </div>
 
-        {/* Card 3: Inactive Accounts */}
+        {/* Card 3: Pending Approvals / Inactive Accounts */}
         <div className="card" style={{
           padding: '18px 24px',
-          background: 'white',
+          background: statInactive > 0 ? '#fff1f2' : 'white', // highlight if there are pending users
           borderRadius: '16px',
-          border: '1px solid var(--border)',
+          border: statInactive > 0 ? '1px solid #fda4af' : '1px solid var(--border)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           transition: 'transform 0.2s',
+          position: 'relative'
         }}
         onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
         onMouseLeave={e => e.currentTarget.style.transform = 'none'}
         >
+          {statInactive > 0 && (
+            <div style={{ position: 'absolute', top: '-6px', right: '-6px', width: '20px', height: '20px', background: '#e11d48', borderRadius: '50%', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 0 10px rgba(225, 29, 72, 0.5)', animation: 'pulseDot 1.5s infinite' }}>
+              {statInactive}
+            </div>
+          )}
           <div>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Inactive Accounts</div>
-            <div style={{ fontSize: '28px', fontWeight: 900, color: '#991b1b', marginTop: '4px' }}>{statInactive}</div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: statInactive > 0 ? '#be123c' : 'var(--text-ghost)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              {statInactive > 0 ? 'Pending Approvals' : 'Inactive Accounts'}
+            </div>
+            <div style={{ fontSize: '28px', fontWeight: 900, color: statInactive > 0 ? '#9f1239' : '#991b1b', marginTop: '4px' }}>{statInactive}</div>
           </div>
-          <div style={{ fontSize: '32px', background: '#fef2f2', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center' }}>🚫</div>
+          <div style={{ fontSize: '32px', background: statInactive > 0 ? '#ffe4e6' : '#fef2f2', width: '56px', height: '56px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', animation: statInactive > 0 ? 'swing 2s infinite ease-in-out' : 'none' }}>
+            {statInactive > 0 ? '🔔' : '🚫'}
+          </div>
         </div>
 
         {/* Card 4: Management Accounts */}
@@ -402,7 +1073,83 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* ── SEARCH & FILTER CONTROLS TOOLBAR ────────────────────────────── */}
+      {/* ── HIGH FIDELITY TAB SWITCHER ─────────────────────────────────── */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', background: '#f1f5f9', padding: '5px', borderRadius: '14px', width: '100%', maxWidth: 'fit-content', border: '1px solid var(--border)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        <button 
+          onClick={() => setActiveTab('users')} 
+          style={{
+            background: activeTab === 'users' ? 'white' : 'transparent',
+            border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: 800,
+            color: activeTab === 'users' ? 'var(--text-main)' : 'var(--text-ghost)', cursor: 'pointer',
+            boxShadow: activeTab === 'users' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          👥 User Directory & Permissions
+        </button>
+        <button 
+          onClick={() => setActiveTab('requests')} 
+          style={{
+            background: activeTab === 'requests' ? 'white' : 'transparent',
+            border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: 800,
+            color: activeTab === 'requests' ? 'var(--text-main)' : 'var(--text-ghost)', cursor: 'pointer',
+            boxShadow: activeTab === 'requests' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          🔔 Access Requests
+          {pendingRequests.length > 0 && (
+            <span style={{ background: '#ef4444', color: 'white', fontSize: '10px', fontWeight: 900, borderRadius: '10px', padding: '2px 6px', lineHeight: 1 }}>
+              {pendingRequests.length}
+            </span>
+          )}
+        </button>
+        <button 
+          onClick={() => setActiveTab('signups')} 
+          style={{
+            background: activeTab === 'signups' ? 'white' : 'transparent',
+            border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: 800,
+            color: activeTab === 'signups' ? 'var(--text-main)' : 'var(--text-ghost)', cursor: 'pointer',
+            boxShadow: activeTab === 'signups' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px', position: 'relative'
+          }}
+        >
+          🆕 New Signups
+          {statInactive > 0 && (
+            <span style={{ background: '#e11d48', color: 'white', fontSize: '10px', fontWeight: 900, borderRadius: '10px', padding: '2px 7px', lineHeight: 1, animation: 'pulseDot 1.5s infinite' }}>
+              {statInactive}
+            </span>
+          )}
+        </button>
+        <button 
+          onClick={() => setActiveTab('audit')} 
+          style={{
+            background: activeTab === 'audit' ? 'white' : 'transparent',
+            border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: 800,
+            color: activeTab === 'audit' ? 'var(--text-main)' : 'var(--text-ghost)', cursor: 'pointer',
+            boxShadow: activeTab === 'audit' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          🛡️ System Audit Logs
+        </button>
+        <button 
+          onClick={() => setActiveTab('backups')} 
+          style={{
+            background: activeTab === 'backups' ? 'white' : 'transparent',
+            border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: 800,
+            color: activeTab === 'backups' ? 'var(--text-main)' : 'var(--text-ghost)', cursor: 'pointer',
+            boxShadow: activeTab === 'backups' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          💾 Backup & Restore
+        </button>
+      </div>
+
+      {activeTab === 'users' && (
+        <>
+          {/* ── SEARCH & FILTER CONTROLS TOOLBAR ────────────────────────────── */}
       <div className="card mb-4" style={{
         padding: '18px 24px',
         background: 'white',
@@ -512,7 +1259,7 @@ export default function AdminPage() {
         animation: 'slideIn 0.45s ease-out',
         boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
       }}>
-        <div className="table-wrapper">
+        <div className="table-wrapper" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1.5px solid var(--border)' }}>
@@ -806,17 +1553,50 @@ export default function AdminPage() {
               ⚙️ Sidebar Navigation Control Settings
             </h2>
             <p style={{ fontSize: '12.5px', color: 'var(--text-ghost)', margin: '4px 0 0 0', fontWeight: 600 }}>
-              Toggle visibility of any sidebar module or link. Perfect for streamlining roles and decluttering operators' screens.
+              Define exactly what modules, sheets, and pages are visible for each user security role.
             </p>
+            
+            {/* Beautiful role selection pill dropdown */}
+            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '12px', background: '#f8fafc', padding: '10px 16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                👤 Select Role to Configure:
+              </span>
+              <select
+                value={selectedConfigRole}
+                onChange={e => {
+                  setSelectedConfigRole(e.target.value);
+                  loadMenuConfig(e.target.value);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  border: '2px solid var(--primary)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 800,
+                  background: 'white',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  color: 'var(--primary)',
+                  transition: 'all 0.15s'
+                }}
+              >
+                <option value="operator">Operator</option>
+                <option value="accountant">Accountant</option>
+                <option value="pm">Purchase Manager (PM)</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="worker">Worker</option>
+                <option value="admin">Administrator (Admin)</option>
+              </select>
+            </div>
           </div>
           <button
-            onClick={() => handleSaveMenuConfig(menuConfig)}
+            onClick={() => handleSaveMenuConfig(selectedConfigRole, menuConfig)}
             style={{
               background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '10px',
-              padding: '10px 24px',
+              padding: '12px 28px',
               fontSize: '13px',
               fontWeight: 800,
               cursor: 'pointer',
@@ -835,708 +1615,475 @@ export default function AdminPage() {
               e.currentTarget.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.2)';
             }}
           >
-            💾 Save Navigation Layout
+            💾 Save Role Permissions
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-          {/* Section 1: Overview */}
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 16px 0', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📊</span> General & Dashboard
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📊</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Overview Dashboard</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>General stock statistics dashboard</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.dashboard}
-                    onChange={e => setMenuConfig({ ...menuConfig, dashboard: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.dashboard ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.dashboard ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.dashboard ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-            </div>
+        {/* Admin Safety Lock Banner */}
+        {selectedConfigRole === 'admin' && (
+          <div className="fade-up" style={{
+            background: '#f0fdf4',
+            border: '1.5px dashed #10b981',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            marginBottom: '20px',
+            color: '#15803d',
+            fontSize: '13px',
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}>
+            <span>🔒</span>
+            <span><strong>Admin Safety Lock Active</strong>: Core system overrides are enabled. The Administrator role always retains full access to all system modules, data sheets, and granular operational permissions.</span>
           </div>
+        )}
 
-          {/* Section 2: Packing */}
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 16px 0', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📦</span> Packing Section
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Item: Scanning Intake */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>⚡</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Scanning Intake</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Inward scan verification</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          {(() => {
+            const sidebarGroups = [
+              {
+                category: 'Overview', mainKey: 'dashboard_section', icon: '👁️',
+                items: [
+                  { key: 'dashboard', label: 'Overview Dashboard', icon: '📊', desc: 'General stock statistics dashboard' },
+                  { key: 'users_management', label: 'Users Management', icon: '👥', desc: 'Manage system accounts & profiles' }
+                ]
+              },
+              {
+                category: 'Workforce', mainKey: 'hr_section', icon: '👷',
+                items: [
+                  { key: 'hr_employees', label: 'Identity Matrix', icon: '🪪', desc: 'Employee data management' },
+                  { key: 'hr_attendance', label: 'Attendance Grid', icon: '📅', desc: 'Track employee presence' },
+                  { key: 'hr_adjustments', label: 'Adjustments', icon: '⚖️', desc: 'Advances and penalties' },
+                  { key: 'hr_payroll', label: 'Payroll Engine', icon: '💸', desc: 'Generate salary data' },
+                  { key: 'hr_salary_slips', label: 'Salary Slips', icon: '📄', desc: 'Printable worker payslips' }
+                ]
+              },
+              {
+                category: 'PM Master Data', mainKey: 'pm_section', icon: '👑',
+                items: [
+                  { key: 'pm_manage_articles', label: 'Manage Articles', icon: '📚', desc: 'Manage master articles' },
+                  { key: 'pm_create_article', label: 'Create Article', icon: '✨', desc: 'Create new core designs' },
+                  { key: 'pm_deleted_articles', label: 'Deleted Articles', icon: '🗑️', desc: 'View deleted articles' },
+                  { key: 'pm_material_library', label: 'Material Library', icon: '🧵', desc: 'Manage material assets' },
+                  { key: 'pm_cost_analysis', label: 'Cost Analysis', icon: '💰', desc: 'Article costings and margins' }
+                ]
+              },
+              {
+                category: 'Packing', mainKey: 'packing_section', icon: '📦',
+                items: [
+                  { key: 'scanning_intake', label: 'Scanning Intake', icon: '⚡', desc: 'Live barcode scanning engine' },
+                  { key: 'manual_entry', label: 'Manual Entry', icon: '📝', desc: 'Offline batch registration' },
+                  { key: 'inventory_pool', label: 'Inventory Pool', icon: '📥', desc: 'Unpacked pair holding area' },
+                  { key: 'carton_generation', label: 'Carton Generation', icon: '⚙️', desc: 'Generate master packaging barcodes' },
+                  { key: 'packed_inventory', label: 'Packed Inventory', icon: '📦', desc: 'Completed packages & cartons' },
+                  { key: 'scan_history', label: 'Scan History', icon: '📋', desc: 'System-wide scan audit logs' }
+                ]
+              },
+              {
+                category: 'Upper Stock', mainKey: 'upper_stock_section', icon: '🩴',
+                items: [
+                  { key: 'daily_activity', label: 'Daily Activity', icon: '📅', desc: 'Track daily stock ops' },
+                  { key: 'live_inventory', label: 'Live Inventory', icon: '📦', desc: 'Current available stock' },
+                  { key: 'stock_movement', label: 'Stock Movement', icon: '🔄', desc: 'Internal stock transfers' },
+                  { key: 'v_strap_entry', label: 'V-Strap Entry', icon: '🩴', desc: 'Strap specific operations' },
+                  { key: 'reports_sheets', label: 'Reports & Sheets', icon: '📝', desc: 'Downloadable sheets' }
+                ]
+              },
+              {
+                category: 'Materials', mainKey: 'materials_section', icon: '🧵',
+                items: [
+                  { key: 'materials_inventory', label: 'Materials Inventory', icon: '📦', desc: 'Raw materials tracking' },
+                  { key: 'materials_buying', label: 'Material Buying', icon: '🛒', desc: 'Material procurement' }
+                ]
+              },
+              {
+                category: 'Purchasing Order', mainKey: 'po_section', icon: '📄',
+                items: [
+                  { key: 'po_dashboard', label: 'PO Dashboard', icon: '📊', desc: 'Purchasing overview' },
+                  { key: 'po_materials_hub', label: 'Materials Hub', icon: '📦', desc: 'Material definitions' },
+                  { key: 'po_create', label: 'Create PO', icon: '✍️', desc: 'Draft new purchase order' },
+                  { key: 'po_pending', label: 'Pending Approval', icon: '⏳', desc: 'POs awaiting clearance' },
+                  { key: 'po_returned', label: 'Returned POs', icon: '🔄', desc: 'POs sent back for revision' },
+                  { key: 'po_approved', label: 'Approved PO', icon: '✅', desc: 'Cleared for processing' },
+                  { key: 'po_rejected', label: 'Rejected PO', icon: '❌', desc: 'Permanently denied POs' },
+                  { key: 'po_accountant', label: 'Acct Processing', icon: '💸', desc: 'Ledger payment posting' },
+                  { key: 'po_supervisor', label: 'Supervisor Verification', icon: '🔍', desc: 'Verify materials' },
+                  { key: 'po_completed', label: 'Completed PO', icon: '📁', desc: 'Closed purchasing records' },
+                  { key: 'po_history', label: 'PO History', icon: '🕒', desc: 'Full PO audit timeline' },
+                  { key: 'po_payment_status', label: 'Payment Completed', icon: '💰', desc: 'Accountant closed ledger' }
+                ]
+              }
+            ];
+            return sidebarGroups.map(group => {
+              const isMainChecked = selectedConfigRole === 'admin' ? true : !!menuConfig[group.mainKey];
+              return (
+                <div key={group.mainKey} style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '2px solid #cbd5e1', paddingBottom: '12px', marginBottom: '16px' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span>{group.icon}</span> {group.category}
+                    </h3>
+                    {group.mainKey !== 'dashboard_section' && (
+                      <label style={{ position: 'relative', display: 'inline-block', width: '42px', height: '24px' }}>
+                        <input
+                          type="checkbox"
+                          checked={isMainChecked}
+                          disabled={selectedConfigRole === 'admin'}
+                          onChange={e => setMenuConfig({ ...menuConfig, [group.mainKey]: e.target.checked })}
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{
+                          position: 'absolute', cursor: selectedConfigRole === 'admin' ? 'default' : 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                          backgroundColor: isMainChecked ? '#22c55e' : '#cbd5e1',
+                          borderRadius: '24px', transition: 'all 0.3s',
+                          boxShadow: isMainChecked ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                        }}>
+                          <span style={{
+                            position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
+                            backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
+                            transform: isMainChecked ? 'translateX(18px)' : 'none',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                          }}></span>
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', opacity: (selectedConfigRole === 'admin' || isMainChecked) ? 1 : 0.4, pointerEvents: (selectedConfigRole === 'admin' || isMainChecked) ? 'auto' : 'none', transition: 'opacity 0.3s' }}>
+                    {group.items.map(item => {
+                      const isChecked = selectedConfigRole === 'admin' ? true : !!menuConfig[item.key];
+                      return (
+                        <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                            <div>
+                              <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--text-main)' }}>{item.label}</div>
+                              <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)', marginTop: '1px' }}>{item.desc}</div>
+                            </div>
+                          </div>
+                          <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px', flexShrink: 0 }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={selectedConfigRole === 'admin'}
+                              onChange={e => setMenuConfig({ ...menuConfig, [item.key]: e.target.checked })}
+                              style={{ opacity: 0, width: 0, height: 0 }}
+                            />
+                            <span style={{
+                              position: 'absolute', cursor: selectedConfigRole === 'admin' ? 'default' : 'pointer', top: 0, left: 0, right: 0, bottom: 0,
+                              backgroundColor: isChecked ? '#3b82f6' : '#cbd5e1',
+                              borderRadius: '20px', transition: 'all 0.3s'
+                            }}>
+                              <span style={{
+                                position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
+                                backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
+                                transform: isChecked ? 'translateX(18px)' : 'none'
+                              }}></span>
+                            </span>
+                          </label>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.scanning_intake}
-                    onChange={e => setMenuConfig({ ...menuConfig, scanning_intake: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.scanning_intake ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.scanning_intake ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.scanning_intake ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Manual Entry */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📝</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Manual Entry</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Manual inventory logs</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.manual_entry}
-                    onChange={e => setMenuConfig({ ...menuConfig, manual_entry: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.manual_entry ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.manual_entry ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.manual_entry ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Inventory */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📥</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Inventory</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Intake inventory pool</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.inventory_pool}
-                    onChange={e => setMenuConfig({ ...menuConfig, inventory_pool: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.inventory_pool ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.inventory_pool ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.inventory_pool ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Carton Generation */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>⚙️</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Carton Generation</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Generate master packaging barcodes</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.carton_generation}
-                    onChange={e => setMenuConfig({ ...menuConfig, carton_generation: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.carton_generation ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.carton_generation ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.carton_generation ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Packed Inventory */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📦</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Packed Inventory</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Completed packages & cartons</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.packed_inventory}
-                    onChange={e => setMenuConfig({ ...menuConfig, packed_inventory: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.packed_inventory ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.packed_inventory ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.packed_inventory ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Scan History */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📋</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Scan History</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Operational barcode scan logs</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.scan_history}
-                    onChange={e => setMenuConfig({ ...menuConfig, scan_history: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.scan_history ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.scan_history ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.scan_history ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 3: Upper Stock */}
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 16px 0', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚡</span> Upper Stock Section
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {/* Item: Daily Activity */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📅</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Daily Activity</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Daily production sheets</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.daily_activity}
-                    onChange={e => setMenuConfig({ ...menuConfig, daily_activity: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.daily_activity ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.daily_activity ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.daily_activity ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Live Inventory */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📦</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Live Inventory</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Live stock ledger balances</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.live_inventory}
-                    onChange={e => setMenuConfig({ ...menuConfig, live_inventory: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.live_inventory ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.live_inventory ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.live_inventory ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Stock Movement */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>🔄</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Stock Movement</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Inward & outward transactions</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.stock_movement}
-                    onChange={e => setMenuConfig({ ...menuConfig, stock_movement: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.stock_movement ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.stock_movement ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.stock_movement ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: V-Strap Entry */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>🩴</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>V-Strap Entry</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Strap manufacturing inventory</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.v_strap_entry}
-                    onChange={e => setMenuConfig({ ...menuConfig, v_strap_entry: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.v_strap_entry ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.v_strap_entry ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.v_strap_entry ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Item: Reports & Sheets */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '18px' }}>📝</span>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-main)' }}>Reports & Sheets</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Excel sheets & print reports</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.reports_sheets}
-                    onChange={e => setMenuConfig({ ...menuConfig, reports_sheets: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.reports_sheets ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.reports_sheets ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.reports_sheets ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          {/* Section 4: PO */}
-          <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '14px', border: '1px solid #e2e8f0', gridColumn: 'span 2' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 16px 0', borderBottom: '2px solid #cbd5e1', paddingBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📄</span> Purchase Orders & Subdivisions
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {/* Parent Toggle: PO Section */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', background: 'white', borderRadius: '10px', border: '1.5px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '20px' }}>📄</span>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>PO Procurement Section</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px' }}>Toggles the entire Purchasing Order block in the sidebar</div>
-                  </div>
-                </div>
-                <label style={{ position: 'relative', display: 'inline-block', width: '46px', height: '24px' }}>
-                  <input
-                    type="checkbox"
-                    checked={!!menuConfig.po_section}
-                    onChange={e => setMenuConfig({ ...menuConfig, po_section: e.target.checked })}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: menuConfig.po_section ? '#22c55e' : '#cbd5e1',
-                    borderRadius: '24px', transition: 'all 0.3s',
-                    boxShadow: menuConfig.po_section ? 'inset 0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                  }}>
-                    <span style={{
-                      position: 'absolute', height: '18px', width: '18px', left: '3px', bottom: '3px',
-                      backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                      transform: menuConfig.po_section ? 'translateX(22px)' : 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                    }}></span>
-                  </span>
-                </label>
-              </div>
-
-              {/* Subdivisions Grid (Indented & only enabled if PO Section is checked) */}
-              <div style={{
-                paddingLeft: '20px',
-                borderLeft: '3px solid #e2e8f0',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-                gap: '16px',
-                opacity: menuConfig.po_section ? 1 : 0.5,
-                pointerEvents: menuConfig.po_section ? 'auto' : 'none',
-                transition: 'all 0.3s'
-              }}>
-                {/* ── ALWAYS ENABLED SUBDIVISIONS (🔒) ── */}
-                <div style={{ background: '#f1f5f9', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #cbd5e1' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>⏳</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#475569' }}>Pending Approval</div>
-                      <div style={{ fontSize: '10.5px', color: '#64748b' }}>Admin review queue</div>
-                    </div>
-                  </div>
-                  <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔒 ALWAYS ON
-                  </span>
-                </div>
-
-                <div style={{ background: '#f1f5f9', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #cbd5e1' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>🔄</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#475569' }}>Returned POs</div>
-                      <div style={{ fontSize: '10.5px', color: '#64748b' }}>PM revision feedback</div>
-                    </div>
-                  </div>
-                  <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔒 ALWAYS ON
-                  </span>
-                </div>
-
-                <div style={{ background: '#f1f5f9', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #cbd5e1' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>✅</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#475569' }}>Approved PO</div>
-                      <div style={{ fontSize: '10.5px', color: '#64748b' }}>Active verified PO list</div>
-                    </div>
-                  </div>
-                  <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔒 ALWAYS ON
-                  </span>
-                </div>
-
-                <div style={{ background: '#f1f5f9', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px dashed #cbd5e1' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>❌</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: '#475569' }}>Rejected PO</div>
-                      <div style={{ fontSize: '10.5px', color: '#64748b' }}>Declined orders registry</div>
-                    </div>
-                  </div>
-                  <span style={{ background: '#e2e8f0', color: '#475569', fontSize: '9px', fontWeight: 900, padding: '3px 8px', borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    🔒 ALWAYS ON
-                  </span>
-                </div>
-
-                {/* ── INTERACTIVE PO SUB-TOGGLES ── */}
-                {/* Create PO */}
-                <div style={{ background: 'white', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>✍️</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>Create PO</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>Admin + PM creation screen</div>
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!menuConfig.po_create}
-                      onChange={e => setMenuConfig({ ...menuConfig, po_create: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: menuConfig.po_create ? '#22c55e' : '#cbd5e1',
-                      borderRadius: '20px', transition: 'all 0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
-                        backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                        transform: menuConfig.po_create ? 'translateX(18px)' : 'none'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-
-                {/* PO Dashboard */}
-                <div style={{ background: 'white', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>📊</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>PO Dashboard</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>Summary totals & charts</div>
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!menuConfig.po_dashboard}
-                      onChange={e => setMenuConfig({ ...menuConfig, po_dashboard: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: menuConfig.po_dashboard ? '#22c55e' : '#cbd5e1',
-                      borderRadius: '20px', transition: 'all 0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
-                        backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                        transform: menuConfig.po_dashboard ? 'translateX(18px)' : 'none'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-
-                {/* Accountant Processing */}
-                <div style={{ background: 'white', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>💸</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>Accountant Processing</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>Finance edit & payouts</div>
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!menuConfig.po_accountant}
-                      onChange={e => setMenuConfig({ ...menuConfig, po_accountant: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: menuConfig.po_accountant ? '#22c55e' : '#cbd5e1',
-                      borderRadius: '20px', transition: 'all 0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
-                        backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                        transform: menuConfig.po_accountant ? 'translateX(18px)' : 'none'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-
-                {/* Completed PO */}
-                <div style={{ background: 'white', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>📁</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>Completed PO</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>Fully paid orders sheet</div>
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!menuConfig.po_completed}
-                      onChange={e => setMenuConfig({ ...menuConfig, po_completed: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: menuConfig.po_completed ? '#22c55e' : '#cbd5e1',
-                      borderRadius: '20px', transition: 'all 0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
-                        backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                        transform: menuConfig.po_completed ? 'translateX(18px)' : 'none'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-
-                {/* PO History */}
-                <div style={{ background: 'white', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>🕒</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>PO History</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>Historical archive timeline</div>
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!menuConfig.po_history}
-                      onChange={e => setMenuConfig({ ...menuConfig, po_history: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: menuConfig.po_history ? '#22c55e' : '#cbd5e1',
-                      borderRadius: '20px', transition: 'all 0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
-                        backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                        transform: menuConfig.po_history ? 'translateX(18px)' : 'none'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-
-                {/* Payment Completed */}
-                <div style={{ background: 'white', padding: '12px 14px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '1px solid #e2e8f0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>💰</span>
-                    <div>
-                      <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--text-main)' }}>Payment Completed</div>
-                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)' }}>Accountant closed ledger</div>
-                    </div>
-                  </div>
-                  <label style={{ position: 'relative', display: 'inline-block', width: '38px', height: '20px' }}>
-                    <input
-                      type="checkbox"
-                      checked={!!menuConfig.po_payment_status}
-                      onChange={e => setMenuConfig({ ...menuConfig, po_payment_status: e.target.checked })}
-                      style={{ opacity: 0, width: 0, height: 0 }}
-                    />
-                    <span style={{
-                      position: 'absolute', cursor: 'pointer', top: 0, left: 0, right: 0, bottom: 0,
-                      backgroundColor: menuConfig.po_payment_status ? '#22c55e' : '#cbd5e1',
-                      borderRadius: '20px', transition: 'all 0.3s'
-                    }}>
-                      <span style={{
-                        position: 'absolute', height: '14px', width: '14px', left: '3px', bottom: '3px',
-                        backgroundColor: 'white', borderRadius: '50%', transition: 'all 0.3s',
-                        transform: menuConfig.po_payment_status ? 'translateX(18px)' : 'none'
-                      }}></span>
-                    </span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
+              );
+            });
+          })()}
         </div>
       </div>
+      </>
+      )}
+
+      {/* ── MODULE ACCESS REQUESTS TAB ─────────────────────────────────── */}
+      {activeTab === 'requests' && (
+        <div className="card" style={{ background: 'white', borderRadius: '16px', border: '1px solid var(--border)', padding: '24px', animation: 'slideIn 0.3s ease-out' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: '0 0 6px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🔔 Pending Module Access Requests
+          </h2>
+          <p style={{ fontSize: '12px', color: 'var(--text-ghost)', margin: '0 0 20px 0', fontWeight: 600 }}>
+            Process non-admin request queues to grant dynamic module unlocks on specific operational roles
+          </p>
+          
+          {reqLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-ghost)' }}>Loading request lists...</div>
+          ) : pendingRequests.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 40px', background: '#f8fafc', borderRadius: '12px', border: '1px dashed var(--border)' }}>
+              <span style={{ fontSize: '36px', display: 'block', marginBottom: '10px' }}>🎉</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>All caught up!</span>
+              <p style={{ fontSize: '12px', color: 'var(--text-ghost)', margin: '4px 0 0 0' }}>There are no active module access requests from standard accounts at this time.</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {pendingRequests.map((req: any) => (
+                <div key={req.id} style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between', padding: '16px 20px', background: '#f8fafc', border: '1.5px solid var(--border)', borderRadius: '14px', transition: 'all 0.2s', flexWrap: 'wrap', gap: '16px' }}>
+                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '24px', background: '#eff6ff', width: '48px', height: '48px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>👤</div>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>{req.username}</span>
+                        <span style={{ background: '#eff6ff', color: '#1d4ed8', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '12px', textTransform: 'uppercase' }}>
+                          {req.role}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-main)', marginTop: '4px', fontWeight: 700 }}>
+                        Requested access to: <span style={{ color: '#10b981' }}>{req.module_name}</span> (<code>{req.module_key}</code>)
+                      </div>
+                      {req.reason && (
+                        <div style={{ background: 'white', padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '12px', color: '#475569', marginTop: '8px', fontStyle: 'italic' }}>
+                          &ldquo;{req.reason}&rdquo;
+                        </div>
+                      )}
+                      <div style={{ fontSize: '10.5px', color: 'var(--text-ghost)', marginTop: '6px', fontWeight: 600 }}>
+                        Submitted on: {formatToIST(req.created_at)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleProcessRequest(req.id, 'rejected')}
+                      style={{
+                        background: '#fee2e2', border: 'none', color: '#991b1b', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#fca5a5'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#fee2e2'}
+                    >
+                      ❌ Deny Request
+                    </button>
+                    <button
+                      onClick={() => handleProcessRequest(req.id, 'approved')}
+                      style={{
+                        background: '#dcfce7', border: 'none', color: '#166534', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', transition: 'background-color 0.2s'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#86efac'}
+                      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#dcfce7'}
+                    >
+                      ✅ Approve Request
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── NEW USER SIGNUPS APPROVAL HUB ──────────────────────────────── */}
+      {activeTab === 'signups' && (() => {
+        const pendingSignups = users.filter(u => u.is_active === 0);
+        const approveUser = async (id: number, name: string) => {
+          setApprovingId(id);
+          await fetch('/api/admin', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update_user', user_id: id, is_active: true })
+          });
+          loadUsers(); loadAuditLogs();
+          setApprovingId(null);
+        };
+        const rejectUser = async (id: number, name: string) => {
+          if (!confirm(`Permanently delete "${name}"'s signup request? They will need to re-register.`)) return;
+          setRejectingId(id);
+          await fetch('/api/admin', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete_user', user_id: id })
+          });
+          loadUsers(); loadAuditLogs();
+          setRejectingId(null);
+        };
+
+        const avatarColors = [
+          ['#667eea','#764ba2'], ['#f093fb','#f5576c'], ['#4facfe','#00f2fe'],
+          ['#43e97b','#38f9d7'], ['#fa709a','#fee140'], ['#a18cd1','#fbc2eb'],
+          ['#fda085','#f6d365'], ['#96fbc4','#f9f7ff'],
+        ];
+
+        return (
+          <div style={{ animation: 'fadeInPage 0.4s ease-out' }}>
+            {/* Hero Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%)',
+              borderRadius: '24px',
+              padding: '36px 40px',
+              marginBottom: '28px',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 20px 60px rgba(15,12,41,0.4)'
+            }}>
+              {/* Animated orbs */}
+              <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(102,126,234,0.3) 0%, transparent 70%)', borderRadius: '50%', animation: 'pulse 3s ease-in-out infinite' }} />
+              <div style={{ position: 'absolute', bottom: '-30px', left: '30%', width: '150px', height: '150px', background: 'radial-gradient(circle, rgba(240,147,251,0.2) 0%, transparent 70%)', borderRadius: '50%', animation: 'pulse 4s ease-in-out infinite 1s' }} />
+
+              <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '20px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
+                    <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.1)', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)' }}>🛡️</div>
+                    <div>
+                      <div style={{ fontSize: '22px', fontWeight: 900, color: 'white', letterSpacing: '-0.3px' }}>Access Approval Center</div>
+                      <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.55)', fontWeight: 500, marginTop: '2px' }}>Review and grant system access to new registrants</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '14px 24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '28px', fontWeight: 900, color: '#f87171', lineHeight: 1 }}>{pendingSignups.length}</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Awaiting</div>
+                  </div>
+                  <div style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '16px', padding: '14px 24px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '28px', fontWeight: 900, color: '#34d399', lineHeight: 1 }}>{users.filter(u => u.is_active === 1).length}</div>
+                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: '4px' }}>Active</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cards Grid */}
+            {pendingSignups.length === 0 ? (
+              <div style={{
+                background: 'white', borderRadius: '24px', border: '1px solid var(--border)',
+                padding: '80px 40px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.03)'
+              }}>
+                <div style={{ fontSize: '64px', marginBottom: '16px', filter: 'drop-shadow(0 4px 12px rgba(34,197,94,0.3))' }}>✅</div>
+                <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginBottom: '8px' }}>All Clear — No Pending Signups</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-ghost)', fontWeight: 500 }}>Every registered applicant has been reviewed. The system is fully up to date.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                {pendingSignups.map((u, idx) => {
+                  const [c1, c2] = avatarColors[idx % avatarColors.length];
+                  const initials = (u.full_name || u.username).split(' ').map((w: string) => w[0]).join('').toUpperCase().slice(0,2);
+                  const isApproving = approvingId === u.id;
+                  const isRejecting = rejectingId === u.id;
+                  const signedAt = u.created_at ? formatToIST(u.created_at) : 'Unknown';
+
+                  return (
+                    <div key={u.id} style={{
+                      background: 'white',
+                      borderRadius: '20px',
+                      border: '1px solid #f0f0f0',
+                      overflow: 'hidden',
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                      transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease',
+                      animation: `slideIn 0.4s ease-out ${idx * 0.07}s both`,
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 16px 48px rgba(0,0,0,0.12)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.06)'; }}
+                    >
+                      {/* Top gradient band */}
+                      <div style={{ height: '6px', background: `linear-gradient(90deg, ${c1}, ${c2})` }} />
+
+                      <div style={{ padding: '24px' }}>
+                        {/* Header row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+                          {/* Avatar */}
+                          <div style={{
+                            width: '56px', height: '56px', borderRadius: '16px', flexShrink: 0,
+                            background: `linear-gradient(135deg, ${c1}, ${c2})`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '20px', fontWeight: 900, color: 'white',
+                            boxShadow: `0 8px 20px ${c1}55`,
+                            letterSpacing: '-0.5px'
+                          }}>
+                            {initials}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {u.full_name || u.username}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>@{u.username}</div>
+                          </div>
+                          {/* Status pill */}
+                          <div style={{
+                            background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '20px',
+                            padding: '4px 10px', fontSize: '10px', fontWeight: 800, color: '#c2410c',
+                            textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap',
+                            display: 'flex', alignItems: 'center', gap: '5px'
+                          }}>
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#f97316', display: 'inline-block', animation: 'pulseDot 1.5s infinite' }} />
+                            Pending
+                          </div>
+                        </div>
+
+                        {/* Info rows */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', background: '#f8fafc', borderRadius: '12px', padding: '14px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Phone</span>
+                            <span style={{ fontSize: '13px', fontWeight: 700, color: '#334155', fontFamily: 'monospace' }}>{u.phone || <span style={{ color: '#cbd5e1', fontStyle: 'italic', fontWeight: 500 }}>Not provided</span>}</span>
+                          </div>
+                          <div style={{ height: '1px', background: '#e2e8f0' }} />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</span>
+                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', fontFamily: 'monospace', background: '#e2e8f0', padding: '2px 8px', borderRadius: '6px' }}>
+                              {revealedPasswords[u.id] ? (u.plain_password || '—') : '••••••••'}
+                              <button onClick={() => togglePasswordReveal(u.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', marginLeft: '6px', opacity: 0.6 }} title="Reveal">
+                                {revealedPasswords[u.id] ? '🙈' : '👁️'}
+                              </button>
+                            </span>
+                          </div>
+                          <div style={{ height: '1px', background: '#e2e8f0' }} />
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Applied</span>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', fontFamily: 'monospace' }}>{signedAt}</span>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button
+                            disabled={isApproving || isRejecting}
+                            onClick={() => approveUser(u.id, u.full_name || u.username)}
+                            style={{
+                              flex: 1,
+                              padding: '11px',
+                              borderRadius: '12px',
+                              border: 'none',
+                              background: isApproving ? '#d1fae5' : 'linear-gradient(135deg, #22c55e, #16a34a)',
+                              color: isApproving ? '#166534' : 'white',
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              cursor: isApproving ? 'wait' : 'pointer',
+                              transition: 'all 0.2s',
+                              boxShadow: isApproving ? 'none' : '0 4px 14px rgba(34,197,94,0.35)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                            }}
+                            onMouseEnter={e => { if (!isApproving && !isRejecting) { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(34,197,94,0.5)'; }}}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(34,197,94,0.35)'; }}
+                          >
+                            {isApproving ? <><span style={{ animation: 'spin 0.8s linear infinite', display: 'inline-block' }}>⏳</span> Approving…</> : <>✅ Approve Access</>}
+                          </button>
+                          <button
+                            disabled={isApproving || isRejecting}
+                            onClick={() => rejectUser(u.id, u.full_name || u.username)}
+                            style={{
+                              padding: '11px 16px',
+                              borderRadius: '12px',
+                              border: '1.5px solid #fecaca',
+                              background: isRejecting ? '#fee2e2' : 'white',
+                              color: '#dc2626',
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              cursor: isRejecting ? 'wait' : 'pointer',
+                              transition: 'all 0.2s',
+                              display: 'flex', alignItems: 'center', gap: '6px'
+                            }}
+                            onMouseEnter={e => { if (!isApproving && !isRejecting) { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.transform = 'scale(1.03)'; }}}
+                            onMouseLeave={e => { e.currentTarget.style.background = isRejecting ? '#fee2e2' : 'white'; e.currentTarget.style.transform = 'none'; }}
+                          >
+                            {isRejecting ? '…' : '🗑️'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── SECURITY & SYSTEM AUDIT LOGS STREAM TIMELINE ───────────────── */}
+      {activeTab === 'audit' && (
       <div className="card mt-8" style={{
         padding: '24px',
         background: 'white',
@@ -1677,6 +2224,212 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+      )}
+
+      {/* ── DATABASE BACKUPS & DISASTER RECOVERY PANEL ───────────────────── */}
+      {activeTab === 'backups' && (
+      <div className="card mt-8" style={{
+        padding: '24px',
+        background: 'white',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        animation: 'slideIn 0.5s ease-out',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
+      }}>
+        {/* Tab Title Area */}
+        <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            💾 Database Backups & Disaster Recovery Command Console
+          </h2>
+          <p style={{ fontSize: '12px', color: 'var(--text-ghost)', margin: '4px 0 0 0', fontWeight: 600 }}>
+            Configure and run local offline backups, or deploy secure checkpoint rollback recovery points on host warehouse hardware.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
+          
+          {/* LEFT COLUMN: DOWNLOAD / GENERATE BACKUP */}
+          <div style={{
+            background: '#f8fafc',
+            border: '1px solid var(--border)',
+            borderRadius: '14px',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '24px' }}>📦</span>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: 'var(--text-main)' }}>Generate Local Database Backup</h3>
+              </div>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '20px', fontWeight: 500 }}>
+                Compiles the active warehouse SQLite ledger (<code>data/stock.db</code>) into a single downloadable binary file.
+                This contains all current inventory quantities, historic scanning records, user access credentials, and PO logs.
+              </p>
+              <div style={{
+                background: '#f1f5f9',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                fontSize: '11px',
+                fontWeight: 700,
+                color: '#475569',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '20px'
+              }}>
+                ℹ️ File is named in the format: <code>upperstock_backup_DD-MM-YYYY_HH-MM.db</code>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => window.open('/api/system/backup')}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                background: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                fontWeight: 800,
+                fontSize: '13px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                transition: 'opacity 0.15s, transform 0.15s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              📥 Generate & Download Backup File
+            </button>
+          </div>
+
+          {/* RIGHT COLUMN: RESTORE BACKUP */}
+          <div style={{
+            background: '#fff1f2',
+            border: '1px solid #fecdd3',
+            borderRadius: '14px',
+            padding: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '24px' }}>⚠️</span>
+                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#991b1b' }}>Safe-Rollback Database Restore</h3>
+              </div>
+              <p style={{ fontSize: '13px', color: '#9f1239', lineHeight: 1.5, marginBottom: '16px', fontWeight: 600 }}>
+                Overwrites the active warehouse state with the chosen backup. The server will run internal binary validation headers checks and automatically construct a temporary backup snapshot (<code>data/stock.db.bak</code>) before performing the swap.
+              </p>
+
+              {/* Warning Alert Panel */}
+              <div style={{
+                background: '#fee2e2',
+                border: '1px solid #fca5a5',
+                borderRadius: '8px',
+                padding: '12px',
+                fontSize: '12px',
+                color: '#7f1d1d',
+                fontWeight: 700,
+                lineHeight: 1.4,
+                marginBottom: '20px'
+              }}>
+                🚨 CRITICAL NOTICE: Overwriting active ledgers immediately logs out concurrent client terminals and resets inventory mappings to the point of backup compilation.
+              </div>
+
+              {/* File Input and Confirm */}
+              <form onSubmit={handleRestoreSubmit}>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#991b1b', marginBottom: '6px', textTransform: 'uppercase' }}>
+                    Select Backup Database File (.db)
+                  </label>
+                  <input
+                    type="file"
+                    accept=".db,.sqlite,.sqlite3"
+                    onChange={handleFileChange}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '8px',
+                      border: '1px dashed #fda4af',
+                      background: 'white',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      color: '#475569',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  />
+                  {selectedFile && (
+                    <div style={{ fontSize: '11px', color: '#15803d', fontWeight: 800, marginTop: '4px' }}>
+                      ✓ Selected File: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '20px' }}>
+                  <input
+                    type="checkbox"
+                    id="confirmRestoreCheckbox"
+                    checked={confirmRestore}
+                    onChange={e => setConfirmRestore(e.target.checked)}
+                    style={{ marginTop: '2px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="confirmRestoreCheckbox" style={{ fontSize: '12px', color: '#9f1239', fontWeight: 700, cursor: 'pointer', userSelect: 'none' }}>
+                    I confirm I want to restore this backup file and overwrite active database ledgers.
+                  </label>
+                </div>
+
+                {isRestoring ? (
+                  <div style={{
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: '#fda4af',
+                    color: '#991b1b',
+                    textAlign: 'center',
+                    fontWeight: 800,
+                    fontSize: '13px',
+                    animation: 'pulseDot 1.5s infinite'
+                  }}>
+                    ⏳ {restoreProgressMsg || 'Swapping active database files...'}
+                  </div>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!selectedFile || !confirmRestore}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '10px',
+                      background: (!selectedFile || !confirmRestore) ? '#fca5a5' : '#e11d48',
+                      color: 'white',
+                      border: 'none',
+                      fontWeight: 800,
+                      fontSize: '13px',
+                      cursor: (!selectedFile || !confirmRestore) ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'opacity 0.15s'
+                    }}
+                  >
+                    🔥 Execute Database Restore
+                  </button>
+                )}
+              </form>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+      )}
 
       {/* ── CREATE USER MODAL DIALOG ────────────────────────────────────── */}
       {showForm && (

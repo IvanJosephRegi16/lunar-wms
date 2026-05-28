@@ -57,3 +57,30 @@ export function isAccountant(role: string): boolean {
 export function isWorker(role: string): boolean {
   return role === 'worker';
 }
+
+// Enterprise RBAC configuration: mapping routes to allowed roles
+export const ROUTE_PERMISSIONS: Record<string, string[]> = {
+  '/admin': ['admin'],
+  '/hr': ['admin', 'supervisor'], // or dedicated hr role later
+  '/materials': ['admin', 'supervisor', 'pm'],
+  '/po/accountant': ['admin', 'accountant'],
+  '/po/ai-intelligence': ['admin'],
+  '/po/ai-war-room': ['admin'],
+  // Expand as needed
+};
+
+export function hasPermission(pathname: string, role: string): boolean {
+  // Always allow admin
+  if (role === 'admin') return true;
+
+  // Exact matching or prefix matching
+  for (const [route, allowedRoles] of Object.entries(ROUTE_PERMISSIONS)) {
+    if (pathname === route || pathname.startsWith(`${route}/`)) {
+      return allowedRoles.includes(role);
+    }
+  }
+
+  // If no explicit guard, assume accessible (or change to default deny if strict)
+  // For now, only guard explicitly defined sensitive routes.
+  return true;
+}
