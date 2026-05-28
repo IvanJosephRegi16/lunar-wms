@@ -6,7 +6,7 @@ import { Pool } from 'pg';
 // 1. PostgreSQL Connection Pool
 //    Reads DATABASE_URL from environment (Railway injects this automatically).
 // ─────────────────────────────────────────────────────────────────────────────
-const pgPool = new Pool({
+export const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:ivan@localhost:5432/Lunar',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20,
@@ -682,11 +682,11 @@ export async function logAudit({
   oldValue, newValue, oldVal, newVal, description,
 }: any) {
   try {
-    const db = getDb();
-    await db.prepare(
+    await pgPool.query(
       `INSERT INTO audit_logs (user_id, username, action, module, record_id, old_value, new_value, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(userId, username, action, module, recordId, oldValue ?? oldVal, newValue ?? newVal, description);
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [userId, username, action, module, recordId, oldValue ?? oldVal ?? null, newValue ?? newVal ?? null, description ?? null]
+    );
   } catch (e) {
     console.error('Audit log failed', e);
   }
