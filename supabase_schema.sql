@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   id SERIAL PRIMARY KEY,
   po_number TEXT UNIQUE NOT NULL,
   vendor TEXT NOT NULL,
-  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'completed')),
+  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed')),
   rejection_reason TEXT,
   correction_notes TEXT,
   approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,

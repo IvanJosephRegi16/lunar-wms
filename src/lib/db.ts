@@ -229,7 +229,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   id SERIAL PRIMARY KEY,
   po_number TEXT UNIQUE NOT NULL,
   vendor TEXT NOT NULL,
-  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'completed')),
+  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed')),
   rejection_reason TEXT,
   correction_notes TEXT,
   approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -765,6 +765,15 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       } catch {
         // Column already exists or table not created yet — safe to ignore
       }
+    }
+
+    // ── Constraint migrations (fix CHECK constraints for new status values) ──
+    try {
+      await client.query(`ALTER TABLE purchase_orders DROP CONSTRAINT IF EXISTS purchase_orders_status_check`);
+      await client.query(`ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_status_check CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed'))`);
+      console.log('[MIGRATION] purchase_orders status constraint updated with supervisor_review');
+    } catch (e: any) {
+      console.warn('[MIGRATION] status constraint update skipped:', e.message);
     }
 
     // ── Seed default data (idempotent) ────────────────────────────────────
