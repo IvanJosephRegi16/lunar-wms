@@ -363,7 +363,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, method: 'smtp', recipient: to });
     } else {
       // Offline fallback: Write to local HTML file so user can review immediately
-      const sentEmailsDir = path.join(process.cwd(), 'sent_emails');
+      // Use /tmp in production (Railway's filesystem is read-only outside /tmp)
+      const baseDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
+      const sentEmailsDir = path.join(baseDir, 'sent_emails');
       if (!fs.existsSync(sentEmailsDir)) {
         fs.mkdirSync(sentEmailsDir, { recursive: true });
       }
