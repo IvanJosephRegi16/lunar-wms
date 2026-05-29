@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import { getAuthUser } from '@/lib/auth';
 import fs from 'fs';
 import path from 'path';
@@ -38,7 +39,12 @@ export async function POST(req: NextRequest) {
     const smtpUser = process.env.SMTP_USER;
     const smtpPass = process.env.SMTP_PASS;
     const smtpFrom = process.env.SMTP_FROM || '"Lunar\'s WMS" <no-reply@lunars.com>';
-    const isConfigured = !!(smtpHost && smtpUser && smtpPass && !smtpUser.includes('your_gmail_here'));
+    
+    const resendApiKey = process.env.RESEND_API_KEY;
+    
+    const isSmtpConfigured = !!(smtpHost && smtpUser && smtpPass && !smtpUser.includes('your_gmail_here'));
+    const isResendConfigured = !!resendApiKey;
+    const isConfigured = isSmtpConfigured || isResendConfigured;
 
     // ────────────────────────────────────────────────────────────────────────
     // 🎨 PIXEL-PERFECT TECH-COMPANY INVOICE HTML TEMPLATE (STRIPE / GMAIL COMPATIBLE)
@@ -335,7 +341,27 @@ export async function POST(req: NextRequest) {
     // ────────────────────────────────────────────────────────────────────────
     // ⚙️ MAIL SENDING & OFFLINE FALLBACK ENGINE
     // ────────────────────────────────────────────────────────────────────────
-    if (isConfigured) {
+    if (isResendConfigured) {
+      const resend = new Resend(resendApiKey);
+      const { data, error } = await resend.emails.send({
+        from: smtpFrom.includes('@') ? smtpFrom : 'onboarding@resend.dev', // Resend requires a verified domain or onboarding@resend.dev
+        to: [to],
+        subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
+        html: emailHtml,
+        attachments: logoBase64 ? [
+          {
+            filename: 'lunars-logo.png',
+            content: logoBase64,
+          }
+        ] : []
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+      return NextResponse.json({ success: true, method: 'resend', recipient: to, id: data?.id });
+      
+    } else if (isSmtpConfigured) {
       const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: parseInt(smtpPort || '465'),
