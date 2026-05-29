@@ -29,6 +29,43 @@ async function ensureDatabaseSchema() {
   try {
     console.log('[DATABASE] Running schema migrations...');
 
+    // ── Core System Tables ────────────────────────────────────────────────
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        role TEXT NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        last_login TIMESTAMPTZ,
+        phone TEXT,
+        plain_password TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS login_activity (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        username TEXT,
+        action TEXT,
+        ip_address TEXT,
+        timestamp TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS system_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL
+      );
+
+      -- Default Admin User
+      INSERT INTO users (username, password_hash, full_name, role, plain_password) 
+      VALUES ('admin', '$2a$10$WpQpG7hGgqj0iNfN7AOY2ewb2F6p.4w/0zJb7q3yQd2f8rW9z1BGy', 'System Admin', 'admin', 'admin123')
+      ON CONFLICT (username) DO NOTHING;
+    `);
+
     await client.query(`
       CREATE TABLE IF NOT EXISTS daily_entries (
         id SERIAL PRIMARY KEY,
