@@ -343,8 +343,11 @@ export async function POST(req: NextRequest) {
     // ────────────────────────────────────────────────────────────────────────
     if (isResendConfigured) {
       const resend = new Resend(resendApiKey);
+      // For Resend free tier without verified domains, you MUST send from onboarding@resend.dev
+      const resendFrom = process.env.RESEND_FROM || 'onboarding@resend.dev';
+      
       const { data, error } = await resend.emails.send({
-        from: smtpFrom.includes('@') ? smtpFrom : 'onboarding@resend.dev', // Resend requires a verified domain or onboarding@resend.dev
+        from: resendFrom,
         to: [to],
         subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
         html: emailHtml,
