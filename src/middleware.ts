@@ -9,13 +9,14 @@ export async function middleware(request: NextRequest) {
   const isLoginPage = pathname.startsWith('/login');
   const isSignupPage = pathname.startsWith('/signup');
   const isAuthApi = pathname.startsWith('/api/auth');
+  const isHealthApi = pathname === '/api/health';
   const isApi = pathname.startsWith('/api');
 
   // Verify token if it exists
   const user = token ? await verifyToken(token) : null;
 
   // Not authenticated
-  if (!user && !isLoginPage && !isSignupPage && !isAuthApi) {
+  if (!user && !isLoginPage && !isSignupPage && !isAuthApi && !isHealthApi) {
     if (isApi) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
