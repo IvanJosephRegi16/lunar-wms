@@ -849,14 +849,24 @@ ensureDatabaseSchema().catch(console.error);
 //    Translates SQLite-style ? placeholders → PostgreSQL $1, $2, … and
 //    appends RETURNING id to INSERT statements so callers can get lastInsertRowid.
 // ─────────────────────────────────────────────────────────────────────────────
+// Tables that do NOT have a serial 'id' column – never append RETURNING id
+const NO_ID_TABLES = new Set([
+  'system_settings', 'daily_sheets',
+]);
+
 function translateToPg(sql: string): { text: string; needsReturning: boolean } {
   let paramCount = 1;
   let converted = sql.replace(/\?/g, () => `$${paramCount++}`);
 
   let needsReturning = false;
-  if (/^\s*INSERT\s+INTO/i.test(converted) && !/RETURNING\s+id/i.test(converted)) {
-    converted += ' RETURNING id';
-    needsReturning = true;
+  if (/^\s*INSERT\s+INTO/i.test(converted) && !/RETURNING\s+/i.test(converted)) {
+    // Extract the table name from INSERT INTO <table>
+    const tableMatch = converted.match(/INSERT\s+INTO\s+["']?(\w+)["']?/i);
+    const tableName = tableMatch ? tableMatch[1].toLowerCase() : '';
+    if (!NO_ID_TABLES.has(tableName)) {
+      converted += ' RETURNING id';
+      needsReturning = true;
+    }
   }
 
   return { text: converted, needsReturning };
