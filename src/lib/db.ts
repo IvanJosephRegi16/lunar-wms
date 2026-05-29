@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
 -- Password hash below is 'admin123' using bcrypt (cost 10)
 INSERT INTO users (username, password_hash, full_name, role, plain_password) 
 VALUES ('admin', '$2a$10$WpQpG7hGgqj0iNfN7AOY2ewb2F6p.4w/0zJb7q3yQd2f8rW9z1BGy', 'System Admin', 'admin', 'admin123')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (username) DO NOTHING;
 `);
 
     await client.query(`
