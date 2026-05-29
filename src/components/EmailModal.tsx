@@ -44,6 +44,20 @@ export default function EmailModal({ po, items, onClose }: Props) {
     }
   };
 
+  const openGmail = () => {
+    if (!to.trim()) { alert('Please enter recipient email first'); return; }
+    const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
+    const bodyText = `Dear Vendor,\n\nPlease find the purchase order details below:\n\n` +
+      `PO Number: ${po?.po_number}\n` +
+      `Date: ${po?.approved_timestamp}\n\n` +
+      `Required Materials:\n` +
+      items.map((it: any, i: number) => `${i + 1}. ${it.material_name} (${it.size_thickness || '-'}) - Qty: ${it.required_qty || it.required_quantity}`).join('\n') +
+      `\n\nThank you,\nLunar's Procurement Division`;
+    const body = encodeURIComponent(bodyText);
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+    window.open(gmailUrl, '_blank');
+  };
+
   const today = new Date().toLocaleDateString('en-IN', {
     timeZone: 'Asia/Kolkata', day: '2-digit', month: 'long', year: 'numeric'
   });
@@ -238,6 +252,19 @@ export default function EmailModal({ po, items, onClose }: Props) {
                   padding: '12px 24px', borderRadius: '10px', border: '2px solid #e5e7eb',
                   background: 'white', color: '#374151', fontWeight: 700, cursor: 'pointer', fontSize: '14px'
                 }}>Cancel</button>
+
+                <button onClick={openGmail} style={{
+                  padding: '12px 24px', borderRadius: '10px', border: '1px solid #d1d5db',
+                  background: 'white', color: '#ea4335', fontWeight: 800, cursor: 'pointer', fontSize: '14px',
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z" fill="#EA4335"/>
+                  </svg>
+                  Send via Gmail
+                </button>
+
                 <button onClick={handleSend} disabled={sending || sent} style={{
                   padding: '12px 28px', borderRadius: '10px', border: 'none',
                   background: sent ? '#10b981' : 'linear-gradient(135deg,#2563eb,#0ea5e9)',
@@ -246,7 +273,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
                   opacity: sending ? 0.8 : 1, transition: 'all 0.2s',
                   boxShadow: '0 4px 14px rgba(37,99,235,0.4)'
                 }}>
-                  {sent ? '✅ Sent!' : sending ? '⏳ Sending...' : '📤 Send Email'}
+                  {sent ? '✅ Sent!' : sending ? '⏳ Sending...' : '📤 Send Auto-Email'}
                 </button>
               </>
             )}

@@ -407,7 +407,7 @@ export default function AccountantWorkspace() {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(124,58,237,0.45)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(124,58,237,0.35)'; }}
                 >
-                  {submitting ? '⏳ Sending...' : '📤 Finalize and Send to Supervisor'}
+                  {submitting ? '⏳ Sending...' : '📤 Send to Store Keeper'}
                 </button>
               </div>
             </div>

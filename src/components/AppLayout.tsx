@@ -841,7 +841,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />
                   <NavLink href="/po/rejected" icon="❌" label="Rejected PO" permissionKey="po_rejected" />
                   <NavLink href="/po/accountant" icon="💸" label="Accountant Processing" badge={accountantCount} permissionKey="po_accountant" />
-                  <NavLink href="/po/supervisor" icon="🔍" label="Supervisor Verification" permissionKey="po_supervisor" />
+                  <NavLink href="/po/supervisor" icon="🔍" label="PO Material Receive" permissionKey="po_supervisor" />
                   <NavLink href="/po/completed" icon="📁" label="Completed PO" permissionKey="po_completed" />
                   <NavLink href="/po/history" icon="🕒" label="PO History" permissionKey="po_history" />
                   <NavLink href="/po/payment-status" icon="💰" label="Payment Completed" permissionKey="po_payment_status" />
@@ -921,7 +921,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />
                   <NavLink href="/po/rejected" icon="❌" label="Rejected PO" permissionKey="po_rejected" />
                   <NavLink href="/po/accountant" icon="💸" label="Accountant Processing" badge={accountantCount} permissionKey="po_accountant" />
-                  <NavLink href="/po/supervisor" icon="🔍" label="Supervisor Verification" permissionKey="po_supervisor" />
+                  <NavLink href="/po/supervisor" icon="🔍" label="PO Material Receive" permissionKey="po_supervisor" />
                   <NavLink href="/po/completed" icon="📁" label="Completed PO" permissionKey="po_completed" />
                   <NavLink href="/po/history" icon="🕒" label="PO History" permissionKey="po_history" />
                   <NavLink href="/po/payment-status" icon="💰" label="Payment Completed" permissionKey="po_payment_status" />

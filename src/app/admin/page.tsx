@@ -1708,7 +1708,7 @@ export default function AdminPage() {
                   { key: 'po_approved', label: 'Approved PO', icon: '✅', desc: 'Cleared for processing' },
                   { key: 'po_rejected', label: 'Rejected PO', icon: '❌', desc: 'Permanently denied POs' },
                   { key: 'po_accountant', label: 'Acct Processing', icon: '💸', desc: 'Ledger payment posting' },
-                  { key: 'po_supervisor', label: 'Supervisor Verification', icon: '🔍', desc: 'Verify materials' },
+                  { key: 'po_supervisor', label: 'PO Material Receive', icon: '🔍', desc: 'Verify materials' },
                   { key: 'po_completed', label: 'Completed PO', icon: '📁', desc: 'Closed purchasing records' },
                   { key: 'po_history', label: 'PO History', icon: '🕒', desc: 'Full PO audit timeline' },
                   { key: 'po_payment_status', label: 'Payment Completed', icon: '💰', desc: 'Accountant closed ledger' }

@@ -302,7 +302,7 @@ export default function CompletedPOs() {
               </div>
               <div style={{ textAlign: 'center', width: '200px' }}>
                 <div style={{ height: '40px' }} />
-                <div style={{ borderTop: '1px solid #94a3b8', fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', paddingTop: '6px', fontFamily: 'sans-serif' }}>Supervisor Verification</div>
+                <div style={{ borderTop: '1px solid #94a3b8', fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', paddingTop: '6px', fontFamily: 'sans-serif' }}>PO Material Receive</div>
               </div>
             </div>
 
