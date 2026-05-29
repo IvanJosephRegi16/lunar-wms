@@ -388,26 +388,35 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ success: true, method: 'smtp', recipient: to });
     } else {
-      // Offline fallback: Write to local HTML file so user can review immediately
-      // Use /tmp in production (Railway's filesystem is read-only outside /tmp)
-      const baseDir = process.env.NODE_ENV === 'production' ? '/tmp' : process.cwd();
-      const sentEmailsDir = path.join(baseDir, 'sent_emails');
-      if (!fs.existsSync(sentEmailsDir)) {
-        fs.mkdirSync(sentEmailsDir, { recursive: true });
-      }
-
-      const fileName = `po_${po.po_number.replace(/[^a-zA-Z0-9_-]/g, '_')}_${Date.now()}.html`;
-      const filePath = path.join(sentEmailsDir, fileName);
+      // ────────────────────────────────────────────────────────────────────────
+      // 🧪 ZERO-CONFIG ETHEREAL EMAIL TESTER (Fallback when no API keys are provided)
+      // ────────────────────────────────────────────────────────────────────────
+      console.log('No SMTP or Resend configured. Generating Ethereal Test Account...');
       
-      fs.writeFileSync(filePath, emailHtml, 'utf-8');
+      const testAccount = await nodemailer.createTestAccount();
+      const transporter = nodemailer.createTransport({
+        host: 'smtp.ethereal.email',
+        port: 587,
+        secure: false,
+        auth: {
+          user: testAccount.user,
+          pass: testAccount.pass
+        }
+      });
 
-      // Return a simulated success response containing the path to open
+      const info = await transporter.sendMail({
+        from: '"Lunar WMS System" <system@lunars.local>',
+        to: to,
+        subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
+        html: emailHtml,
+      });
+
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+
       return NextResponse.json({ 
         success: true, 
-        method: 'local_fallback', 
-        savedLocally: true,
-        filePath: `sent_emails/${fileName}`,
-        absPath: filePath,
+        method: 'ethereal', 
+        previewUrl,
         recipient: to
       });
     }

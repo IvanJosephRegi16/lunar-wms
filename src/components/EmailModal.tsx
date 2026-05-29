@@ -12,8 +12,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
   const [to, setTo] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [savedLocally, setSavedLocally] = useState(false);
-  const [localPath, setLocalPath] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
   const billRef = useRef<HTMLDivElement>(null);
 
   const handleSend = async () => {
@@ -34,9 +33,8 @@ export default function EmailModal({ po, items, onClose }: Props) {
       
       setSending(false);
       setSent(true);
-      if (data.savedLocally) {
-        setSavedLocally(true);
-        setLocalPath(data.filePath);
+      if (data.method === 'ethereal' && data.previewUrl) {
+        setPreviewUrl(data.previewUrl);
       } else {
         setTimeout(onClose, 2000);
       }
@@ -186,7 +184,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
         {/* Action Buttons & Success Alerts */}
         <div style={{ padding: '0 28px 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           
-          {sent && savedLocally && (
+          {sent && previewUrl && (
             <div className="fade-up" style={{
               background: '#f0fdf4',
               border: '1.5px solid #bbf7d0',
@@ -197,31 +195,36 @@ export default function EmailModal({ po, items, onClose }: Props) {
               lineHeight: '1.5'
             }}>
               <div style={{ fontWeight: 800, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                📂 Draft Saved to Desktop! (Offline Fallback)
+                ✅ Email Dispatched to Test Server
               </div>
               <div>
-                Since SMTP isn't configured yet, a pixel-perfect, Stripe-style corporate billing HTML file has been generated and saved locally to:
-                <div style={{
-                  fontFamily: 'monospace',
-                  background: '#dcfce7',
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  marginTop: '8px',
-                  fontWeight: 700,
-                  fontSize: '12px',
-                  wordBreak: 'break-all'
-                }}>
-                  {localPath}
-                </div>
-                <div style={{ marginTop: '8px', fontSize: '12.5px', color: '#15803d', fontWeight: 600 }}>
-                  💡 Open this file in Google Chrome/Firefox to preview, review, or print your beautiful Gmail billing receipt!
-                </div>
+                Since no real email provider is configured, the system generated a live test inbox. You can view exactly what the vendor would receive here:
+                <a 
+                  href={previewUrl} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  style={{
+                    display: 'inline-block',
+                    fontFamily: 'monospace',
+                    background: '#dcfce7',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    marginTop: '8px',
+                    fontWeight: 700,
+                    fontSize: '13px',
+                    color: '#15803d',
+                    textDecoration: 'none',
+                    border: '1px solid #bbf7d0'
+                  }}
+                >
+                  🔗 Open Live Email Preview
+                </a>
               </div>
             </div>
           )}
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', alignItems: 'center' }}>
-            {sent && savedLocally ? (
+            {sent && previewUrl ? (
               <button onClick={onClose} style={{
                 padding: '12px 28px', borderRadius: '10px', border: 'none',
                 background: '#166534', color: 'white', fontWeight: 800, cursor: 'pointer', fontSize: '14px',
