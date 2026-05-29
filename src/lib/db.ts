@@ -318,8 +318,8 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
 -- Make sure to seed the system admin so you can log in after switching the database!
 -- Password hash below is 'admin123' using bcrypt (cost 10)
 INSERT INTO users (username, password_hash, full_name, role, plain_password) 
-VALUES ('admin', '$2a$10$WpQpG7hGgqj0iNfN7AOY2ewb2F6p.4w/0zJb7q3yQd2f8rW9z1BGy', 'System Admin', 'admin', 'admin123')
-ON CONFLICT (username) DO NOTHING;
+VALUES ('admin', '$2b$10$heeWtl8.Dv6FeiXmJOl3kOH1uiRw/g3G90lxmV2XvAnq5gcP9wLqG', 'System Admin', 'admin', 'admin123')
+ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
 `);
 
     await client.query(`
