@@ -97,13 +97,13 @@ export async function POST(req: Request) {
         // Retrieve and mutate target role permission visibility config
         const configKey = `menu_visibility_config_${requestRow.role}`;
         let configRow = await db.prepare(
-          "SELECT value FROM system_settings WHERE key = ?"
+          "SELECT value FROM system_settings WHERE \"key\" = ?"
         ).get(configKey) as { value: string } | undefined;
 
         // Fallback check to generic menu_visibility_config if role specific hasn't been set
         if (!configRow) {
           configRow = await db.prepare(
-            "SELECT value FROM system_settings WHERE key = 'menu_visibility_config'"
+            "SELECT value FROM system_settings WHERE \"key\" = 'menu_visibility_config'"
           ).get() as { value: string } | undefined;
         }
 
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
 
         // Write configuration back to SQLite
         await db.prepare(
-          "INSERT OR REPLACE INTO system_settings (key, value) VALUES (?, ?)"
+          "INSERT INTO system_settings (\"key\", value) VALUES (?, ?) ON CONFLICT (\"key\") DO UPDATE SET value = EXCLUDED.value"
         ).run(configKey, JSON.stringify(currentConfig));
 
         // Update request row status in database

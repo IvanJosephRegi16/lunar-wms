@@ -71,7 +71,7 @@ export async function POST(req: Request) {
     try {
       const db = getDb();
       await db.prepare(
-        `INSERT INTO system_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = ?`
+        `INSERT INTO system_settings ("key", value) VALUES (?, ?) ON CONFLICT("key") DO UPDATE SET value = ?`
       ).run('last_cloud_backup', new Date().toISOString(), new Date().toISOString());
     } catch (e) {
       console.warn('Could not log backup timestamp:', e);
@@ -106,7 +106,7 @@ export async function GET() {
     let lastBackup = null;
     try {
       const db = getDb();
-      const row = await db.prepare(`SELECT value FROM system_settings WHERE key = ?`).get('last_cloud_backup');
+      const row = await db.prepare(`SELECT value FROM system_settings WHERE "key" = ?`).get('last_cloud_backup');
       lastBackup = (row as any)?.value ?? null;
     } catch { /* table may not exist yet */ }
 

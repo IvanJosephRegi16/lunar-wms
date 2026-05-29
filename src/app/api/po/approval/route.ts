@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const db = getDb();
     const configKey = `menu_visibility_config_${user.role}`;
-    let configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+    let configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get(configKey) as { value: string } | undefined;
     if (!configRow) {
-      configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+      configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get('menu_visibility_config') as { value: string } | undefined;
     }
 
     let hasApprovePermission = user.role === 'admin';

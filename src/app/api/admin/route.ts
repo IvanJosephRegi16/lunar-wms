@@ -88,18 +88,18 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'update_setting') {
-    await db.prepare(`INSERT INTO system_settings (key, value, updated_at, updated_by) VALUES (?,?,CURRENT_TIMESTAMP,?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`).run(body.key, body.value, user.id);
+    await db.prepare(`INSERT INTO system_settings ("key", value, updated_at, updated_by) VALUES (?,?,CURRENT_TIMESTAMP,?) ON CONFLICT ("key") DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`).run(body.key, body.value, user.id);
     return NextResponse.json({ success: true });
   }
 
   if (action === 'get_menu_visibility') {
     const role = body.role || 'operator';
     const configKey = `menu_visibility_config_${role}`;
-    let configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+    let configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get(configKey) as { value: string } | undefined;
     
     // Fallback to global if role-specific is not set yet
     if (!configRow) {
-      configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get('menu_visibility_config') as { value: string } | undefined;
+      configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get('menu_visibility_config') as { value: string } | undefined;
     }
     
     return NextResponse.json({ config: configRow ? JSON.parse(configRow.value) : null });
@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     const valueString = JSON.stringify(body.config);
 
     // Get previous menu visibility configuration to calculate differences
-    const configRow = await db.prepare('SELECT value FROM system_settings WHERE key = ?').get(configKey) as { value: string } | undefined;
+    const configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get(configKey) as { value: string } | undefined;
     const prevConfig = configRow ? JSON.parse(configRow.value) : {};
     const newConfig = body.config || {};
 
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
       ? `Role "${role.toUpperCase()}" menu config updated. Changes: [${changes.join(', ')}] at ${timestampIST}`
       : `Role "${role.toUpperCase()}" menu config saved (no changes) at ${timestampIST}`;
 
-    await db.prepare(`INSERT INTO system_settings (key, value, updated_at, updated_by) VALUES (?,?,CURRENT_TIMESTAMP,?) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`).run(configKey, valueString, user.id);
+    await db.prepare(`INSERT INTO system_settings ("key", value, updated_at, updated_by) VALUES (?,?,CURRENT_TIMESTAMP,?) ON CONFLICT ("key") DO UPDATE SET value = EXCLUDED.value, updated_at = CURRENT_TIMESTAMP, updated_by = EXCLUDED.updated_by`).run(configKey, valueString, user.id);
     await logAudit({ 
       userId: user.id, 
       username: user.username, 
