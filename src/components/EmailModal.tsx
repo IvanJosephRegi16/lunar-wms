@@ -47,12 +47,30 @@ export default function EmailModal({ po, items, onClose }: Props) {
   const openGmail = () => {
     if (!to.trim()) { alert('Please enter recipient email first'); return; }
     const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
+    
+    const tableHeader = 
+      `#  | Material Code | Material Name             | Size / Thk | Stock | Req. Qty | Vendor\n` +
+      `-------------------------------------------------------------------------------------------\n`;
+      
+    const tableRows = items.map((it: any, i: number) => {
+      const idx = String(i + 1).padEnd(3);
+      const code = String(it.material_code || '-').padEnd(13);
+      const name = String(it.material_name || '-').substring(0, 23).padEnd(25);
+      const size = String(it.size_thickness || '-').substring(0, 10).padEnd(12);
+      const stock = String(it.current_stock ?? '0').padEnd(5);
+      const qty = String(it.required_qty ?? it.required_quantity ?? '0').padEnd(8);
+      const vendor = String(it.vendor || po?.vendor || '-');
+      return `${idx}| ${code} | ${name} | ${size} | ${stock} | ${qty} | ${vendor}`;
+    }).join('\n');
+
     const bodyText = `Dear Vendor,\n\nPlease find the purchase order details below:\n\n` +
       `PO Number: ${po?.po_number}\n` +
       `Date: ${po?.approved_timestamp}\n\n` +
-      `Required Materials:\n` +
-      items.map((it: any, i: number) => `${i + 1}. ${it.material_name} (${it.size_thickness || '-'}) - Qty: ${it.required_qty || it.required_quantity}`).join('\n') +
-      `\n\nThank you,\nLunar's Procurement Division`;
+      `Required Materials:\n\n` +
+      tableHeader + tableRows +
+      `\n\n-------------------------------------------------------------------------------------------\n\n` +
+      `Thank you,\nLunar's Procurement Division`;
+      
     const body = encodeURIComponent(bodyText);
     const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
     window.open(gmailUrl, '_blank');
