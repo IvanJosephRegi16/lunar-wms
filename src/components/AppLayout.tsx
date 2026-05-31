@@ -388,6 +388,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
 
   const [returnedCount, setReturnedCount] = useState(0);
   const [accountantCount, setAccountantCount] = useState(0);
+  const [supervisorCount, setSupervisorCount] = useState(0);
 
   // ── Profile Dropdown and Modals states ────────────────────────────────────
   const [profileOpen, setProfileOpen] = useState(false);
@@ -487,15 +488,20 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
             const pnd = data.pos.filter((p: any) => p.status === 'pending_admin_approval').length;
             const ret = data.pos.filter((p: any) => p.status === 'returned_for_edit').length;
             const acct = data.pos.filter((p: any) => p.status === 'accountant_processing').length;
+            const sup = data.pos.filter((p: any) => p.status === 'supervisor_review').length;
             setPendingCount(pnd);
             setReturnedCount(ret);
             setAccountantCount(acct);
+            setSupervisorCount(sup);
           } else if (user.role === 'pm') {
             const ret = data.pos.filter((p: any) => p.status === 'returned_for_edit').length;
             setReturnedCount(ret);
           } else if (user.role === 'accountant') {
             const acct = data.pos.filter((p: any) => p.status === 'accountant_processing').length;
             setAccountantCount(acct);
+          } else if (user.role === 'supervisor') {
+            const sup = data.pos.filter((p: any) => p.status === 'supervisor_review').length;
+            setSupervisorCount(sup);
           }
         }
       } catch { /* ignore */ }
@@ -862,7 +868,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />
                   <NavLink href="/po/rejected" icon="❌" label="Rejected PO" permissionKey="po_rejected" />
                   <NavLink href="/po/accountant" icon="💸" label="Accountant Processing" badge={accountantCount} permissionKey="po_accountant" />
-                  <NavLink href="/po/supervisor" icon="🔍" label="PO Material Receive" permissionKey="po_supervisor" />
+                  <NavLink href="/po/supervisor" icon="🔍" label="PO Material Receive" permissionKey="po_supervisor" badge={supervisorCount} />
                   <NavLink href="/po/completed" icon="📁" label="Completed PO" permissionKey="po_completed" />
                   <NavLink href="/po/history" icon="🕒" label="PO History" permissionKey="po_history" />
                   <NavLink href="/po/payment-status" icon="💰" label="Payment Completed" permissionKey="po_payment_status" />
@@ -942,7 +948,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />
                   <NavLink href="/po/rejected" icon="❌" label="Rejected PO" permissionKey="po_rejected" />
                   <NavLink href="/po/accountant" icon="💸" label="Accountant Processing" badge={accountantCount} permissionKey="po_accountant" />
-                  <NavLink href="/po/supervisor" icon="🔍" label="PO Material Receive" permissionKey="po_supervisor" />
+                  <NavLink href="/po/supervisor" icon="🔍" label="PO Material Receive" permissionKey="po_supervisor" badge={supervisorCount} />
                   <NavLink href="/po/completed" icon="📁" label="Completed PO" permissionKey="po_completed" />
                   <NavLink href="/po/history" icon="🕒" label="PO History" permissionKey="po_history" />
                   <NavLink href="/po/payment-status" icon="💰" label="Payment Completed" permissionKey="po_payment_status" />

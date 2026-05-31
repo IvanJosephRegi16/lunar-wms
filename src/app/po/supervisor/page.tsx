@@ -9,6 +9,7 @@ export default function SupervisorVerification() {
   const [verifying, setVerifying] = useState(false);
   const [remarks, setRemarks] = useState('');
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
+  const [receivedQty, setReceivedQty] = useState<Record<number, string>>({});
 
   const loadData = async () => {
     setLoading(true);
@@ -35,15 +36,21 @@ export default function SupervisorVerification() {
     }
     setVerifying(true);
     try {
+      const payloadItems = selectedPO.items.map((item: any, i: number) => ({
+        id: item.id,
+        received_qty: Number(receivedQty[i] || item.required_qty)
+      }));
+
       const res = await fetch('/api/po/supervisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedPO.id, action: 'verify_complete', remarks })
+        body: JSON.stringify({ id: selectedPO.id, action: 'verify_complete', remarks, items: payloadItems })
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
       setSelectedPO(null);
       setCheckedItems({});
+      setReceivedQty({});
       setRemarks('');
       loadData();
     } catch (err: any) {
@@ -53,7 +60,7 @@ export default function SupervisorVerification() {
     }
   };
 
-  const handleReturnToAccountant = async () => {
+  const handleReturnToPM = async () => {
     if (!remarks.trim()) {
       alert('Please provide remarks explaining why you are returning this PO.');
       return;
@@ -63,16 +70,42 @@ export default function SupervisorVerification() {
       const res = await fetch('/api/po/supervisor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedPO.id, action: 'return_to_accountant', remarks })
+        body: JSON.stringify({ id: selectedPO.id, action: 'return_to_pm', remarks })
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
       setSelectedPO(null);
       setCheckedItems({});
+      setReceivedQty({});
       setRemarks('');
       loadData();
     } catch (err: any) {
       alert(err.message || 'Failed to return');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handlePartialEntry = async () => {
+    setVerifying(true);
+    try {
+      const payloadItems = selectedPO.items.map((item: any, i: number) => ({
+        id: item.id,
+        received_qty: Number(receivedQty[i] || item.required_qty)
+      }));
+
+      const res = await fetch('/api/po/supervisor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedPO.id, action: 'partial_entry', remarks, items: payloadItems })
+      });
+      const data = await res.json();
+      if (data.error) { alert(data.error); return; }
+      alert('Partial receiving entry saved successfully!');
+      // Keep PO open, just reload data to reflect changes
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Failed to save partial entry');
     } finally {
       setVerifying(false);
     }
@@ -152,7 +185,17 @@ export default function SupervisorVerification() {
                     </td>
                     <td style={{ padding: '14px 16px', fontWeight: 600, fontSize: '12px', color: '#64748b' }}>{po.creator_name || '-'}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      <button onClick={() => { setSelectedPO(po); setCheckedItems({}); setRemarks(''); }}
+                      <button onClick={() => { 
+                        setSelectedPO(po); 
+                        setCheckedItems({}); 
+                        setRemarks(''); 
+                        // Initialize receivedQty map
+                        const initQty: Record<number, string> = {};
+                        (po.items || []).forEach((item: any, i: number) => {
+                           initQty[i] = item.received_qty > 0 ? item.received_qty.toString() : item.required_qty.toString();
+                        });
+                        setReceivedQty(initQty);
+                      }}
                         style={{
                           background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', border: 'none',
                           padding: '8px 18px', borderRadius: '10px', fontWeight: 800, fontSize: '12px',
@@ -224,6 +267,7 @@ export default function SupervisorVerification() {
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Material Name</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Size / Thickness</th>
                     <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Required Stock</th>
+                    <th style={{ textAlign: 'center', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Received Qty</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Unit</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Vendor</th>
                     <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Rate (₹)</th>
@@ -256,6 +300,16 @@ export default function SupervisorVerification() {
                       <td style={{ padding: '12px', fontWeight: 700 }}>{item.material_name}</td>
                       <td style={{ padding: '12px', color: '#64748b' }}>{item.size_thickness || '-'}</td>
                       <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', fontSize: '14px' }}>{Number(item.required_qty || 0).toLocaleString()}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <input 
+                          type="number" 
+                          min="0"
+                          max={item.required_qty}
+                          value={receivedQty[i] !== undefined ? receivedQty[i] : item.required_qty}
+                          onChange={(e) => setReceivedQty(prev => ({ ...prev, [i]: e.target.value }))}
+                          style={{ width: '80px', padding: '6px', textAlign: 'center', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontFamily: 'monospace' }}
+                        />
+                      </td>
                       <td style={{ padding: '12px', fontWeight: 700, fontSize: '12px', color: '#64748b' }}>{item.unit || 'Pair'}</td>
                       <td style={{ padding: '12px', fontWeight: 600, fontSize: '12px' }}>{item.vendor || selectedPO.vendor}</td>
                       <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
@@ -290,14 +344,24 @@ export default function SupervisorVerification() {
             </div>
 
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              {/* Return to Accountant */}
-              <button onClick={handleReturnToAccountant} disabled={verifying}
+              {/* Return to PM */}
+              <button onClick={handleReturnToPM} disabled={verifying}
                 style={{
                   background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa',
                   padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '13px',
                   cursor: verifying ? 'wait' : 'pointer', opacity: verifying ? 0.6 : 1, transition: 'all 0.2s'
                 }}>
-                🔄 Return to Accountant
+                🔄 Return to P.M
+              </button>
+
+              {/* Partial Entry */}
+              <button onClick={handlePartialEntry} disabled={verifying}
+                style={{
+                  background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #bfdbfe',
+                  padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '13px',
+                  cursor: verifying ? 'wait' : 'pointer', opacity: verifying ? 0.6 : 1, transition: 'all 0.2s'
+                }}>
+                💾 Save Partial Entry & Notify PM
               </button>
 
               {/* Verify & Complete */}

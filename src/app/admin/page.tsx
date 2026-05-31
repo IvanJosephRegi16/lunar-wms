@@ -56,8 +56,10 @@ export default function AdminPage() {
   // Create User Form Dialog Modal State
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ username: '', full_name: '', password: '', phone: '', role: 'operator' });
+  const [showFormPassword, setShowFormPassword] = useState(false);
 
   // Edit User Form Dialog Modal State
+  const [showEditPassword, setShowEditPassword] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editForm, setEditForm] = useState({
     username: '',
@@ -2504,14 +2506,23 @@ export default function AdminPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>PASSWORD</label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Set login password..."
-                    value={form.password}
-                    onChange={e => setForm({...form, password: e.target.value})}
-                    style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%' }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showFormPassword ? "text" : "password"}
+                      required
+                      placeholder="Set login password..."
+                      value={form.password}
+                      onChange={e => setForm({...form, password: e.target.value})}
+                      style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%', paddingRight: '40px' }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowFormPassword(!showFormPassword)}
+                      style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                    >
+                      {showFormPassword ? '👁️' : '👁️‍🗨️'}
+                    </button>
+                  </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>PHONE NUMBER (OPTIONAL)</label>
@@ -2666,13 +2677,22 @@ export default function AdminPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <label style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>RESET PASSWORD (OPTIONAL)</label>
-                <input
-                  type="password"
-                  placeholder="Enter new password to force update..."
-                  value={editForm.password}
-                  onChange={e => setEditForm({...editForm, password: e.target.value})}
-                  style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showEditPassword ? "text" : "password"}
+                    placeholder="Enter new password to force update..."
+                    value={editForm.password}
+                    onChange={e => setEditForm({...editForm, password: e.target.value})}
+                    style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%', paddingRight: '40px' }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                  >
+                    {showEditPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
 
               {editingUser.username !== 'admin' && (

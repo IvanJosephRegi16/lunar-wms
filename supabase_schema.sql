@@ -236,6 +236,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
   required_qty NUMERIC NOT NULL,
   unit TEXT DEFAULT 'Pair',
   amount NUMERIC NOT NULL,
+  received_qty NUMERIC DEFAULT 0,
   vendor TEXT,
   remarks TEXT
 );
@@ -243,7 +244,7 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
 CREATE TABLE IF NOT EXISTS po_approval_history (
   id SERIAL PRIMARY KEY,
   po_id INTEGER NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
-  action TEXT NOT NULL CHECK(action IN ('submit', 'approve', 'reject', 'return')),
+  action TEXT NOT NULL CHECK(action IN ('submit', 'approve', 'reject', 'return', 'supervisor_verified', 'supervisor_returned', 'partial_entry')),
   actor_id INTEGER NOT NULL REFERENCES users(id),
   actor_name TEXT NOT NULL,
   comments TEXT,

@@ -49,6 +49,7 @@ export default function LoginPage() {
   // Login states
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   // Recovery states
   const [phone, setPhone] = useState('');
@@ -272,13 +273,23 @@ export default function LoginPage() {
                     Forgot Access Protocol?
                   </button>
                 </div>
-                <input 
-                  type="password" 
-                  placeholder="Password..." 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)}
-                  required 
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Password..." 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)}
+                    required 
+                    style={{ width: '100%', paddingRight: '40px' }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
 
               <button 
@@ -454,25 +465,45 @@ export default function LoginPage() {
             <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '20px', textAlign: 'left' }}>
               <div className="silk-field">
                 <label>NEW ACCESS PROTOCOL</label>
-                <input 
-                  type="password" 
-                  placeholder="Enter new password..." 
-                  value={newPassword} 
-                  onChange={e => setNewPassword(e.target.value)}
-                  required 
-                  autoFocus
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Enter new password..." 
+                    value={newPassword} 
+                    onChange={e => setNewPassword(e.target.value)}
+                    required 
+                    autoFocus
+                    style={{ width: '100%', paddingRight: '40px' }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
 
               <div className="silk-field">
                 <label>CONFIRM PROTOCOL</label>
-                <input 
-                  type="password" 
-                  placeholder="Confirm new password..." 
-                  value={confirmPassword} 
-                  onChange={e => setConfirmPassword(e.target.value)}
-                  required 
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    placeholder="Confirm new password..." 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)}
+                    required 
+                    style={{ width: '100%', paddingRight: '40px' }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                  >
+                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                  </button>
+                </div>
               </div>
 
               <button 

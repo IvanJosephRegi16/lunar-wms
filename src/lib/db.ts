@@ -742,6 +742,7 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
     // ── Column-level migrations (safe ADD COLUMN IF NOT EXISTS) ───────────
     const columnMigrations = [
       { table: 'purchase_orders',     column: 'is_deleted',              type: 'INTEGER DEFAULT 0' },
+      { table: 'purchase_order_items',column: 'received_qty',            type: 'REAL DEFAULT 0' },
       { table: 'purchase_orders',     column: 'supervisor_verified_by',  type: 'INTEGER' },
       { table: 'purchase_orders',     column: 'supervisor_verified_at',  type: 'TEXT' },
       { table: 'purchase_orders',     column: 'remarks',                 type: 'TEXT DEFAULT \'\''},
@@ -772,6 +773,10 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       await client.query(`ALTER TABLE purchase_orders DROP CONSTRAINT IF EXISTS purchase_orders_status_check`);
       await client.query(`ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_status_check CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed'))`);
       console.log('[MIGRATION] purchase_orders status constraint updated with supervisor_review');
+      
+      await client.query(`ALTER TABLE po_approval_history DROP CONSTRAINT IF EXISTS po_approval_history_action_check`);
+      await client.query(`ALTER TABLE po_approval_history ADD CONSTRAINT po_approval_history_action_check CHECK(action IN ('submit', 'approve', 'reject', 'return', 'supervisor_verified', 'supervisor_returned', 'partial_entry'))`);
+      console.log('[MIGRATION] po_approval_history constraint updated');
     } catch (e: any) {
       console.warn('[MIGRATION] status constraint update skipped:', e.message);
     }

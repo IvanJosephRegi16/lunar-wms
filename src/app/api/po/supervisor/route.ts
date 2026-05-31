@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, action, remarks = '' } = body;
+    const { id, action, remarks = '', items = [] } = body;
 
     if (!id || !action) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -102,6 +102,17 @@ export async function POST(req: NextRequest) {
           VALUES (?, 'supervisor_verified', ?, ?, ?, ?)
         `).run(id, user.id, user.full_name, remarks || 'Supervisor verified — all materials received and confirmed', timestampStr);
 
+        // Update received quantities for all items
+        if (items && items.length > 0) {
+          for (const item of items) {
+            await db.prepare(`
+              UPDATE purchase_order_items
+              SET received_qty = ?
+              WHERE id = ? AND po_id = ?
+            `).run(item.received_qty || 0, item.id, id);
+          }
+        }
+
         // Notify PM creator
         if (po.creator_user_id) {
           await db.prepare(`
@@ -127,11 +138,48 @@ export async function POST(req: NextRequest) {
           );
         }
 
-      } else if (action === 'return_to_accountant') {
-        // Send back to accountant for corrections
+      } else if (action === 'partial_entry') {
+        // Update received quantities for all items but don't complete the PO
+        if (items && items.length > 0) {
+          for (const item of items) {
+            await db.prepare(`
+              UPDATE purchase_order_items
+              SET received_qty = ?
+              WHERE id = ? AND po_id = ?
+            `).run(item.received_qty || 0, item.id, id);
+          }
+        }
+
+        await db.prepare(`
+          INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
+          VALUES (?, ?, ?, 'partial_entry', ?)
+        `).run(
+          id, user.id, user.username,
+          `Supervisor recorded a partial receiving entry for PO ${po.po_number}.${remarks ? ' Remarks: ' + remarks : ''}`
+        );
+
+        await db.prepare(`
+          INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
+          VALUES (?, 'partial_entry', ?, ?, ?, ?)
+        `).run(id, user.id, user.full_name, remarks || 'Partial receiving entry saved', timestampStr);
+
+        // Notify PM creator
+        if (po.creator_user_id) {
+          await db.prepare(`
+            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+            VALUES (?, ?, ?, 'partial_entry', ?, ?)
+          `).run(
+            po.creator_user_id, id, po.po_number,
+            `📦 PO ${po.po_number}: Supervisor has recorded a partial receiving entry. Please review the updated quantities.`,
+            new Date().toISOString()
+          );
+        }
+
+      } else if (action === 'return_to_pm') {
+        // Send back to PM (returned_for_edit)
         await db.prepare(`
           UPDATE purchase_orders
-          SET status = 'accountant_processing',
+          SET status = 'returned_for_edit',
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
         `).run(id);
@@ -141,13 +189,25 @@ export async function POST(req: NextRequest) {
           VALUES (?, ?, ?, 'supervisor_returned', ?)
         `).run(
           id, user.id, user.username,
-          `Supervisor returned PO ${po.po_number} to Accountant for corrections. Remarks: ${remarks || 'Please review'}`
+          `Supervisor returned PO ${po.po_number} to P.M. Remarks: ${remarks || 'Please review'}`
         );
 
         await db.prepare(`
           INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
           VALUES (?, 'supervisor_returned', ?, ?, ?, ?)
-        `).run(id, user.id, user.full_name, remarks || 'Returned to accountant for review', timestampStr);
+        `).run(id, user.id, user.full_name, remarks || 'Returned to P.M for review', timestampStr);
+
+        // Notify PM creator
+        if (po.creator_user_id) {
+          await db.prepare(`
+            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+            VALUES (?, ?, ?, 'returned', ?, ?)
+          `).run(
+            po.creator_user_id, id, po.po_number,
+            `⚠️ PO ${po.po_number} was returned by the Supervisor. Remarks: ${remarks || 'No remarks'}`,
+            new Date().toISOString()
+          );
+        }
 
       } else {
         throw new Error('Unknown action');
