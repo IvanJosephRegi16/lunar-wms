@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
+import { downloadCSV, formatIST } from '@/lib/exportCSV';
 
 interface PackedCarton {
   id: number;
@@ -85,6 +86,23 @@ export default function PackedInventoryPage() {
     );
   });
 
+  const handleExportCSV = () => {
+    const headers = ['Carton ID', 'Article Code', 'Colour', 'Configuration Rule', 'Total Pairs', 'Packed Date & Time (IST)', 'Status', 'Export Date/Time'];
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const rows = filteredInventory.map(item => [
+      item.carton_id,
+      item.article_code,
+      item.colour,
+      item.config_name,
+      item.total_pairs,
+      formatIST(item.created_at),
+      'Completed',
+      now
+    ]);
+    const label = viewMode === 'today' ? 'Today' : 'History';
+    downloadCSV(`Packed_Inventory_${label}_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
   // Calculate live stats based on search
   const totalCartons = filteredInventory.length;
   const totalPairs = filteredInventory.reduce((acc, curr) => acc + curr.total_pairs, 0);
@@ -149,6 +167,12 @@ export default function PackedInventoryPage() {
           }}
         >
           {viewMode === 'today' ? '📅 View Full History' : '⚡ View Today\'s Packing'}
+        </button>
+        <button
+          onClick={handleExportCSV}
+          style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 18px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          📥 Export CSV
         </button>
       </div>
 

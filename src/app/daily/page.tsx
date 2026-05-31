@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { downloadCSV } from '@/lib/exportCSV';
 
 export default function DailySheets() {
   const [sheets, setSheets] = useState<any[]>([]);
@@ -111,6 +112,23 @@ export default function DailySheets() {
 
   const filteredSheets = sheets?.filter(s => s.sheet_date.includes(debouncedSearchTerm));
 
+  const handleExportCSV = () => {
+    const headers = ['Log Date', 'Weekday', 'Transaction Count', 'Total Volume (Pairs)', 'Status', 'Export Date/Time'];
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const rows = (filteredSheets || []).map((s: any) => {
+      const d = new Date(s.sheet_date);
+      return [
+        s.sheet_date,
+        d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long' }),
+        s.entry_count || 0,
+        Number(s.total_pairs) || 0,
+        s.status,
+        now
+      ];
+    });
+    downloadCSV(`Daily_Activity_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
   return (
     <div className="fade-up">
       <div className="flex-between mb-8 no-print">
@@ -144,9 +162,12 @@ export default function DailySheets() {
              </button>
            )}
         </div>
-        <button className="btn-corp" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleReset} disabled={resetLoading}>
-          {resetLoading ? 'Wiping...' : 'Clear All System Data'}
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-corp" onClick={handleExportCSV} style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>📥 Export CSV</button>
+          <button className="btn-corp" style={{ color: 'var(--danger)', borderColor: 'var(--danger)' }} onClick={handleReset} disabled={resetLoading}>
+            {resetLoading ? 'Wiping...' : 'Clear All System Data'}
+          </button>
+        </div>
       </div>
 
       <div className="card-clean">

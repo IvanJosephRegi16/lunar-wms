@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { downloadCSV } from '@/lib/exportCSV';
 
 export default function POHistory() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -66,17 +67,58 @@ export default function POHistory() {
     );
   }
 
+  const exportLogsCSV = () => {
+    const headers = ['Timestamp (IST)', 'PO Number', 'Vendor', 'Action', 'Description', 'Actor (Username)', 'Export Date/Time'];
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const rows = filteredLogs.map((log: any) => [
+      new Date(log.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+      log.po_number,
+      log.vendor || '',
+      log.action,
+      log.description,
+      log.username,
+      now
+    ]);
+    downloadCSV(`PO_Audit_Ledger_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
+  const exportPOsCSV = () => {
+    const headers = ['PO Number', 'Vendor', 'Status', 'Grand Total (Rs)', 'Payment Status', 'Created At (IST)', 'Export Date/Time'];
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const filtered = pos.filter((p: any) =>
+      p.po_number.toLowerCase().includes(search.toLowerCase()) ||
+      (p.vendor && p.vendor.toLowerCase().includes(search.toLowerCase()))
+    );
+    const rows = filtered.map((po: any) => [
+      po.po_number,
+      po.vendor || '',
+      po.status?.replace(/_/g, ' ') || '',
+      po.grand_total ?? 0,
+      po.payment_status || '',
+      po.created_at ? new Date(po.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '',
+      now
+    ]);
+    downloadCSV(`PO_Tracker_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px', margin: '0 auto' }}>
       
       {/* Header banner */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800 }}>WMS PO History & Tracking</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 800 }}>WMS PO History &amp; Tracking</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Complete chronological ledger and step-by-step visual tracker for all PO lifecycles.
           </p>
         </div>
+        <button
+          className="btn-corp"
+          onClick={activeTab === 'ledger' ? exportLogsCSV : exportPOsCSV}
+          style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}
+        >
+          📥 Export CSV
+        </button>
       </div>
 
       {/* Tabs */}

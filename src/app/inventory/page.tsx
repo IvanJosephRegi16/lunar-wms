@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { downloadCSV } from '@/lib/exportCSV';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -80,6 +81,27 @@ export default function InventoryPage() {
     return matchArticle && matchColour;
   });
 
+  const handleExportCSV = () => {
+    const headers = ['Article Code', 'Colour', 'Size', 'Initial Stock', 'Total Inward', 'Machine Return', 'Semi Finished', 'Total Outward', 'Available Balance', 'Export Date/Time'];
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const rows: any[][] = [];
+    inventory.forEach(item => {
+      rows.push([
+        item.article_code,
+        item.colour,
+        item.size,
+        item.initial_opening || 0,
+        item.total_inward || 0,
+        item.total_machine_return || 0,
+        item.total_semi_finished || 0,
+        item.total_outward || 0,
+        item.available_stock || 0,
+        now
+      ]);
+    });
+    downloadCSV(`Live_Inventory_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
   return (
     <div className="fade-up">
       <div className="flex-between mb-8">
@@ -87,7 +109,10 @@ export default function InventoryPage() {
            <h1 className="title-main">Live Inventory Hub</h1>
            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>Real-time stock equilibrium monitoring and asset distribution.</p>
         </div>
-        <button className="btn-corp btn-primary-corp" onClick={loadInventory}>Synchronize</button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button className="btn-corp" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>📥 Export CSV</button>
+          <button className="btn-corp btn-primary-corp" onClick={loadInventory}>Synchronize</button>
+        </div>
       </div>
 
       <div className="card-clean" style={{ padding: '0' }}>

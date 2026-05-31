@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import styles from './page.module.css';
+import { downloadCSV } from '@/lib/exportCSV';
 
 interface AggregatedItem {
   id: number;
@@ -114,6 +115,17 @@ export default function AggregatedInventoryPage() {
     );
   };
 
+  const handleExportCSV = () => {
+    const headers = ['Article Code', 'Colour', 'Size 5', 'Size 6', 'Size 7', 'Size 8', 'Size 9', 'Size 10', 'Size 11', 'Size 12', 'Total Qty', 'Export Date/Time'];
+    const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+    const rows = sortedInventory.map(item => [
+      item.article_code, item.colour,
+      item.size_5, item.size_6, item.size_7, item.size_8, item.size_9, item.size_10, item.size_11, item.size_12,
+      item.total_qty, now
+    ]);
+    downloadCSV(`Staging_Pool_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+  };
+
   return (
     <div className={styles.container}>
       {/* 1. Header Control Panel */}
@@ -124,6 +136,7 @@ export default function AggregatedInventoryPage() {
             Live aggregation of all loose scanned pairs awaiting carton generation
           </p>
         </div>
+        <button className={styles.resetBtn} onClick={handleExportCSV} style={{ background: 'var(--primary)', color: 'white', border: 'none' }}>📥 Export CSV</button>
       </div>
 
       {/* AI STOCKOUT PROJECTION STRIP */}
