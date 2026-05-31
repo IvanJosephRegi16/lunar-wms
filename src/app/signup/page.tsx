@@ -46,6 +46,7 @@ const EyeTracker = () => {
 export default function Signup() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
@@ -170,14 +171,24 @@ export default function Signup() {
 
             <div>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '11px', fontWeight: 800, color: 'rgba(203, 213, 225, 0.8)', textTransform: 'uppercase', letterSpacing: '0.12em' }}>Password *</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                required
-                style={{ width: '100%', padding: '16px 20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.1)', outline: 'none', fontSize: '14px', background: 'rgba(255, 255, 255, 0.04)', color: '#f1f5f9', fontWeight: 500, transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }}
-                placeholder="••••••••"
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '16px 40px 16px 20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.1)', outline: 'none', fontSize: '14px', background: 'rgba(255, 255, 255, 0.04)', color: '#f1f5f9', fontWeight: 500, transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                  placeholder="••••••••"
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold' }}
+                  title={showPassword ? 'Hide Password' : 'Show Password'}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
 
             <button 

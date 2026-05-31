@@ -2518,9 +2518,10 @@ export default function AdminPage() {
                     <button 
                       type="button" 
                       onClick={() => setShowFormPassword(!showFormPassword)}
-                      style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                      style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.05em', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}
+                      title={showFormPassword ? 'Hide Password' : 'Show Password'}
                     >
-                      {showFormPassword ? '👁️' : '👁️‍🗨️'}
+                      {showFormPassword ? '🙈' : '👁️'}
                     </button>
                   </div>
                 </div>
@@ -2688,9 +2689,10 @@ export default function AdminPage() {
                   <button 
                     type="button" 
                     onClick={() => setShowEditPassword(!showEditPassword)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.05em', borderRadius: '4px', background: 'rgba(255,255,255,0.05)' }}
+                    title={showEditPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    {showEditPassword ? '👁️' : '👁️‍🗨️'}
+                    {showEditPassword ? '🙈' : '👁️'}
                   </button>
                 </div>
               </div>

@@ -268,7 +268,7 @@ export default function LoginPage() {
                   <button 
                     type="button" 
                     onClick={() => { setView('forgot_phone'); setError(''); setSuccess(''); }}
-                    style={{ background: 'none', border: 'none', color: '#a78bfa', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer', outline: 'none', padding: 0 }}
+                    style={{ background: 'none', border: 'none', color: '#a78bfa', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', cursor: 'pointer', outline: 'none', padding: '4px 8px' }}
                   >
                     Forgot Access Protocol?
                   </button>
@@ -285,9 +285,10 @@ export default function LoginPage() {
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold' }}
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    {showPassword ? '🙈' : '👁️'}
                   </button>
                 </div>
               </div>
@@ -478,9 +479,10 @@ export default function LoginPage() {
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold' }}
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    {showPassword ? '🙈' : '👁️'}
                   </button>
                 </div>
               </div>
@@ -499,9 +501,10 @@ export default function LoginPage() {
                   <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: 0 }}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold' }}
+                    title={showPassword ? 'Hide Password' : 'Show Password'}
                   >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
+                    {showPassword ? '🙈' : '👁️'}
                   </button>
                 </div>
               </div>

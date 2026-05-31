@@ -300,22 +300,31 @@ export default function POHistory() {
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Size</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Current Stock</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Req Qty</th>
+                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Received Qty</th>
+                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Pending Qty</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Rate</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(selectedPo.items || []).map((item: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name}</td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{Number(item.current_stock || 0).toLocaleString()} {item.current_stock_unit || ''}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{Number(item.required_qty || 0).toLocaleString()} {item.unit || 'Pair'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                  ))}
+                  {(selectedPo.items || []).map((item: any, i: number) => {
+                    const reqQty = Number(item.required_qty || 0);
+                    const recQty = Number(item.received_qty || 0);
+                    const pendQty = Math.max(0, reqQty - recQty);
+                    return (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{Number(item.current_stock || 0).toLocaleString()} {item.current_stock_unit || ''}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{reqQty.toLocaleString()} {item.unit || 'Pair'}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: '#16a34a' }}>{recQty.toLocaleString()} {item.unit || 'Pair'}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: pendQty > 0 ? '#ef4444' : 'var(--text-muted)' }}>{pendQty.toLocaleString()} {item.unit || 'Pair'}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

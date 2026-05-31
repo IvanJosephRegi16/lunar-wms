@@ -26,6 +26,7 @@ export default function PODashboard() {
   const [hoveredPointSpend, setHoveredPointSpend] = useState<number | null>(null);
   const [hoveredPointPayment, setHoveredPointPayment] = useState<number | null>(null);
   const [hoveredMaterialIdx, setHoveredMaterialIdx] = useState<number | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
 
   const loadData = async () => {
     try {
@@ -48,6 +49,13 @@ export default function PODashboard() {
       const dashRes = await fetch('/api/dashboard');
       const dashData = await dashRes.json();
       setDashboardData(dashData);
+
+      // Fetch notifications
+      const notifRes = await fetch('/api/notifications');
+      if (notifRes.ok) {
+        const notifData = await notifRes.json();
+        setNotifications(notifData.notifications || []);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load PO details');
     } finally {
@@ -58,6 +66,17 @@ export default function PODashboard() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const markAsRead = async (id: number) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: 1 } : n));
+    } catch (err) {}
+  };
 
   if (loading) {
     return (
@@ -909,6 +928,65 @@ export default function PODashboard() {
             </Link>
           ))}
         </div>
+      </div>
+
+      {/* PM Notifications Popup */}
+      <div style={{
+        position: 'fixed',
+        bottom: '24px',
+        right: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        zIndex: 9999,
+        maxWidth: '350px'
+      }}>
+        {notifications.filter(n => !n.is_read && n.type === 'completed').map(n => (
+          <div key={n.id} style={{
+            background: 'white',
+            border: '1px solid #10b981',
+            borderRadius: '16px',
+            padding: '16px',
+            boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)',
+            animation: 'slide-up 0.3s ease-out forwards',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '20px' }}>✅</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: '#065f46' }}>PO Fully Verified</span>
+              </div>
+              <button 
+                onClick={() => markAsRead(n.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: '#9ca3af' }}
+              >×</button>
+            </div>
+            <p style={{ margin: 0, fontSize: '13px', color: '#374151', lineHeight: '1.4' }}>
+              {n.message}
+            </p>
+            <Link 
+              href="/po/history" 
+              onClick={() => markAsRead(n.id)}
+              style={{
+                marginTop: '8px',
+                background: '#ecfdf5',
+                color: '#10b981',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 800,
+                textAlign: 'center',
+                textDecoration: 'none',
+                border: '1px solid #a7f3d0',
+                transition: 'all 0.2s'
+              }}
+            >
+              View in PO History
+            </Link>
+          </div>
+        ))}
       </div>
 
     </div>

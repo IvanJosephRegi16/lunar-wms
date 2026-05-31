@@ -101,8 +101,18 @@ export default function SupervisorVerification() {
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
-      alert('Partial receiving entry saved successfully!');
-      // Keep PO open, just reload data to reflect changes
+      alert('Partial receiving entry saved and PM notified successfully!');
+      
+      // Update selectedPO with new received_qty so UI reflects changes
+      const updatedPO = {
+        ...selectedPO,
+        items: selectedPO.items.map((item: any, i: number) => ({
+          ...item,
+          received_qty: Number(receivedQty[i] || item.required_qty)
+        }))
+      };
+      setSelectedPO(updatedPO);
+      setRemarks('');
       loadData();
     } catch (err: any) {
       alert(err.message || 'Failed to save partial entry');

@@ -47,7 +47,7 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Compress to gzip in memory and return as downloadable JSON
+    // 2. Compress to gzip in memory
     const jsonString = JSON.stringify(backupData, null, 2);
     const chunks: Buffer[] = [];
 
@@ -66,8 +66,49 @@ export async function POST(req: Request) {
     const compressed = Buffer.concat(chunks);
     const mbSize = (compressed.byteLength / (1024 * 1024)).toFixed(2);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `backup_${timestamp}.json.gz`;
 
-    // 3. Log backup timestamp to database
+    // 3. Upload to Google Drive
+    let driveLink = null;
+    try {
+      // Import here to avoid issues if not installed
+      const { google } = require('googleapis');
+      const { GOOGLE_SERVICE_ACCOUNT, GOOGLE_DRIVE_FOLDER_ID } = require('@/lib/googleServiceAccount');
+      
+      const jwtClient = new google.auth.JWT(
+        GOOGLE_SERVICE_ACCOUNT.client_email,
+        undefined,
+        GOOGLE_SERVICE_ACCOUNT.private_key,
+        ['https://www.googleapis.com/auth/drive.file']
+      );
+      
+      const drive = google.drive({ version: 'v3', auth: jwtClient });
+      
+      // We need a readable stream for the upload
+      const { Readable } = require('stream');
+      const media = {
+        mimeType: 'application/gzip',
+        body: Readable.from(compressed)
+      };
+      
+      const fileMetadata = {
+        name: fileName,
+        parents: [GOOGLE_DRIVE_FOLDER_ID]
+      };
+      
+      const driveRes = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: 'id, webViewLink'
+      });
+      
+      driveLink = driveRes.data.webViewLink;
+    } catch (e: any) {
+      console.error('Failed to upload to Google Drive:', e);
+      // We can continue and just return it as a download if upload fails
+    }
+
+    // 4. Log backup timestamp to database
     try {
       const db = getDb();
       await db.prepare(
@@ -77,15 +118,19 @@ export async function POST(req: Request) {
       console.warn('Could not log backup timestamp:', e);
     }
 
-    // 4. Return the compressed backup as a downloadable response
+    // 5. Return success or file (depending on if they hit it from UI or cron)
+    // For now we still return the file so the UI download works, but now it's ALSO in Drive!
+    // Or we could return a JSON success if the Drive upload worked? Let's keep returning the file
+    // so the admin still gets a local copy, but the cron job can just ignore the body.
     return new Response(compressed, {
       status: 200,
       headers: {
         'Content-Type': 'application/gzip',
-        'Content-Disposition': `attachment; filename="backup_${timestamp}.json.gz"`,
+        'Content-Disposition': `attachment; filename="${fileName}"`,
         'X-Backup-Tables': String(Object.keys(tableSummary).length),
         'X-Backup-Rows': String(Object.values(tableSummary).reduce((a, b) => a + b, 0)),
         'X-Backup-Size-MB': mbSize,
+        'X-Drive-Link': driveLink || '',
       },
     });
 
