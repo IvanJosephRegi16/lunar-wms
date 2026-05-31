@@ -165,46 +165,15 @@ export async function POST(req: NextRequest) {
 
         // Notify PM creator
         if (po.creator_user_id) {
+          const msg = remarks
+            ? `📦 PO ${po.po_number}: Supervisor recorded a partial receiving entry. Remarks: "${remarks}"`
+            : `📦 PO ${po.po_number}: Supervisor recorded a partial receiving entry. Please review updated quantities.`;
           await db.prepare(`
             INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
             VALUES (?, ?, ?, 'partial_entry', ?, ?)
           `).run(
             po.creator_user_id, id, po.po_number,
-            `📦 PO ${po.po_number}: Supervisor has recorded a partial receiving entry. Please review the updated quantities.`,
-            new Date().toISOString()
-          );
-        }
-
-      } else if (action === 'return_to_pm') {
-        // Send back to PM (returned_for_edit)
-        await db.prepare(`
-          UPDATE purchase_orders
-          SET status = 'returned_for_edit',
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(id);
-
-        await db.prepare(`
-          INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
-          VALUES (?, ?, ?, 'supervisor_returned', ?)
-        `).run(
-          id, user.id, user.username,
-          `Supervisor returned PO ${po.po_number} to P.M. Remarks: ${remarks || 'Please review'}`
-        );
-
-        await db.prepare(`
-          INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
-          VALUES (?, 'supervisor_returned', ?, ?, ?, ?)
-        `).run(id, user.id, user.full_name, remarks || 'Returned to P.M for review', timestampStr);
-
-        // Notify PM creator
-        if (po.creator_user_id) {
-          await db.prepare(`
-            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
-            VALUES (?, ?, ?, 'returned', ?, ?)
-          `).run(
-            po.creator_user_id, id, po.po_number,
-            `⚠️ PO ${po.po_number} was returned by the Supervisor. Remarks: ${remarks || 'No remarks'}`,
+            msg,
             new Date().toISOString()
           );
         }

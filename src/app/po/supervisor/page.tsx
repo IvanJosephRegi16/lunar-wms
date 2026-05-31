@@ -60,31 +60,6 @@ export default function SupervisorVerification() {
     }
   };
 
-  const handleReturnToPM = async () => {
-    if (!remarks.trim()) {
-      alert('Please provide remarks explaining why you are returning this PO.');
-      return;
-    }
-    setVerifying(true);
-    try {
-      const res = await fetch('/api/po/supervisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: selectedPO.id, action: 'return_to_pm', remarks })
-      });
-      const data = await res.json();
-      if (data.error) { alert(data.error); return; }
-      setSelectedPO(null);
-      setCheckedItems({});
-      setReceivedQty({});
-      setRemarks('');
-      loadData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to return');
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   const handlePartialEntry = async () => {
     setVerifying(true);
@@ -338,7 +313,7 @@ export default function SupervisorVerification() {
           }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                Supervisor Remarks (Optional for Verification, Required for Return)
+                Supervisor Remarks <span style={{ fontWeight: 500, fontSize: '11px', color: '#94a3b8' }}>(Sent as message to PM if partial entry)</span>
               </label>
               <textarea value={remarks} onChange={e => setRemarks(e.target.value)}
                 placeholder="Enter any observations, discrepancies, or notes..."
@@ -353,17 +328,8 @@ export default function SupervisorVerification() {
               />
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-              {/* Return to PM */}
-              <button onClick={handleReturnToPM} disabled={verifying}
-                style={{
-                  background: '#fff7ed', color: '#c2410c', border: '1.5px solid #fed7aa',
-                  padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '13px',
-                  cursor: verifying ? 'wait' : 'pointer', opacity: verifying ? 0.6 : 1, transition: 'all 0.2s'
-                }}>
-                🔄 Return to P.M
-              </button>
 
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               {/* Partial Entry */}
               <button onClick={handlePartialEntry} disabled={verifying}
                 style={{
