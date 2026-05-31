@@ -183,7 +183,7 @@ export default function Signup() {
                 <button 
                   type="button" 
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold' }}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'rgba(148, 163, 184, 0.8)', cursor: 'pointer', padding: '4px 8px', fontSize: '14px', fontWeight: 'bold', zIndex: 10 }}
                   title={showPassword ? 'Hide Password' : 'Show Password'}
                 >
                   {showPassword ? '🙈' : '👁️'}

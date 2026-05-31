@@ -271,12 +271,6 @@ export async function POST(req: NextRequest) {
               <div class="section-title">Vendor / Supplier</div>
               <div class="vendor-name">${po.vendor || 'N/A'}</div>
             </td>
-            <td style="text-align: right;">
-              <div class="section-title">Grand Total Amount</div>
-              <div style="font-size: 18px; font-weight: 900; color: #2563eb; font-family: Consolas, Monaco, monospace;">
-                ₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              </div>
-            </td>
           </tr>
         </table>
       </div>
@@ -309,23 +303,7 @@ export async function POST(req: NextRequest) {
         </table>
       </div>
 
-      <!-- LEDGER SUMMARY CARD -->
-      <div class="ledger-section">
-        <div class="ledger-card">
-          <div class="ledger-row">
-            <span class="ledger-label">Net Total</span>
-            <span class="ledger-val">₹${netAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="ledger-row">
-            <span class="ledger-label">Transport Charge</span>
-            <span class="ledger-val">₹${transportCharge.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-          <div class="ledger-row" style="margin-top: 8px;">
-            <span class="ledger-label" style="color: #0f172a; font-weight: 800;">Grand Total</span>
-            <span class="ledger-grand-val">₹${grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-          </div>
-        </div>
-      </div>
+
 
       <!-- FOOTER -->
       <div class="footer">
