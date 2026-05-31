@@ -46,6 +46,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
   const [poOpen, setPoOpen] = useState(false);
   const [hrOpen, setHrOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [pmOpen, setPmOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [menuVisibility, setMenuVisibility] = useState<any>(DEFAULT_MENU_VISIBILITY);
@@ -96,6 +97,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       setPackingOpen(false);
       setPoOpen(false);
       setMaterialsOpen(false);
+      setPmOpen(false);
     }
   };
 
@@ -108,6 +110,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       setUpperStockOpen(false);
       setMaterialsOpen(false);
       setHrOpen(false);
+      setPmOpen(false);
     }
   };
 
@@ -120,6 +123,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       setUpperStockOpen(false);
       setPoOpen(false);
       setMaterialsOpen(false);
+      setPmOpen(false);
     }
   };
 
@@ -131,6 +135,20 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       setPackingOpen(false);
       setUpperStockOpen(false);
       setPoOpen(false);
+      setPmOpen(false);
+    }
+  };
+
+  const togglePm = () => {
+    if (pmOpen) {
+      setPmOpen(false);
+    } else {
+      setPmOpen(true);
+      setPackingOpen(false);
+      setUpperStockOpen(false);
+      setPoOpen(false);
+      setMaterialsOpen(false);
+      setHrOpen(false);
     }
   };
 
@@ -150,12 +168,16 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
 
     const isPoPath = pathname.startsWith('/po');
     const isMaterialsPath = pathname.startsWith('/materials');
+    const isPmPath = pathname.startsWith('/pm');
+    const isHrPath = pathname.startsWith('/hr');
 
     if (isPackingPath) {
       setPackingOpen(true);
       setUpperStockOpen(false);
       setPoOpen(false);
       setMaterialsOpen(false);
+      setHrOpen(false);
+      setPmOpen(false);
     } else if (isUpperStockPath) {
       setUpperStockOpen(true);
       setPackingOpen(false);
@@ -805,22 +827,21 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           )}
 
           {/* PM Master Data */}
-          {(isAdmin || menuVisibility.pm_section !== false) && personalMenuVisibility.pm_section !== false && (
+          {(isAdmin || menuVisibility.pm_section === true) && personalMenuVisibility.pm_section !== false && (
             <>
-              <div onClick={() => {
-                 const el = document.getElementById('pm-master-menu');
-                 if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
-              }} style={{ fontSize: '12px', color: '#f1f5f9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', margin: '24px 8px 12px 8px', padding: '12px 16px', border: '1px solid rgba(255, 255, 255, 0.05)', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', backdropFilter: 'blur(10px)' }} className="pm-master-toggle">
+              <div onClick={togglePm} style={{ fontSize: '12px', color: '#f1f5f9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', margin: '24px 8px 12px 8px', padding: '12px 16px', border: '1px solid rgba(255, 255, 255, 0.05)', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', backdropFilter: 'blur(10px)' }} className="pm-master-toggle">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '16px' }}>👑</span><span>PM Master Data</span></div>
-                <span style={{ fontSize: '10px', opacity: 0.5 }}>▼</span>
+                <span style={{ fontSize: '10px', opacity: 0.5 }}>{pmOpen ? '▼' : '▶'}</span>
               </div>
-              <div id="pm-master-menu" className="fade-up" style={{ paddingLeft: '8px', display: 'block' }}>
-                <NavLink href="/pm/articles?view=manage" icon="📚" label="Manage Articles" permissionKey="pm_manage_articles" />
-                <NavLink href="/pm/articles?view=create" icon="✨" label="Create Article" permissionKey="pm_create_article" />
-                <NavLink href="/pm/articles?view=deleted" icon="🗑️" label="Deleted Articles" permissionKey="pm_deleted_articles" />
-                <NavLink href="/pm/articles?view=materials" icon="🧵" label="Material Library" permissionKey="pm_material_library" />
-                <NavLink href="/pm/articles?view=costing" icon="💰" label="Cost Analysis" permissionKey="pm_cost_analysis" />
-              </div>
+              {pmOpen && (
+                <div className="fade-up" style={{ paddingLeft: '8px' }}>
+                  <NavLink href="/pm/articles?view=manage" icon="📚" label="Manage Articles" permissionKey="pm_manage_articles" />
+                  <NavLink href="/pm/articles?view=create" icon="✨" label="Create Article" permissionKey="pm_create_article" />
+                  <NavLink href="/pm/articles?view=deleted" icon="🗑️" label="Deleted Articles" permissionKey="pm_deleted_articles" />
+                  <NavLink href="/pm/articles?view=materials" icon="🧵" label="Material Library" permissionKey="pm_material_library" />
+                  <NavLink href="/pm/articles?view=costing" icon="💰" label="Cost Analysis" permissionKey="pm_cost_analysis" />
+                </div>
+              )}
             </>
           )}
 

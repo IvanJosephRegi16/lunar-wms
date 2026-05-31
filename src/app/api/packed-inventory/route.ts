@@ -22,7 +22,7 @@ export async function GET(request: Request) {
         pt.article_code,
         pt.colour,
         pc.name as config_name,
-        pt.total_pairs
+        (pt.total_pairs / pt.num_cartons) as total_pairs
       FROM packed_cartons c
       JOIN outward_transactions pt ON c.transaction_id = pt.id
       JOIN carton_generation pc ON pt.config_id = pc.id
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
       params.push(startDate);
     }
     
-    query += ` ORDER BY c.created_at DESC`;
+    query += ` ORDER BY c.created_at DESC, c.id ASC`;
     
     const inventory = await db.prepare(query).all(...params);
 
