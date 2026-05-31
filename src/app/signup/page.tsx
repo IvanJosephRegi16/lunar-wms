@@ -177,7 +177,7 @@ export default function Signup() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '16px 40px 16px 20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.1)', outline: 'none', fontSize: '14px', background: 'rgba(255, 255, 255, 0.04)', color: '#f1f5f9', fontWeight: 500, transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }}
+                  style={{ width: '100%', padding: '16px 48px 16px 20px', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.1)', outline: 'none', fontSize: '14px', background: 'rgba(255, 255, 255, 0.04)', color: '#f1f5f9', fontWeight: 500, transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)' }}
                   placeholder="••••••••"
                 />
                 <button 

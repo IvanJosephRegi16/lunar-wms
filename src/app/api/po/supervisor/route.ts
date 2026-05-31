@@ -163,20 +163,7 @@ export async function POST(req: NextRequest) {
           VALUES (?, 'partial_entry', ?, ?, ?, ?)
         `).run(id, user.id, user.full_name, remarks || 'Partial receiving entry saved', timestampStr);
 
-        // Notify PM creator
-        if (po.creator_user_id) {
-          const msg = remarks
-            ? `📦 PO ${po.po_number}: Supervisor recorded a partial receiving entry. Remarks: "${remarks}"`
-            : `📦 PO ${po.po_number}: Supervisor recorded a partial receiving entry. Please review updated quantities.`;
-          await db.prepare(`
-            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
-            VALUES (?, ?, ?, 'partial_entry', ?, ?)
-          `).run(
-            po.creator_user_id, id, po.po_number,
-            msg,
-            new Date().toISOString()
-          );
-        }
+
 
       } else {
         throw new Error('Unknown action');

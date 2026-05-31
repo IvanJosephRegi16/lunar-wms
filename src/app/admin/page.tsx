@@ -2513,7 +2513,7 @@ export default function AdminPage() {
                       placeholder="Set login password..."
                       value={form.password}
                       onChange={e => setForm({...form, password: e.target.value})}
-                      style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%', paddingRight: '40px' }}
+                      style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%', paddingRight: '48px' }}
                     />
                     <button 
                       type="button" 
@@ -2684,7 +2684,7 @@ export default function AdminPage() {
                     placeholder="Enter new password to force update..."
                     value={editForm.password}
                     onChange={e => setEditForm({...editForm, password: e.target.value})}
-                    style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%', paddingRight: '40px' }}
+                    style={{ padding: '10px 14px', border: '1.5px solid var(--border)', borderRadius: '8px', fontSize: '13px', outline: 'none', width: '100%', paddingRight: '48px' }}
                   />
                   <button 
                     type="button" 

@@ -280,7 +280,7 @@ export default function LoginPage() {
                     value={password} 
                     onChange={e => setPassword(e.target.value)}
                     required 
-                    style={{ width: '100%', paddingRight: '40px' }}
+                    style={{ width: '100%', paddingRight: '48px' }}
                   />
                   <button 
                     type="button" 
@@ -474,7 +474,7 @@ export default function LoginPage() {
                     onChange={e => setNewPassword(e.target.value)}
                     required 
                     autoFocus
-                    style={{ width: '100%', paddingRight: '40px' }}
+                    style={{ width: '100%', paddingRight: '48px' }}
                   />
                   <button 
                     type="button" 
@@ -496,7 +496,7 @@ export default function LoginPage() {
                     value={confirmPassword} 
                     onChange={e => setConfirmPassword(e.target.value)}
                     required 
-                    style={{ width: '100%', paddingRight: '40px' }}
+                    style={{ width: '100%', paddingRight: '48px' }}
                   />
                   <button 
                     type="button" 

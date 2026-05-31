@@ -36,10 +36,15 @@ export default function SupervisorVerification() {
     }
     setVerifying(true);
     try {
-      const payloadItems = selectedPO.items.map((item: any, i: number) => ({
-        id: item.id,
-        received_qty: Number(receivedQty[i] || item.required_qty)
-      }));
+      const payloadItems = selectedPO.items.map((item: any, i: number) => {
+        const prevReceived = Number(item.received_qty || 0);
+        const pending = Math.max(0, item.required_qty - prevReceived);
+        const nowReceiving = receivedQty[i] !== undefined ? Number(receivedQty[i]) : pending;
+        return {
+          id: item.id,
+          received_qty: prevReceived + nowReceiving
+        };
+      });
 
       const res = await fetch('/api/po/supervisor', {
         method: 'POST',
@@ -64,10 +69,15 @@ export default function SupervisorVerification() {
   const handlePartialEntry = async () => {
     setVerifying(true);
     try {
-      const payloadItems = selectedPO.items.map((item: any, i: number) => ({
-        id: item.id,
-        received_qty: Number(receivedQty[i] || item.required_qty)
-      }));
+      const payloadItems = selectedPO.items.map((item: any, i: number) => {
+        const prevReceived = Number(item.received_qty || 0);
+        const pending = Math.max(0, item.required_qty - prevReceived);
+        const nowReceiving = receivedQty[i] !== undefined ? Number(receivedQty[i]) : pending;
+        return {
+          id: item.id,
+          received_qty: prevReceived + nowReceiving
+        };
+      });
 
       const res = await fetch('/api/po/supervisor', {
         method: 'POST',
@@ -76,17 +86,27 @@ export default function SupervisorVerification() {
       });
       const data = await res.json();
       if (data.error) { alert(data.error); return; }
-      alert('Partial receiving entry saved and PM notified successfully!');
+      
+      let remainingText = '';
+      payloadItems.forEach((it: any, i: number) => {
+        const og = selectedPO.items[i];
+        const remaining = Math.max(0, og.required_qty - it.received_qty);
+        const completed = it.received_qty;
+        remainingText += `\n- ${og.material_name}:\n  Completed: ${completed} | Remaining: ${remaining}`;
+      });
+      
+      alert(`Partial Entry Saved!\n\nStock Summary:${remainingText}`);
       
       // Update selectedPO with new received_qty so UI reflects changes
       const updatedPO = {
         ...selectedPO,
         items: selectedPO.items.map((item: any, i: number) => ({
           ...item,
-          received_qty: Number(receivedQty[i] || item.required_qty)
+          received_qty: payloadItems[i].received_qty
         }))
       };
       setSelectedPO(updatedPO);
+      setReceivedQty({});
       setRemarks('');
       loadData();
     } catch (err: any) {
@@ -251,8 +271,10 @@ export default function SupervisorVerification() {
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Material Code</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Material Name</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Size / Thickness</th>
-                    <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Required Stock</th>
-                    <th style={{ textAlign: 'center', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Received Qty</th>
+                    <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Req. Stock</th>
+                    <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Prev. Received</th>
+                    <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Pending Stock</th>
+                    <th style={{ textAlign: 'center', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Now Receiving</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Unit</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Vendor</th>
                     <th style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontSize: '11px', color: '#475569', textTransform: 'uppercase' }}>Rate (₹)</th>
@@ -285,12 +307,14 @@ export default function SupervisorVerification() {
                       <td style={{ padding: '12px', fontWeight: 700 }}>{item.material_name}</td>
                       <td style={{ padding: '12px', color: '#64748b' }}>{item.size_thickness || '-'}</td>
                       <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', fontSize: '14px' }}>{Number(item.required_qty || 0).toLocaleString()}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', fontSize: '14px', color: '#16a34a' }}>{Number(item.received_qty || 0).toLocaleString()}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', fontSize: '14px', color: '#dc2626' }}>{Math.max(0, item.required_qty - (item.received_qty || 0)).toLocaleString()}</td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         <input 
                           type="number" 
                           min="0"
-                          max={item.required_qty}
-                          value={receivedQty[i] !== undefined ? receivedQty[i] : item.required_qty}
+                          max={Math.max(0, item.required_qty - (item.received_qty || 0))}
+                          value={receivedQty[i] !== undefined ? receivedQty[i] : Math.max(0, item.required_qty - (item.received_qty || 0))}
                           onChange={(e) => setReceivedQty(prev => ({ ...prev, [i]: e.target.value }))}
                           style={{ width: '80px', padding: '6px', textAlign: 'center', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontFamily: 'monospace' }}
                         />
@@ -313,7 +337,7 @@ export default function SupervisorVerification() {
           }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                Supervisor Remarks <span style={{ fontWeight: 500, fontSize: '11px', color: '#94a3b8' }}>(Sent as message to PM if partial entry)</span>
+                Supervisor Remarks
               </label>
               <textarea value={remarks} onChange={e => setRemarks(e.target.value)}
                 placeholder="Enter any observations, discrepancies, or notes..."
@@ -337,7 +361,7 @@ export default function SupervisorVerification() {
                   padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '13px',
                   cursor: verifying ? 'wait' : 'pointer', opacity: verifying ? 0.6 : 1, transition: 'all 0.2s'
                 }}>
-                💾 Save Partial Entry & Notify PM
+                💾 Save Partial Entry
               </button>
 
               {/* Verify & Complete */}
