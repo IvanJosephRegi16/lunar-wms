@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
 interface Config {
@@ -27,10 +28,38 @@ interface PoolItem {
 }
 
 export default function CartonGenerationPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<'generate' | 'rules'>('generate');
   const [configs, setConfigs] = useState<Config[]>([]);
   const [pool, setPool] = useState<PoolItem[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleStartScanOutward = async () => {
+    if (!activeConfigId) {
+      alert("Please select a Master Configuration Rule first.");
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/packing/outward/session/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carton_generation_id: activeConfigId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        router.push(`/packing/scan-outward?session_id=${data.session_id}`);
+      } else {
+        alert(data.error || 'Failed to start scan session');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error starting scan session');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   // Carton Generation Form State
   const [activeConfigId, setActiveConfigId] = useState<string>('');
@@ -387,13 +416,24 @@ export default function CartonGenerationPage() {
                   />
                 </div>
 
-                <button 
-                  className={styles.generateBtn} 
-                  onClick={handleGenerate}
-                  disabled={isGenerating || maxPossible === 0 || cartonsToGenerate > maxPossible || cartonsToGenerate < 1}
-                >
-                  {isGenerating ? 'Generating...' : `Generate ${cartonsToGenerate} Carton(s)`}
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button 
+                    className={styles.generateBtn} 
+                    onClick={handleGenerate}
+                    disabled={isGenerating || maxPossible === 0 || cartonsToGenerate > maxPossible || cartonsToGenerate < 1}
+                    style={{ flex: 1 }}
+                  >
+                    {isGenerating ? 'Generating...' : `Auto Generate ${cartonsToGenerate} Carton(s)`}
+                  </button>
+                  <button 
+                    className={styles.generateBtn}
+                    onClick={handleStartScanOutward}
+                    disabled={isGenerating}
+                    style={{ flex: 1, background: 'var(--neon-violet)', border: 'none', color: 'white' }}
+                  >
+                    🔍 Start Scan Outward
+                  </button>
+                </div>
               </div>
             )}
           </div>

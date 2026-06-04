@@ -208,6 +208,24 @@ CREATE TABLE IF NOT EXISTS scan_history (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS outward_scan_sessions (
+  id SERIAL PRIMARY KEY,
+  carton_generation_id INTEGER REFERENCES carton_generation(id),
+  operator_id INTEGER REFERENCES users(id),
+  status TEXT DEFAULT 'in_progress',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+
+CREATE TABLE IF NOT EXISTS outward_scan_items (
+  id SERIAL PRIMARY KEY,
+  session_id INTEGER REFERENCES outward_scan_sessions(id) ON DELETE CASCADE,
+  article_code TEXT NOT NULL,
+  colour TEXT NOT NULL,
+  size TEXT NOT NULL,
+  scanned_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS inventory_pool (
   id SERIAL PRIMARY KEY,
   article_code TEXT NOT NULL,
