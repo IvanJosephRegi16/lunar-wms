@@ -17,12 +17,25 @@ export default function EmailModal({ po, items, onClose }: Props) {
 
   const handleSend = async () => {
     if (!to.trim()) { alert('Please enter recipient email'); return; }
+    if (!billRef.current) return;
+    
     setSending(true);
     try {
+      // 1. Capture the exact image of the PO
+      const html2canvas = (await import('html2canvas')).default;
+      const originalTransform = billRef.current.style.transform;
+      billRef.current.style.transform = 'none';
+      
+      const canvas = await html2canvas(billRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      billRef.current.style.transform = originalTransform;
+      
+      const imageBase64 = canvas.toDataURL('image/png');
+
+      // 2. Send to backend for automated email dispatch
       const res = await fetch('/api/po/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, po, items })
+        body: JSON.stringify({ to, po, imageBase64 }) // Only sending the generated image now
       });
       const data = await res.json();
       if (data.error) {

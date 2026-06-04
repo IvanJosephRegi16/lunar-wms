@@ -12,10 +12,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized Access' }, { status: 401 });
     }
 
-    const { to, po, items } = await req.json();
+    const { to, po, items, imageBase64 } = await req.json();
 
-    if (!to || !po || !items || !Array.isArray(items)) {
-      return NextResponse.json({ error: 'Missing required parameters: to, po, or items' }, { status: 400 });
+    if (!to || !po) {
+      return NextResponse.json({ error: 'Missing required parameters: to or po' }, { status: 400 });
     }
 
     const today = new Date().toLocaleDateString('en-IN', {
@@ -275,7 +275,15 @@ export async function POST(req: NextRequest) {
         </table>
       </div>
 
-      <!-- ITEMS TABLE -->
+      <!-- PO IMAGE ATTACHMENT -->
+      ${imageBase64 ? `
+      <div style="padding: 20px 40px; text-align: center; background-color: #f8fafc;">
+        <img src="cid:po-generated-image" alt="Purchase Order Details" style="width: 100%; max-width: 600px; height: auto; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" />
+      </div>
+      ` : ''}
+
+      ${!imageBase64 && items ? `
+      <!-- ITEMS TABLE FALLBACK -->
       <div class="table-container">
         <table class="po-table">
           <thead>
@@ -289,21 +297,20 @@ export async function POST(req: NextRequest) {
             </tr>
           </thead>
           <tbody>
-            ${items.map(item => `
+            ${items.map((item: any) => \`
               <tr>
-                <td class="code-cell">${item.material_code || '—'}</td>
-                <td class="name-cell">${item.material_name || '—'}</td>
-                <td>${item.size_thickness || '—'}</td>
-                <td style="text-align: right;" class="stock-cell">${(item.current_stock ?? 0).toLocaleString()}</td>
-                <td style="text-align: right;" class="qty-cell">${(item.required_qty ?? item.required_quantity ?? 0).toLocaleString()}</td>
-                <td style="text-align: right;" class="vendor-cell">${item.vendor || po.vendor || '—'}</td>
+                <td class="code-cell">\${item.material_code || '—'}</td>
+                <td class="name-cell">\${item.material_name || '—'}</td>
+                <td>\${item.size_thickness || '—'}</td>
+                <td style="text-align: right;" class="stock-cell">\${(item.current_stock ?? 0).toLocaleString()}</td>
+                <td style="text-align: right;" class="qty-cell">\${(item.required_qty ?? item.required_quantity ?? 0).toLocaleString()}</td>
+                <td style="text-align: right;" class="vendor-cell">\${item.vendor || po.vendor || '—'}</td>
               </tr>
-            `).join('')}
+            \`).join('')}
           </tbody>
         </table>
       </div>
-
-
+      ` : ''}
 
       <!-- FOOTER -->
       <div class="footer">
@@ -329,12 +336,10 @@ export async function POST(req: NextRequest) {
         to: [to],
         subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
         html: emailHtml,
-        attachments: logoBase64 ? [
-          {
-            filename: 'lunars-logo.png',
-            content: logoBase64,
-          }
-        ] : []
+        attachments: [
+          ...(logoBase64 ? [{ filename: 'lunars-logo.png', content: logoBase64 }] : []),
+          ...(imageBase64 ? [{ filename: `PO_${po.po_number}.png`, content: imageBase64.split(',')[1], cid: 'po-generated-image' }] : [])
+        ]
       });
 
       if (error) {
@@ -359,11 +364,8 @@ export async function POST(req: NextRequest) {
         subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
         html: emailHtml,
         attachments: [
-          {
-            filename: 'lunars-logo.png',
-            path: logoPath,
-            cid: 'lunarslogo'
-          }
+          ...(logoBase64 ? [{ filename: 'lunars-logo.png', path: logoPath, cid: 'lunarslogo' }] : []),
+          ...(imageBase64 ? [{ filename: `PO_${po.po_number}.png`, content: Buffer.from(imageBase64.split(',')[1], 'base64'), cid: 'po-generated-image' }] : [])
         ]
       });
 
