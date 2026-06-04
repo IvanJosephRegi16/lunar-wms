@@ -258,6 +258,13 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   };
 
   const handleManualSealClick = () => {
+    if (session?.mrp) {
+      const totalPairs = progress.reduce((acc, curr) => acc + curr.scanned, 0);
+      const computedMrp = (session.mrp * totalPairs).toFixed(2);
+      setEnteredMrp(computedMrp);
+    } else {
+      setEnteredMrp('');
+    }
     setMrpPopup(true);
   };
 
@@ -336,7 +343,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           <div className="card-clean" style={{ background: '#ffffff', padding: '40px', maxWidth: '440px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', borderRadius: '24px' }}>
             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '0 0 16px 0', color: '#0f172a', letterSpacing: '-0.5px' }}>Enter MRP</h2>
             <p style={{ margin: '0 0 24px 0', color: '#475569', fontSize: '15px' }}>
-              Enter the MRP for this Master Carton. Skip to hide MRP from the sticker.
+              Enter the TOTAL MRP for this Master Carton. Skip to hide MRP from the sticker.
             </p>
             <div style={{ position: 'relative', width: '100%', marginBottom: '24px' }}>
               <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '24px', fontWeight: 'bold', color: '#333' }}>₹</span>

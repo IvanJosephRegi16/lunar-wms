@@ -25,6 +25,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ sess
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
+    const poolData = await db.prepare(`
+      SELECT mrp FROM inventory_pool 
+      WHERE article_code = ? AND colour = ? 
+      LIMIT 1
+    `).get(session.article_code, session.colour) as any;
+    
+    session.mrp = poolData?.mrp || null;
+
     const configSizes = await db.prepare(`
       SELECT * FROM carton_generation_sizes WHERE config_id = ?
     `).all(session.carton_generation_id);

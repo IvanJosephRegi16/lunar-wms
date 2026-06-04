@@ -30,13 +30,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Update status to completed and set scanned_at
-    const nowIST = new Date().toISOString(); // The db will store UTC or IST depending on server config, we'll just save ISO string.
+    const nowIST = new Date().toISOString(); 
     
     await db.prepare(`
       UPDATE packed_cartons 
-      SET status = 'completed', scanned_at = NOW()
+      SET status = 'completed', scanned_at = ?
       WHERE carton_id = ?
-    `).run(carton_id);
+    `).run(nowIST, carton_id);
+
+    // Log to scan_history
+    await db.prepare(`
+      INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, carton_id, scan_type)
+      VALUES (?, ?, ?, ?, ?, 'success_verification', ?, 'verification')
+    `).run(carton_id, carton.article_code || '-', carton.colour || '-', '-', user.id, carton_id);
 
     return NextResponse.json({
       success: true,

@@ -133,6 +133,7 @@ export default function InventoryPage() {
                      <th className="num-mono" style={{ textAlign: 'right', color: 'var(--success)' }}>INWARD</th>
                      <th className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)' }}>OUTWARD</th>
                      <th className="num-mono" style={{ textAlign: 'right', background: '#f8fafc', fontWeight: 800 }}>EQUITY BAL</th>
+                     <th className="num-mono" style={{ textAlign: 'right' }}>PRICE</th>
                      <th style={{ width: '80px', textAlign: 'center' }} className="no-print">DELETE</th>
                   </tr>
                </thead>
@@ -151,6 +152,9 @@ export default function InventoryPage() {
                             <td className="num-mono" style={{ textAlign: 'right', color: 'var(--danger)' }}>{(group.total_outward || 0).toLocaleString()}</td>
                             <td className="num-mono" style={{ textAlign: 'right', background: '#f8fafc', fontWeight: 800, fontSize: '18px', color: 'var(--primary)' }}>
                                {group.total_available.toLocaleString()}
+                            </td>
+                            <td className="num-mono" style={{ textAlign: 'right', fontWeight: 700 }}>
+                               {group.sizes[0]?.mrp ? `₹${group.sizes[0].mrp}` : '-'}
                             </td>
                             <td className="no-print">
                                 <div className="flex justify-center" onClick={e => e.stopPropagation()}>

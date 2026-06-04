@@ -11,17 +11,18 @@ export async function GET() {
   //   available_stock = initial_opening + IN + MR + SF - OUT
   const items = await db.prepare(`
     SELECT 
-        article_code, 
-        colour, 
-        size,
-        SUM(CASE WHEN sheet_date = '2026-05-01' THEN opening_stock ELSE 0 END) as initial_opening,
-        SUM(inward_stock) as total_inward,
-        SUM(outward_stock) as total_outward,
-        SUM(machine_return_stock) as total_machine_return,
-        SUM(semi_finished_stock) as total_semi_finished
-    FROM daily_stock
-    GROUP BY article_code, colour, size
-    ORDER BY article_code ASC, colour ASC, CAST(size AS INTEGER) ASC
+        ds.article_code, 
+        ds.colour, 
+        ds.size,
+        SUM(CASE WHEN ds.sheet_date = '2026-05-01' THEN ds.opening_stock ELSE 0 END) as initial_opening,
+        SUM(ds.inward_stock) as total_inward,
+        SUM(ds.outward_stock) as total_outward,
+        SUM(ds.machine_return_stock) as total_machine_return,
+        SUM(ds.semi_finished_stock) as total_semi_finished,
+        (SELECT mrp FROM inventory_pool ip WHERE ip.article_code = ds.article_code AND ip.colour = ds.colour LIMIT 1) as mrp
+    FROM daily_stock ds
+    GROUP BY ds.article_code, ds.colour, ds.size
+    ORDER BY ds.article_code ASC, ds.colour ASC, CAST(ds.size AS INTEGER) ASC
   `).all() as any[];
 
   // Consolidated response with stock calculation
@@ -42,7 +43,8 @@ export async function GET() {
         total_outward: 0,
         total_machine_return: 0,
         total_semi_finished: 0,
-        available_stock: 0
+        available_stock: 0,
+        mrp: item.mrp || null
       };
     }
 

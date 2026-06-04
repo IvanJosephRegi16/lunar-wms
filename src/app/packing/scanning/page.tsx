@@ -10,6 +10,7 @@ interface ScanResult {
   article: string;
   colour: string;
   size: string;
+  mrp?: number | null;
   status: 'success' | 'warning' | 'error';
   message?: string;
 }
@@ -134,6 +135,7 @@ export default function ScanningIntakePage() {
       article: parsed?.article || '-',
       colour: parsed?.colour || '-',
       size: parsed?.size || '-',
+      mrp: parsed?.mrp || null,
       status,
       message
     }, ...prev]);
@@ -182,6 +184,7 @@ export default function ScanningIntakePage() {
                 <th>Article</th>
                 <th>Colour</th>
                 <th>Size</th>
+                <th>Price (MRP)</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -202,6 +205,7 @@ export default function ScanningIntakePage() {
                   <td>{scan.article}</td>
                   <td>{scan.colour}</td>
                   <td>{scan.size}</td>
+                  <td style={{ fontWeight: 800 }}>{scan.mrp ? `₹${scan.mrp}` : '-'}</td>
                   <td>
                     <span className={
                       scan.status === 'error' 

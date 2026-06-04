@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import styles from './page.module.css';
 import { downloadCSV, formatIST } from '@/lib/exportCSV';
 
@@ -34,8 +34,25 @@ export default function PackedInventoryPage() {
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<{text: string, isError: boolean} | null>(null);
 
+  const inputRef = useRef<HTMLInputElement>(null);
+
   // Modal State
   const [selectedCarton, setSelectedCarton] = useState<PackedCarton | null>(null);
+
+  // Auto-focus input continuously with a tighter interval for fast barcode scanners
+  useEffect(() => {
+    const focusInterval = setInterval(() => {
+      // Only focus if modal isn't open or user isn't clicking on other inputs like filters
+      if (
+        document.activeElement !== inputRef.current && 
+        document.activeElement?.tagName !== 'INPUT' && 
+        !selectedCarton
+      ) {
+        inputRef.current?.focus();
+      }
+    }, 250); 
+    return () => clearInterval(focusInterval);
+  }, [selectedCarton]);
 
   // Fetch Inventory based on viewMode and active date pickers
   const fetchInventoryData = async () => {
@@ -86,29 +103,32 @@ export default function PackedInventoryPage() {
     setToDate('');
   };
 
-  const handleScanCarton = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!scanBarcode.trim() || isScanning) return;
-    setIsScanning(true);
-    setScanMessage(null);
-    try {
-      const res = await fetch('/api/packed-inventory/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carton_id: scanBarcode.trim() })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setScanMessage({ text: 'Carton verified successfully!', isError: false });
-        setScanBarcode('');
-        fetchInventoryData(); // refresh the list
-      } else {
-        setScanMessage({ text: data.error || 'Failed to verify carton', isError: true });
+  const handleScanCarton = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const barcode = e.currentTarget.value.trim();
+      e.currentTarget.value = '';
+      if (!barcode || isScanning) return;
+      
+      setIsScanning(true);
+      setScanMessage(null);
+      try {
+        const res = await fetch('/api/packed-inventory/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ carton_id: barcode })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setScanMessage({ text: 'Carton delivered successfully! (' + barcode + ')', isError: false });
+          fetchInventoryData(); // refresh the list
+        } else {
+          setScanMessage({ text: data.error || 'Failed to verify carton', isError: true });
+        }
+      } catch (err: any) {
+        setScanMessage({ text: err.message || 'Error scanning carton', isError: true });
+      } finally {
+        setIsScanning(false);
       }
-    } catch (err: any) {
-      setScanMessage({ text: err.message || 'Error scanning carton', isError: true });
-    } finally {
-      setIsScanning(false);
     }
   };
 
@@ -204,7 +224,7 @@ export default function PackedInventoryPage() {
               <div><strong style={{ color: '#64748b' }}>Total Pairs:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.total_pairs}</span></div>
               <div><strong style={{ color: '#64748b' }}>MRP:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.mrp ? `₹${selectedCarton.mrp}` : 'N/A'}</span></div>
               <div><strong style={{ color: '#64748b' }}>Packed At:</strong> <span style={{ fontWeight: 600 }}>{formatDateTime(selectedCarton.created_at)}</span></div>
-              <div><strong style={{ color: '#64748b' }}>Verified At:</strong> <span style={{ fontWeight: 600 }}>{selectedCarton.scanned_at ? formatDateTime(selectedCarton.scanned_at) : 'Pending Verification'}</span></div>
+              <div><strong style={{ color: '#64748b' }}>Delivered At:</strong> <span style={{ fontWeight: 600 }}>{selectedCarton.scanned_at ? formatDateTime(selectedCarton.scanned_at) : 'Pending Verification'}</span></div>
             </div>
 
             <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>Size-wise Distribution</h3>
@@ -266,20 +286,19 @@ export default function PackedInventoryPage() {
       <div className={styles.filterPanel} style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', border: '2px dashed #cbd5e1' }}>
         <h3 className={styles.filterHeader} style={{ color: '#0f172a' }}>📦 Scanning Master Carton Verification</h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#64748b' }}>Scan a newly packed Master Carton ID to verify and mark it as delivered/completed.</p>
-        <form onSubmit={handleScanCarton} style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <span style={{ fontSize: '24px' }}>⚡</span>
           <input 
+            ref={inputRef}
             type="text" 
-            placeholder="Scan Carton ID (e.g. CRT-...)" 
-            value={scanBarcode}
-            onChange={e => setScanBarcode(e.target.value)}
+            placeholder={isScanning ? "Verifying..." : "Awaiting scanner input (e.g. CRT-...)"} 
+            onKeyDown={handleScanCarton}
             className="corporate-input"
             style={{ flex: 1, padding: '14px 20px', fontSize: '16px', borderRadius: '12px', border: '2px solid #cbd5e1', fontWeight: 700 }}
             disabled={isScanning}
+            autoFocus
           />
-          <button type="submit" className="btn-corp" disabled={isScanning || !scanBarcode.trim()} style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 32px', borderRadius: '12px', fontWeight: 800, fontSize: '16px', opacity: (isScanning || !scanBarcode.trim()) ? 0.7 : 1 }}>
-            {isScanning ? 'Verifying...' : 'Verify Carton'}
-          </button>
-        </form>
+        </div>
         {scanMessage && (
           <div style={{ marginTop: '12px', padding: '12px 16px', borderRadius: '8px', fontSize: '14px', fontWeight: 700, background: scanMessage.isError ? '#fef2f2' : '#f0fdf4', color: scanMessage.isError ? '#ef4444' : '#16a34a' }}>
             {scanMessage.text}
@@ -404,7 +423,7 @@ export default function PackedInventoryPage() {
                 <th>Configuration Rule</th>
                 <th>Total Pairs</th>
                 <th>Packed Date & Time</th>
-                <th>Verified Date & Time</th>
+                <th>Delivered Date & Time</th>
                 <th>Status</th>
               </tr>
             </thead>

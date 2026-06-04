@@ -2,14 +2,18 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const db = getDb();
     
-    const history = await db.prepare(`
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
+    let query = `
       SELECT s.*, 
         CASE 
           WHEN u.role = 'admin' THEN '-'
@@ -18,9 +22,21 @@ export async function GET() {
       FROM scan_history s
       LEFT JOIN users u ON s.operator_id = u.id
       WHERE s.is_deleted = 0
-      ORDER BY s.created_at DESC
-      LIMIT 1000
-    `).all();
+    `;
+
+    const params: any[] = [];
+    
+    if (startDate && endDate) {
+      query += ` AND date(s.created_at) >= ? AND date(s.created_at) <= ?`;
+      params.push(startDate, endDate);
+    } else if (startDate) {
+      query += ` AND date(s.created_at) = ?`;
+      params.push(startDate);
+    }
+    
+    query += ` ORDER BY s.created_at DESC LIMIT 2000`;
+    
+    const history = await db.prepare(query).all(...params);
 
     return NextResponse.json({ history });
   } catch (error: any) {

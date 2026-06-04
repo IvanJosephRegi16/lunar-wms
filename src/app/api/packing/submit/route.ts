@@ -8,11 +8,11 @@ export async function POST(request: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
-    const { article, color, sizeDetails, totalPairs } = body;
+    const { article, color, sizeDetails, totalPairs, mrp } = body;
 
     // Notice we removed configId and numCartons, because Manual Entry is INWARD ONLY now.
-    if (!article || !color || !sizeDetails) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!article || !color || !sizeDetails || mrp === undefined || mrp === null) {
+      return NextResponse.json({ error: 'Missing required fields (including Price/MRP)' }, { status: 400 });
     }
 
     const db = getDb();
@@ -43,6 +43,8 @@ export async function POST(request: Request) {
          }
          updateSets.push(`total_qty = total_qty + ?`);
          updateParams.push(totalPairs);
+         updateSets.push(`mrp = ?`);
+         updateParams.push(mrp);
          updateParams.push(checkAgg.id);
 
          if (updateSets.length > 1) {
@@ -60,9 +62,9 @@ export async function POST(request: Request) {
          });
          
          await db.prepare(`
-           INSERT INTO inventory_pool (article_code, colour, total_qty, ${cols.join(', ')})
-           VALUES (?, ?, ?, ${validSizes.map(() => '?').join(', ')})
-         `).run(article, color, totalPairs, ...vals);
+           INSERT INTO inventory_pool (article_code, colour, total_qty, mrp, ${cols.join(', ')})
+           VALUES (?, ?, ?, ?, ${validSizes.map(() => '?').join(', ')})
+         `).run(article, color, totalPairs, mrp, ...vals);
       }
 
       await logAudit({

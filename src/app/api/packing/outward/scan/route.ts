@@ -111,8 +111,8 @@ export async function POST(req: NextRequest) {
       
       // Log to scan_history as well for audit
       await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp)
-        VALUES (?, ?, ?, ?, ?, 'success_outward', ?)
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+        VALUES (?, ?, ?, ?, ?, 'success_outward', ?, 'outward')
       `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id, mrp);
     });
 

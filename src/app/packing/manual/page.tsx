@@ -6,6 +6,7 @@ import styles from './page.module.css';
 export default function ManualEntryPage() {
   const [article, setArticle] = useState('');
   const [color, setColor] = useState('');
+  const [mrp, setMrp] = useState<number | ''>('');
   const [sizes, setSizes] = useState<Record<string, number>>({
     '5': 0, '6': 0, '7': 0, '8': 0, '9': 0, '10': 0, '11': 0, '12': 0
   });
@@ -15,8 +16,8 @@ export default function ManualEntryPage() {
   const totalPairs = Object.values(sizes).reduce((sum, val) => sum + (val || 0), 0);
 
   const handleSubmit = async () => {
-    if (!article || !color || totalPairs <= 0) {
-      setMessage('Please enter Article, Colour, and at least 1 pair.');
+    if (!article || !color || totalPairs <= 0 || mrp === '') {
+      setMessage('Please enter Article, Colour, Price (MRP), and at least 1 pair.');
       return;
     }
 
@@ -34,6 +35,7 @@ export default function ManualEntryPage() {
         body: JSON.stringify({
           article: article.toUpperCase(),
           color: color.toUpperCase(),
+          mrp: Number(mrp),
           sizeDetails,
           totalPairs
         })
@@ -44,6 +46,7 @@ export default function ManualEntryPage() {
         setMessage('✅ ' + data.message);
         setArticle('');
         setColor('');
+        setMrp('');
         setSizes({'5': 0, '6': 0, '7': 0, '8': 0, '9': 0, '10': 0, '11': 0, '12': 0});
       } else {
         setMessage('❌ Error: ' + data.error);
@@ -58,7 +61,7 @@ export default function ManualEntryPage() {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }}>Manual Inward Intake</h1>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }}>Manual Entry (Scanning Intake only)</h1>
         <p style={{ margin: '4px 0 0 0', color: 'var(--text-ghost)', fontSize: '14px' }}>Add loose product directly into the Inventory Storage Pool without a scanner.</p>
       </div>
 
@@ -90,6 +93,19 @@ export default function ManualEntryPage() {
               className={styles.inputField}
             />
           </div>
+          <div className={styles.inputGroup}>
+            <label>Price (MRP)</label>
+            <input 
+              type="number" 
+              value={mrp} 
+              onChange={e => setMrp(e.target.value === '' ? '' : parseFloat(e.target.value))}
+              placeholder="e.g. 499"
+              className={styles.inputField}
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
         </div>
 
         <div className={styles.sizesSection}>
@@ -117,7 +133,7 @@ export default function ManualEntryPage() {
           <button 
             className={styles.submitBtn} 
             onClick={handleSubmit}
-            disabled={loading || totalPairs <= 0 || !article || !color}
+            disabled={loading || totalPairs <= 0 || !article || !color || mrp === ''}
           >
             {loading ? 'Processing...' : 'Add to Inventory Pool →'}
           </button>

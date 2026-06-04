@@ -63,11 +63,11 @@ export async function POST(request: Request) {
 
       // Record successful scan history
       await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp)
-        VALUES (?, ?, ?, ?, ?, 'success', ?)
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+        VALUES (?, ?, ?, ?, ?, 'success', ?, 'intake')
       `).run(barcode, article, colour, size, user.id, mrp);
 
-      return { article, colour, size };
+      return { article, colour, size, mrp };
     });
 
     // Successful audit log
@@ -94,8 +94,8 @@ export async function POST(request: Request) {
     // Record failed scan in history for forensic analysis
     try {
       await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'intake')
       `).run(barcode, '-', '-', '-', user.id, `error: ${error.message}`, null);
     } catch {}
     console.error('Error scanning barcode:', error);
