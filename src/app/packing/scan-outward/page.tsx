@@ -4,10 +4,146 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function ScanOutwardPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
 
+  if (!sessionId) {
+    return <ScanOutwardHistoryDashboard />;
+  }
+
+  return <ActiveScanSession sessionId={sessionId} />;
+}
+
+function ScanOutwardHistoryDashboard() {
+  const router = useRouter();
+  const [history, setHistory] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/packing/outward/history')
+      .then(r => r.json())
+      .then(data => {
+        if (data.history) setHistory(data.history);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const exportCSV = () => {
+    if (history.length === 0) return;
+    const headers = ['Session ID', 'Article', 'Colour', 'Master Rule', 'Total Pairs', 'Operator', 'Status', 'Started At', 'Completed At'];
+    const rows = history.map(h => [
+      h.session_id,
+      h.article_code,
+      h.colour,
+      h.rule_name,
+      h.total_pairs,
+      h.operator_name || 'System',
+      h.status,
+      h.created_at ? new Date(h.created_at).toLocaleString() : '',
+      h.completed_at ? new Date(h.completed_at).toLocaleString() : ''
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `Scan_Outward_History_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="fade-up" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }}>Scanning Outward History</h1>
+          <p style={{ margin: '4px 0 0 0', color: 'var(--text-ghost)', fontSize: '14px' }}>
+            View completed and active outward packing sessions.
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={exportCSV} className="btn-corp" style={{ background: '#10b981', color: 'white', border: 'none' }}>
+            📊 Export CSV
+          </button>
+          <button onClick={() => router.push('/carton-generation')} className="btn-corp" style={{ background: 'var(--neon-violet)', color: 'white', border: 'none' }}>
+            ➕ New Scan Session
+          </button>
+        </div>
+      </div>
+
+      <div className="card-clean" style={{ padding: '24px', overflowX: 'auto' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-ghost)' }}>Loading history...</div>
+        ) : (
+          <table className="corporate-table" style={{ margin: 0 }}>
+            <thead>
+              <tr>
+                <th>Session ID</th>
+                <th>Article Code</th>
+                <th>Colour</th>
+                <th>Master Rule</th>
+                <th>Pairs</th>
+                <th>Operator</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map(session => (
+                <tr key={session.session_id}>
+                  <td><strong>#{session.session_id}</strong></td>
+                  <td>{session.article_code}</td>
+                  <td>{session.colour}</td>
+                  <td>{session.rule_name}</td>
+                  <td>{session.total_pairs}</td>
+                  <td>{session.operator_name || 'System'}</td>
+                  <td>
+                    <span style={{ 
+                      padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700,
+                      background: session.status === 'completed' ? '#dcfce7' : session.status === 'in_progress' ? '#fef3c7' : '#fee2e2',
+                      color: session.status === 'completed' ? '#16a34a' : session.status === 'in_progress' ? '#d97706' : '#ef4444'
+                    }}>
+                      {session.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '13px', color: 'var(--text-ghost)' }}>
+                    {new Date(session.created_at).toLocaleString()}
+                  </td>
+                  <td>
+                    {session.status === 'in_progress' && (
+                      <button 
+                        onClick={() => router.push(`/packing/scan-outward?session_id=${session.session_id}`)}
+                        style={{ padding: '4px 12px', background: 'var(--neon-violet)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}
+                      >
+                        Resume
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {history.length === 0 && (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-ghost)' }}>
+                    No outward scan history found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ActiveScanSession({ sessionId }: { sessionId: string }) {
+  const router = useRouter();
   const [session, setSession] = useState<any>(null);
   const [progress, setProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,11 +155,7 @@ export default function ScanOutwardPage() {
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!sessionId) {
-      alert('No session ID provided');
-      router.push('/carton-generation');
-      return;
-    }
+    if (!sessionId) return;
     fetchSessionData();
   }, [sessionId]);
 

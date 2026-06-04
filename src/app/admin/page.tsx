@@ -1675,6 +1675,7 @@ export default function AdminPage() {
                 category: 'Packing', mainKey: 'packing_section', icon: '📦',
                 items: [
                   { key: 'scanning_intake', label: 'Scanning Intake', icon: '⚡', desc: 'Live barcode scanning engine' },
+                  { key: 'scanning_outward', label: 'Scanning Outward', icon: '📠', desc: 'Outward barcode packing engine' },
                   { key: 'manual_entry', label: 'Manual Entry', icon: '📝', desc: 'Offline batch registration' },
                   { key: 'inventory_pool', label: 'Inventory Pool', icon: '📥', desc: 'Unpacked pair holding area' },
                   { key: 'carton_generation', label: 'Carton Generation', icon: '⚙️', desc: 'Generate master packaging barcodes' },

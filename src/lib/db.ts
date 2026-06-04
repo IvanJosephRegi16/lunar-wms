@@ -212,6 +212,8 @@ CREATE TABLE IF NOT EXISTS outward_scan_sessions (
   id SERIAL PRIMARY KEY,
   carton_generation_id INTEGER REFERENCES carton_generation(id),
   operator_id INTEGER REFERENCES users(id),
+  article_code TEXT,
+  colour TEXT,
   status TEXT DEFAULT 'in_progress',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   completed_at TIMESTAMPTZ
@@ -788,6 +790,8 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       { table: 'inventory_pool',      column: 'is_deleted',              type: 'INTEGER DEFAULT 0' },
       { table: 'v_strap',             column: 'is_deleted',              type: 'INTEGER DEFAULT 0' },
       { table: 'users',               column: 'plain_password',          type: 'TEXT' },
+      { table: 'outward_scan_sessions', column: 'article_code',          type: 'TEXT' },
+      { table: 'outward_scan_sessions', column: 'colour',                type: 'TEXT' },
     ];
 
     for (const m of columnMigrations) {

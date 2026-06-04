@@ -9,6 +9,7 @@ export default function PackingLayout({ children }: { children: React.ReactNode 
 
   const tabs = [
     { name: 'Scanning Intake', href: '/packing/scanning', icon: '⚡' },
+    { name: 'Scanning Outward', href: '/packing/scan-outward', icon: '📠' },
     { name: 'Manual Entry', href: '/packing/manual', icon: '📝' },
   ];
 

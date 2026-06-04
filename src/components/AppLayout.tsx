@@ -897,6 +897,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
               {packingOpen && (
                 <div className="fade-up" style={{ paddingLeft: '8px' }}>
                   <NavLink href="/packing/scanning" icon="⚡" label="Scanning Intake" permissionKey="scanning_intake" />
+                  <NavLink href="/packing/scan-outward" icon="📠" label="Scanning Outward" permissionKey="scanning_outward" />
                   <NavLink href="/packing/manual"   icon="📝" label="Manual Entry" permissionKey="manual_entry" />
                   <NavLink href="/inventory-pool"   icon="📥" label="Inventory" permissionKey="inventory_pool" />
                   <NavLink href="/carton-generation" icon="⚙️" label="Carton Generation" permissionKey="carton_generation" />
@@ -1887,6 +1888,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                           category: 'Packing', mainKey: 'packing_section', icon: '📦',
                           items: [
                             { key: 'scanning_intake', label: 'Scanning Intake', icon: '⚡' },
+                            { key: 'scanning_outward', label: 'Scanning Outward', icon: '📠' },
                             { key: 'manual_entry', label: 'Manual Entry', icon: '📝' },
                             { key: 'inventory_pool', label: 'Inventory', icon: '📥' },
                             { key: 'carton_generation', label: 'Carton Gen', icon: '⚙️' },

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest, { params }: { params: { sessionId: s
     const db = getDb();
     
     const session = await db.prepare(`
-      SELECT s.*, c.article_code, c.colour, c.total_pairs 
+      SELECT s.*, c.total_pairs 
       FROM outward_scan_sessions s
       JOIN carton_generation c ON s.carton_generation_id = c.id
       WHERE s.id = ?

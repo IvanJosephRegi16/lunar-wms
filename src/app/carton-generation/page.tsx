@@ -35,17 +35,24 @@ export default function CartonGenerationPage() {
   const [loading, setLoading] = useState(true);
 
   const handleStartScanOutward = async () => {
-    if (!activeConfigId) {
-      alert("Please select a Master Configuration Rule first.");
+    if (!activeConfigId || !activePoolId) {
+      alert("Please select a Staging Pool Item and Master Configuration Rule first.");
       return;
     }
+
+    const activePool = pool.find(p => p.id.toString() === activePoolId);
+    if (!activePool) return;
     
     setIsGenerating(true);
     try {
       const res = await fetch('/api/packing/outward/session/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ carton_generation_id: activeConfigId })
+        body: JSON.stringify({ 
+          carton_generation_id: activeConfigId,
+          article_code: activePool.article_code,
+          colour: activePool.colour
+        })
       });
       const data = await res.json();
       if (res.ok) {

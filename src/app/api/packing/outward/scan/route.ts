@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Validate Session
     const session = await db.prepare(`
-      SELECT s.*, c.article_code as expected_article, c.colour as expected_colour 
+      SELECT s.* 
       FROM outward_scan_sessions s
       JOIN carton_generation c ON s.carton_generation_id = c.id
       WHERE s.id = ?
@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Match article and colour
-    if (article.article_code !== session.expected_article || article.colour !== session.expected_colour) {
+    if (article.article_code !== session.article_code || article.colour !== session.colour) {
       return NextResponse.json({ 
-        error: `Article mismatch. Expected ${session.expected_article} - ${session.expected_colour}, got ${article.article_code} - ${article.colour}` 
+        error: `Article mismatch. Expected ${session.article_code} - ${session.colour}, got ${article.article_code} - ${article.colour}` 
       }, { status: 400 });
     }
 
