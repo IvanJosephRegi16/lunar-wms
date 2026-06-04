@@ -47,25 +47,46 @@ export default function EmailModal({ po, items, onClose }: Props) {
 
   const openGmail = async () => {
     try {
+      // 1. Open window synchronously to prevent popup blocker
+      const newWindow = window.open('', '_blank');
+      
       if (billRef.current) {
         setSending(true);
         const canvas = await html2canvas(billRef.current, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
         
-        // Create a temporary link to download the image
-        const link = document.createElement('a');
-        link.download = `PO-${po?.po_number}.png`;
-        link.href = imgData;
-        link.click();
+        // 2. Convert to blob and copy directly to clipboard for easy paste
+        const blob: Blob | null = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
         
+        if (blob) {
+          try {
+            await navigator.clipboard.write([
+              new ClipboardItem({ 'image/png': blob })
+            ]);
+            alert('✅ PO Image copied to clipboard!\n\nJust press Ctrl+V (or Right Click -> Paste) in the Gmail window that is opening.');
+          } catch (clipboardErr) {
+            console.warn("Clipboard copy failed, falling back to download", clipboardErr);
+            // Fallback to download if clipboard permissions are denied
+            const imgData = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = `PO-${po?.po_number}.png`;
+            link.href = imgData;
+            link.click();
+            alert('PO Image downloaded! Please drag & drop it into the Gmail window.');
+          }
+        }
         setSending(false);
-        alert('PO Image downloaded! You can now drag & drop or paste it into the Gmail window that just opened.');
       }
       
+      // 3. Redirect the opened window to Gmail
       const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
       const toParam = to.trim() ? `&to=${to}` : '';
       const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}`;
-      window.open(gmailUrl, '_blank');
+      
+      if (newWindow) {
+        newWindow.location.href = gmailUrl;
+      } else {
+        window.open(gmailUrl, '_blank');
+      }
     } catch (err) {
       console.error(err);
       alert('Failed to generate image for Gmail.');
