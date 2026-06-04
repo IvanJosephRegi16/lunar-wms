@@ -255,15 +255,15 @@ export default function PmMessagesPage() {
 
                         <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800 }}>Materials Received</h5>
                         <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                          <table className="corporate-table" style={{ margin: 0 }}>
+                          <table style={{ margin: 0, width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                             <thead>
-                              <tr>
-                                <th>Code</th>
-                                <th>Material</th>
-                                <th>Size/Thick</th>
-                                <th style={{ textAlign: 'right' }}>Req Qty</th>
-                                <th style={{ textAlign: 'right' }}>Recv Qty</th>
-                                <th>Status</th>
+                              <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', textTransform: 'uppercase' }}>Code</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', textTransform: 'uppercase' }}>Material</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', textTransform: 'uppercase' }}>Size/Thick</th>
+                                <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', textTransform: 'uppercase' }}>Req Qty</th>
+                                <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', textTransform: 'uppercase' }}>Recv Qty</th>
+                                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', textTransform: 'uppercase' }}>Status</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -271,25 +271,25 @@ export default function PmMessagesPage() {
                                 poDetails.items.map((item: any) => {
                                   const req = Number(item.required_qty) || 0;
                                   const recv = Number(item.received_qty) || 0;
-                                  let statusBadge = <span style={{ color: '#ef4444', fontWeight: 700 }}>Missing</span>;
-                                  if (recv >= req) statusBadge = <span style={{ color: '#10b981', fontWeight: 700 }}>Complete</span>;
-                                  else if (recv > 0) statusBadge = <span style={{ color: '#f59e0b', fontWeight: 700 }}>Partial</span>;
+                                  let statusBadge = <span style={{ color: '#ef4444', fontWeight: 700, background: '#fef2f2', padding: '4px 8px', borderRadius: '6px' }}>Missing</span>;
+                                  if (recv >= req) statusBadge = <span style={{ color: '#10b981', fontWeight: 700, background: '#ecfdf5', padding: '4px 8px', borderRadius: '6px' }}>Complete</span>;
+                                  else if (recv > 0) statusBadge = <span style={{ color: '#f59e0b', fontWeight: 700, background: '#fffbeb', padding: '4px 8px', borderRadius: '6px' }}>Partial</span>;
 
                                   return (
-                                    <tr key={item.id}>
-                                      <td style={{ fontWeight: 700, fontSize: '11px' }}>{item.material_code}</td>
-                                      <td style={{ fontSize: '12px' }}>{item.material_name}</td>
-                                      <td style={{ fontSize: '12px' }}>{item.size_thickness}</td>
-                                      <td style={{ textAlign: 'right', fontWeight: 600 }}>{req} {item.unit}</td>
-                                      <td style={{ textAlign: 'right', fontWeight: 800, color: recv >= req ? '#10b981' : '#f59e0b' }}>
-                                        {recv} {item.unit}
+                                    <tr key={item.id} style={{ borderBottom: '1px solid var(--border)', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                      <td style={{ padding: '14px 16px', fontWeight: 700, fontSize: '12px', color: 'var(--text-main)' }}>{item.material_code}</td>
+                                      <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-main)', fontWeight: 500 }}>{item.material_name}</td>
+                                      <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--text-main)' }}>{item.size_thickness}</td>
+                                      <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 600, fontSize: '13px', color: 'var(--text-main)' }}>{req} <span style={{ color: 'var(--text-ghost)', fontSize: '11px' }}>{item.unit}</span></td>
+                                      <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 800, fontSize: '13px', color: recv >= req ? '#10b981' : '#f59e0b' }}>
+                                        {recv} <span style={{ color: 'var(--text-ghost)', fontSize: '11px', fontWeight: 600 }}>{item.unit}</span>
                                       </td>
-                                      <td>{statusBadge}</td>
+                                      <td style={{ padding: '14px 16px', fontSize: '13px' }}>{statusBadge}</td>
                                     </tr>
                                   );
                                 })
                               ) : (
-                                <tr><td colSpan={6} style={{ textAlign: 'center' }}>No items found</td></tr>
+                                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-ghost)', fontSize: '13px' }}>No items found</td></tr>
                               )}
                             </tbody>
                           </table>
