@@ -22,7 +22,7 @@ export default function AdminPage() {
   const [logModuleFilter, setLogModuleFilter] = useState('all');
 
   // Tab control state
-  const [activeTab, setActiveTab] = useState<'users' | 'signups' | 'requests' | 'audit' | 'backups'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'signups' | 'requests' | 'audit' | 'backups' | 'sidebar'>('users');
   const [approvingId, setApprovingId] = useState<number | null>(null);
   const [rejectingId, setRejectingId] = useState<number | null>(null);
 
@@ -1146,6 +1146,18 @@ export default function AdminPage() {
           }}
         >
           💾 Backup & Restore
+        </button>
+        <button 
+          onClick={() => setActiveTab('sidebar')} 
+          style={{
+            background: activeTab === 'sidebar' ? 'white' : 'transparent',
+            border: 'none', borderRadius: '10px', padding: '10px 20px', fontSize: '13px', fontWeight: 800,
+            color: activeTab === 'sidebar' ? 'var(--text-main)' : 'var(--text-ghost)', cursor: 'pointer',
+            boxShadow: activeTab === 'sidebar' ? '0 2px 8px rgba(0,0,0,0.06)' : 'none', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px'
+          }}
+        >
+          🧭 Sidebar Access
         </button>
       </div>
 
@@ -2431,6 +2443,199 @@ export default function AdminPage() {
           </div>
 
         </div>
+      </div>
+      )}
+
+      {/* ── SIDEBAR ACCESS CONFIGURATION PANEL ───────────────────────────── */}
+      {activeTab === 'sidebar' && (
+      <div className="card mt-8" style={{
+        padding: '24px',
+        background: 'white',
+        borderRadius: '16px',
+        border: '1px solid var(--border)',
+        animation: 'slideIn 0.5s ease-out',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
+      }}>
+        <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '16px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-main)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              🧭 Sidebar Navigation Configuration
+            </h2>
+            <p style={{ fontSize: '12px', color: 'var(--text-ghost)', margin: '4px 0 0 0', fontWeight: 600 }}>
+              Control which system modules and features are accessible in the sidebar for different user roles.
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-ghost)', textTransform: 'uppercase' }}>Select Role:</label>
+            <select
+              value={selectedConfigRole}
+              onChange={e => {
+                const r = e.target.value;
+                setSelectedConfigRole(r);
+                loadMenuConfig(r);
+              }}
+              style={{
+                padding: '10px 14px',
+                border: '1.5px solid var(--border)',
+                borderRadius: '10px',
+                fontSize: '13px',
+                fontWeight: 700,
+                background: '#f8fafc',
+                cursor: 'pointer',
+                outline: 'none',
+                minWidth: '200px'
+              }}
+            >
+              <option value="operator">Operator (Data Entry)</option>
+              <option value="supervisor">Supervisor (Review)</option>
+              <option value="pm">Purchase Manager (PM)</option>
+              <option value="accountant">Accountant</option>
+              <option value="worker">Worker</option>
+            </select>
+          </div>
+        </div>
+
+        {selectedConfigRole === 'admin' ? (
+          <div style={{ padding: '40px', textAlign: 'center', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+            <span style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}>👑</span>
+            <div style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-main)' }}>Administrator Privileges Locked</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-ghost)', marginTop: '4px' }}>The Admin role always has full access to all system modules. This cannot be modified.</div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px' }}>
+            
+            {/* Render Category Groups */}
+            {[
+              { 
+                title: 'General & Dashboards', 
+                keys: [
+                  { k: 'dashboard', l: 'Main Dashboard' },
+                  { k: 'users_management', l: 'Users Management (Admin Only)' }
+                ] 
+              },
+              { 
+                title: 'Packing Section', 
+                keys: [
+                  { k: 'packing_section', l: 'Main Packing Dropdown' },
+                  { k: 'scanning_intake', l: 'Scan Intake' },
+                  { k: 'scanning_outward', l: 'Scan Outward' },
+                  { k: 'manual_entry', l: 'Manual Entry' },
+                  { k: 'inventory_pool', l: 'Inventory Pool' },
+                  { k: 'carton_generation', l: 'Carton Generation' },
+                  { k: 'packed_inventory', l: 'Packed Inventory' },
+                  { k: 'scan_history', l: 'Scan History' }
+                ] 
+              },
+              { 
+                title: 'Upper Stock Section', 
+                keys: [
+                  { k: 'upper_stock_section', l: 'Upper Stock Dropdown' },
+                  { k: 'daily_activity', l: 'Daily Activity' },
+                  { k: 'live_inventory', l: 'Live Inventory' },
+                  { k: 'stock_movement', l: 'Stock Movement' },
+                  { k: 'v_strap_entry', l: 'V-Strap Entry' },
+                  { k: 'reports_sheets', l: 'Reports & Sheets' }
+                ] 
+              },
+              {
+                title: 'Materials Hub',
+                keys: [
+                  { k: 'materials_section', l: 'Materials Dropdown' },
+                  { k: 'materials_inventory', l: 'Materials Inventory' },
+                  { k: 'materials_buying', l: 'Materials Buying' }
+                ]
+              },
+              { 
+                title: 'Purchase Orders (PO)', 
+                keys: [
+                  { k: 'po_section', l: 'PO Main Dropdown' },
+                  { k: 'po_dashboard', l: 'PO Dashboard' },
+                  { k: 'po_create', l: 'Create PO' },
+                  { k: 'po_pending', l: 'Pending Admin Approval' },
+                  { k: 'po_returned', l: 'Returned for Edit' },
+                  { k: 'po_approved', l: 'Approved POs' },
+                  { k: 'po_rejected', l: 'Rejected POs' },
+                  { k: 'po_accountant', l: 'Accountant Processing' },
+                  { k: 'po_completed', l: 'Completed POs' },
+                  { k: 'po_history', l: 'PO History' },
+                  { k: 'po_payment_status', l: 'Payment Status' }
+                ] 
+              },
+              { 
+                title: 'Human Resources (HR)', 
+                keys: [
+                  { k: 'hr_section', l: 'HR Main Dashboard' },
+                  { k: 'hr_employees', l: 'Identity Matrix' },
+                  { k: 'hr_attendance', l: 'Attendance Grid' },
+                  { k: 'hr_adjustments', l: 'Adjustments' },
+                  { k: 'hr_payroll', l: 'Payroll Engine' },
+                  { k: 'hr_salary_slips', l: 'Salary Slips' }
+                ] 
+              },
+              { 
+                title: 'PM Master Data', 
+                keys: [
+                  { k: 'pm_section', l: 'PM Master Data Main' },
+                  { k: 'pm_manage_articles', l: 'Manage Articles' },
+                  { k: 'pm_create_article', l: 'Create Article' },
+                  { k: 'pm_deleted_articles', l: 'Deleted Articles' },
+                  { k: 'pm_material_library', l: 'Material Library' },
+                  { k: 'pm_cost_analysis', l: 'Cost Analysis' }
+                ] 
+              }
+            ].map(group => (
+              <div key={group.title} style={{ background: '#f8fafc', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 12px 0', fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {group.title}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {group.keys.map(item => (
+                    <label key={item.k} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', background: 'white', padding: '8px 12px', borderRadius: '8px', border: '1px solid #e2e8f0', transition: 'all 0.15s' }} onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.borderColor = '#e2e8f0'}>
+                      <input
+                        type="checkbox"
+                        checked={menuConfig[item.k] === true}
+                        onChange={e => {
+                          setMenuConfig((prev: any) => ({ ...prev, [item.k]: e.target.checked }));
+                        }}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-main)', userSelect: 'none' }}>
+                        {item.l}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+          </div>
+        )}
+
+        <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            onClick={() => handleSaveMenuConfig(selectedConfigRole, menuConfig)}
+            disabled={selectedConfigRole === 'admin'}
+            style={{
+              padding: '12px 28px',
+              borderRadius: '10px',
+              background: selectedConfigRole === 'admin' ? '#94a3b8' : 'linear-gradient(135deg, var(--primary) 0%, #2563eb 100%)',
+              color: 'white',
+              border: 'none',
+              fontWeight: 800,
+              fontSize: '13px',
+              cursor: selectedConfigRole === 'admin' ? 'not-allowed' : 'pointer',
+              boxShadow: selectedConfigRole === 'admin' ? 'none' : '0 4px 14px rgba(37, 99, 235, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            💾 Save Role Settings
+          </button>
+        </div>
+
       </div>
       )}
 
