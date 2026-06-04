@@ -28,6 +28,7 @@ export default function PackedInventoryPage() {
   const [singleDate, setSingleDate] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   // Scanning State
   const [scanBarcode, setScanBarcode] = useState('');
@@ -101,6 +102,7 @@ export default function PackedInventoryPage() {
     setSingleDate('');
     setFromDate('');
     setToDate('');
+    setStatusFilter('all');
   };
 
   const handleScanCarton = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -135,16 +137,19 @@ export default function PackedInventoryPage() {
   // Real-time Client-side Search filter over the fetched date list
   const filteredInventory = inventory.filter(item => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchesSearch = 
       item.carton_id.toLowerCase().includes(term) ||
       item.article_code.toLowerCase().includes(term) ||
       item.colour.toLowerCase().includes(term) ||
-      item.config_name.toLowerCase().includes(term)
-    );
+      item.config_name.toLowerCase().includes(term);
+      
+    const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
   });
 
   const handleExportCSV = () => {
-    const headers = ['Carton ID', 'Article Code', 'Colour', 'Configuration Rule', 'Total Pairs', 'Packed Date & Time (IST)', 'Status', 'Export Date/Time'];
+    const headers = ['Carton ID', 'Article Code', 'Colour', 'Configuration Rule', 'Total Pairs', 'Packed Date & Time (IST)', 'Delivered Date & Time (IST)', 'Status', 'Export Date/Time'];
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const rows = filteredInventory.map(item => [
       item.carton_id,
@@ -153,11 +158,13 @@ export default function PackedInventoryPage() {
       item.config_name,
       item.total_pairs,
       formatIST(item.created_at),
-      'Completed',
+      item.scanned_at ? formatIST(item.scanned_at) : 'Pending Verification',
+      item.status === 'completed' ? 'Completed' : 'Pending',
       now
     ]);
     const label = viewMode === 'today' ? 'Today' : 'History';
-    downloadCSV(`Packed_Inventory_${label}_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+    const statusLabel = statusFilter === 'all' ? '' : `_${statusFilter}`;
+    downloadCSV(`Packed_Inventory_${label}${statusLabel}_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
   };
 
   // Calculate live stats based on search
@@ -320,6 +327,20 @@ export default function PackedInventoryPage() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
+          </div>
+          
+          <div className={styles.filterGroup}>
+            <label>Verification Status</label>
+            <select 
+              className={styles.filterInput}
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              style={{ cursor: 'pointer' }}
+            >
+              <option value="all">All Statuses</option>
+              <option value="completed">Completed (Verified)</option>
+              <option value="pending">Pending (Unverified)</option>
+            </select>
           </div>
 
           {viewMode === 'history' ? (
