@@ -37,32 +37,38 @@ export async function POST(req: NextRequest) {
       WHERE session_id = ? GROUP BY size
     `).all(session_id);
 
-    // Verify all quantities met
+    // Verify all quantities met with a maximum of -1 tolerance per size
     for (const conf of configSizes) {
       const scanned = scannedItems.find((s: any) => s.size === conf.size);
-      if (!scanned || scanned.count < conf.quantity) {
-        return NextResponse.json({ error: `Incomplete scan for size ${conf.size}. Expected ${conf.quantity}, found ${scanned?.count || 0}` }, { status: 400 });
+      if (!scanned || scanned.count < conf.quantity - 1) {
+        return NextResponse.json({ error: `Incomplete scan for size ${conf.size}. Expected ${conf.quantity}, found ${scanned?.count || 0}. Maximum allowed variance is -1.` }, { status: 400 });
       }
     }
 
     let packedCarton = null;
 
     await db.transaction(async () => {
+      // Calculate actual total pairs scanned
+      const actualTotalPairs = scannedItems.reduce((acc: number, curr: any) => acc + curr.count, 0);
+
       // Create outward_transaction
       const transactionIdStr = `TXN-${Date.now()}`;
       const txRes = await db.prepare(`
         INSERT INTO outward_transactions (transaction_id, article_code, colour, config_id, num_cartons, total_pairs, created_by)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(transactionIdStr, session.article_code, session.colour, session.carton_generation_id, 1, session.total_pairs, user.id);
+      `).run(transactionIdStr, session.article_code, session.colour, session.carton_generation_id, 1, actualTotalPairs, user.id);
       
       const txId = txRes.lastInsertRowid;
 
-      // Insert outward_items (for this single carton)
+      // Insert outward_items using actual scanned counts
       for (const conf of configSizes) {
-        await db.prepare(`
-          INSERT INTO outward_items (transaction_id, size, quantity_per_carton, total_quantity)
-          VALUES (?, ?, ?, ?)
-        `).run(txId, conf.size, conf.quantity, conf.quantity);
+        const scannedCount = scannedItems.find((s: any) => s.size === conf.size)?.count || 0;
+        if (scannedCount > 0) {
+          await db.prepare(`
+            INSERT INTO outward_items (transaction_id, size, quantity_per_carton, total_quantity)
+            VALUES (?, ?, ?, ?)
+          `).run(txId, conf.size, scannedCount, scannedCount);
+        }
       }
 
       // Create packed_carton

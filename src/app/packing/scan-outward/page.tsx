@@ -151,6 +151,9 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const [barcode, setBarcode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
+  
+  // Custom Approval Modal State
+  const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; message: string; pendingBarcode: string } | null>(null);
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -192,32 +195,35 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
     }
   };
 
-  const handleScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!barcode.trim() || isScanning) return;
+  const handleScan = async (e?: React.FormEvent, force: boolean = false, overrideBarcode?: string) => {
+    if (e) e.preventDefault();
+    const codeToScan = overrideBarcode || barcode.trim();
+    if (!codeToScan || isScanning) return;
 
     setIsScanning(true);
-    const scannedCode = barcode.trim();
-    setBarcode(''); // clear immediately
+    if (!overrideBarcode) setBarcode(''); // clear immediately if not forced
 
     try {
       const res = await fetch('/api/packing/outward/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, barcode: scannedCode })
+        body: JSON.stringify({ session_id: sessionId, barcode: codeToScan, force })
       });
       const data = await res.json();
       
-      if (res.ok) {
+      if (res.status === 200 && data.requireApproval) {
+        // Show our professional custom modal
+        setApprovalModal({
+          isOpen: true,
+          message: data.message,
+          pendingBarcode: codeToScan
+        });
+        setScanResult(null);
+      } else if (res.ok) {
         setScanResult({ success: true, message: data.message, data: data.article });
         
         // Refresh grid
         await fetchSessionData();
-
-        if (data.isComplete) {
-          alert(`Carton ${data.sealedCarton || 'Sealed'} and added to Packed Inventory!`);
-          router.push('/packed-inventory');
-        }
       } else {
         setScanResult({ success: false, message: data.error });
       }
@@ -225,7 +231,44 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
       setScanResult({ success: false, message: err.message || 'Error scanning barcode' });
     } finally {
       setIsScanning(false);
-      barcodeInputRef.current?.focus();
+      if (!approvalModal?.isOpen) {
+        barcodeInputRef.current?.focus();
+      }
+    }
+  };
+
+  const confirmApproval = () => {
+    if (approvalModal) {
+      const code = approvalModal.pendingBarcode;
+      setApprovalModal(null);
+      handleScan(undefined, true, code);
+    }
+  };
+
+  const cancelApproval = () => {
+    setApprovalModal(null);
+    setScanResult({ success: false, message: 'Extra size variation rejected by user.' });
+    setTimeout(() => barcodeInputRef.current?.focus(), 100);
+  };
+
+  const handleManualSeal = async () => {
+    if (!confirm('Seal carton now?')) return;
+    try {
+      const res = await fetch(`/api/packing/outward/session/seal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Carton ${data.carton || 'Sealed'} and added to Packed Inventory!`);
+        router.push('/packed-inventory');
+      } else {
+        alert(data.error || 'Failed to seal carton');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error sealing carton');
     }
   };
 
@@ -257,9 +300,36 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 
   const totalRequired = progress.reduce((acc, curr) => acc + curr.required, 0);
   const totalScanned = progress.reduce((acc, curr) => acc + curr.scanned, 0);
+  const canSeal = progress.length > 0 && progress.every(p => p.scanned >= p.required - 1);
 
   return (
-    <div className="fade-up" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="fade-up" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
+      
+      {/* PROFESSIONAL APPROVAL MODAL */}
+      {approvalModal?.isOpen && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(4px)',
+          zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="card-clean" style={{ background: 'white', padding: '32px', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 12px 0', color: '#1e293b' }}>Variation Detected</h2>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--text-ghost)', fontSize: '15px', lineHeight: '1.5' }}>
+              {approvalModal.message}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <button onClick={cancelApproval} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', flex: 1 }}>
+                Reject
+              </button>
+              <button onClick={confirmApproval} className="btn-corp" style={{ background: 'var(--neon-violet)', color: 'white', border: 'none', flex: 1 }}>
+                Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
@@ -268,13 +338,24 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             Session ID: {sessionId} • Article: <strong>{session.article_code}</strong> • Colour: <strong>{session.colour}</strong>
           </p>
         </div>
-        <button 
-          onClick={handleCancelSession}
-          className="btn-corp"
-          style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}
-        >
-          ❌ Cancel Session & Rollback
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {canSeal && (
+            <button 
+              onClick={handleManualSeal}
+              className="btn-corp"
+              style={{ background: '#10b981', color: 'white', border: 'none', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}
+            >
+              📦 Seal Carton
+            </button>
+          )}
+          <button 
+            onClick={handleCancelSession}
+            className="btn-corp"
+            style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}
+          >
+            ❌ Cancel Session & Rollback
+          </button>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
