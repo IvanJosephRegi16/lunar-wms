@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import html2canvas from 'html2canvas';
 
 interface Props {
   po: any;
@@ -44,36 +45,32 @@ export default function EmailModal({ po, items, onClose }: Props) {
     }
   };
 
-  const openGmail = () => {
-    if (!to.trim()) { alert('Please enter recipient email first'); return; }
-    const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
-    
-    const tableHeader = 
-      `#  | Material Code | Material Name             | Size / Thk | Stock | Req. Qty | Vendor\n` +
-      `-------------------------------------------------------------------------------------------\n`;
+  const openGmail = async () => {
+    try {
+      if (billRef.current) {
+        setSending(true);
+        const canvas = await html2canvas(billRef.current, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        
+        // Create a temporary link to download the image
+        const link = document.createElement('a');
+        link.download = `PO-${po?.po_number}.png`;
+        link.href = imgData;
+        link.click();
+        
+        setSending(false);
+        alert('PO Image downloaded! You can now drag & drop or paste it into the Gmail window that just opened.');
+      }
       
-    const tableRows = items.map((it: any, i: number) => {
-      const idx = String(i + 1).padEnd(3);
-      const code = String(it.material_code || '-').padEnd(13);
-      const name = String(it.material_name || '-').substring(0, 23).padEnd(25);
-      const size = String(it.size_thickness || '-').substring(0, 10).padEnd(12);
-      const stock = String(it.current_stock ?? '0').padEnd(5);
-      const qty = String(it.required_qty ?? it.required_quantity ?? '0').padEnd(8);
-      const vendor = String(it.vendor || po?.vendor || '-');
-      return `${idx}| ${code} | ${name} | ${size} | ${stock} | ${qty} | ${vendor}`;
-    }).join('\n');
-
-    const bodyText = `Dear Vendor,\n\nPlease find the purchase order details below:\n\n` +
-      `PO Number: ${po?.po_number}\n` +
-      `Date: ${po?.approved_timestamp}\n\n` +
-      `Required Materials:\n\n` +
-      tableHeader + tableRows +
-      `\n\n-------------------------------------------------------------------------------------------\n\n` +
-      `Thank you,\nLunar's Procurement Division`;
-      
-    const body = encodeURIComponent(bodyText);
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
-    window.open(gmailUrl, '_blank');
+      const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
+      const toParam = to.trim() ? `&to=${to}` : '';
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}`;
+      window.open(gmailUrl, '_blank');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate image for Gmail.');
+      setSending(false);
+    }
   };
 
   const today = new Date().toLocaleDateString('en-IN', {
@@ -119,9 +116,9 @@ export default function EmailModal({ po, items, onClose }: Props) {
           }}>✕</button>
         </div>
 
-        {/* Email To Field */}
+        {/* Email To Field (Optional for Gmail) */}
         <div style={{ padding: '20px 28px 0' }}>
-          <label style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient Email (Gmail)</label>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recipient Email (Optional for Gmail)</label>
           <input
             type="email"
             placeholder="vendor@example.com"
