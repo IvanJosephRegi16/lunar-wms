@@ -19,14 +19,25 @@ export async function GET(request: Request) {
         c.carton_id,
         c.status,
         c.created_at,
+        c.scanned_at,
         pt.article_code,
         pt.colour,
         pc.name as config_name,
-        (pt.total_pairs / pt.num_cartons) as total_pairs
+        (pt.total_pairs / pt.num_cartons) as total_pairs,
+        (
+          SELECT json_agg(json_build_object('size', oi.size, 'quantity', oi.quantity_per_carton))
+          FROM outward_items oi
+          WHERE oi.transaction_id = pt.id
+        ) as sizes,
+        (
+          SELECT mrp FROM inventory_pool 
+          WHERE article_code = pt.article_code AND colour = pt.colour 
+          LIMIT 1
+        ) as mrp
       FROM packed_cartons c
       JOIN outward_transactions pt ON c.transaction_id = pt.id
       JOIN carton_generation pc ON pt.config_id = pc.id
-      WHERE (c.status = 'completed' OR c.status = 'pending_validation')
+      WHERE (c.status = 'completed' OR c.status = 'pending' OR c.status = 'pending_validation')
       AND pt.is_deleted = 0
     `;
     

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
       const cartonIdStr = `CRT-${Date.now()}`;
       await db.prepare(`
         INSERT INTO packed_cartons (carton_id, transaction_id, status)
-        VALUES (?, ?, 'completed')
+        VALUES (?, ?, 'pending')
       `).run(cartonIdStr, txId);
       
       packedCarton = cartonIdStr;

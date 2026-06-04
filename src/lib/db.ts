@@ -792,6 +792,9 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       { table: 'users',               column: 'plain_password',          type: 'TEXT' },
       { table: 'outward_scan_sessions', column: 'article_code',          type: 'TEXT' },
       { table: 'outward_scan_sessions', column: 'colour',                type: 'TEXT' },
+      { table: 'inventory_pool',      column: 'mrp',                     type: 'REAL' },
+      { table: 'scan_history',        column: 'mrp',                     type: 'REAL' },
+      { table: 'packed_cartons',      column: 'scanned_at',              type: 'TEXT' },
     ];
 
     for (const m of columnMigrations) {

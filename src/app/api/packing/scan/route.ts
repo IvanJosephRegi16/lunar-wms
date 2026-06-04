@@ -14,15 +14,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Barcode is required' }, { status: 400 });
   }
 
-  // Expected format "ARTICLE|COLOUR|SIZE" (size numeric)
+  // Expected format "ARTICLE|COLOUR|SIZE" or "ARTICLE|COLOUR|SIZE|MRP"
   const parts = barcode.split('|');
   if (parts.length < 3) {
-    return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE or ARTICLE|COLOUR|SIZE|MRP' }, { status: 400 });
   }
 
   const article = parts[0].toUpperCase();
   const colour = parts[1].toUpperCase();
   const size = parts[2];
+  const mrp = parts.length >= 4 ? parseFloat(parts[3]) || null : null;
   const sizeColumn = `size_${size}`;
 
   const validSizes = ['5','6','7','8','9','10','11','12'];
@@ -35,20 +36,23 @@ export async function POST(request: Request) {
   try {
     const result = await db.transaction(async () => {
       // Upsert inventory pool safely – column name already validated
-      const existing = await db.prepare(`SELECT id, ${sizeColumn} FROM inventory_pool WHERE article_code = ? AND colour = ?`).get(article, colour) as any;
+      const existing = await db.prepare(`SELECT id, ${sizeColumn}, mrp FROM inventory_pool WHERE article_code = ? AND colour = ?`).get(article, colour) as any;
       if (existing) {
+        // If an MRP is provided in this scan and it differs from the existing, we update it (or set if null).
+        // Optionally you could average it, but standard is latest MRP overrides.
+        const mrpUpdate = mrp !== null ? `, mrp = ${mrp}` : '';
         await db.prepare(`
           UPDATE inventory_pool
-          SET ${sizeColumn} = ${sizeColumn} + 1, total_qty = total_qty + 1
+          SET ${sizeColumn} = ${sizeColumn} + 1, total_qty = total_qty + 1 ${mrpUpdate}
           WHERE id = ?
         `).run(existing.id);
       } else {
         const cols = validSizes.map(s => `size_${s}`).join(', ');
         const vals = validSizes.map(s => (s === size ? '1' : '0')).join(', ');
         await db.prepare(`
-          INSERT INTO inventory_pool (article_code, colour, total_qty, ${cols})
-          VALUES (?, ?, 1, ${vals})
-        `).run(article, colour);
+          INSERT INTO inventory_pool (article_code, colour, total_qty, ${cols}, mrp)
+          VALUES (?, ?, 1, ${vals}, ?)
+        `).run(article, colour, mrp);
       }
 
       // Record inward transaction
@@ -59,9 +63,9 @@ export async function POST(request: Request) {
 
       // Record successful scan history
       await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status)
-        VALUES (?, ?, ?, ?, ?, 'success')
-      `).run(barcode, article, colour, size, user.id);
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp)
+        VALUES (?, ?, ?, ?, ?, 'success', ?)
+      `).run(barcode, article, colour, size, user.id, mrp);
 
       return { article, colour, size };
     });
@@ -90,9 +94,9 @@ export async function POST(request: Request) {
     // Record failed scan in history for forensic analysis
     try {
       await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(barcode, '-', '-', '-', user.id, `error: ${error.message}`);
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(barcode, '-', '-', '-', user.id, `error: ${error.message}`, null);
     } catch {}
     console.error('Error scanning barcode:', error);
     return NextResponse.json({ error: error.message }, { status: 400 });

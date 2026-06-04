@@ -14,15 +14,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing session_id or barcode' }, { status: 400 });
     }
 
-    // Parse ARTICLE|COLOUR|SIZE format
+    // Parse ARTICLE|COLOUR|SIZE or ARTICLE|COLOUR|SIZE|MRP format
     const parts = barcode.split('|');
     if (parts.length < 3) {
-      return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE or ARTICLE|COLOUR|SIZE|MRP' }, { status: 400 });
     }
 
     const scannedArticle = parts[0].toUpperCase();
     const scannedColour = parts[1].toUpperCase();
     const scannedSize = parts[2];
+    const mrp = parts.length >= 4 ? parseFloat(parts[3]) || null : null;
 
     const validSizes = ['5','6','7','8','9','10','11','12'];
     if (!validSizes.includes(scannedSize)) {
@@ -110,9 +111,9 @@ export async function POST(req: NextRequest) {
       
       // Log to scan_history as well for audit
       await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status)
-        VALUES (?, ?, ?, ?, ?, 'success_outward')
-      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id);
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp)
+        VALUES (?, ?, ?, ?, ?, 'success_outward', ?)
+      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id, mrp);
     });
 
     return NextResponse.json({
