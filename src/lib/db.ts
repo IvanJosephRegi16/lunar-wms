@@ -389,6 +389,20 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pm_messages (
+        id SERIAL PRIMARY KEY,
+        po_id INTEGER NOT NULL,
+        po_number TEXT NOT NULL,
+        pm_id INTEGER NOT NULL REFERENCES users(id),
+        supervisor_id INTEGER NOT NULL REFERENCES users(id),
+        supervisor_name TEXT NOT NULL,
+        remarks TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // ── AI / ML Tables (migrated from SQLite) ──────────────────────────────
     await client.query(`
       CREATE TABLE IF NOT EXISTS ai_anomaly_alerts (

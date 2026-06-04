@@ -168,6 +168,14 @@ export async function POST(req: NextRequest) {
       } else {
         throw new Error('Unknown action');
       }
+
+      // Send PM Message if remarks were provided
+      if (po.creator_user_id && remarks && remarks.trim() !== '') {
+        await db.prepare(`
+          INSERT INTO pm_messages (po_id, po_number, pm_id, supervisor_id, supervisor_name, remarks)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(id, po.po_number, po.creator_user_id, user.id, user.full_name, remarks.trim());
+      }
     });
 
     return NextResponse.json({ success: true });

@@ -389,6 +389,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
   const [returnedCount, setReturnedCount] = useState(0);
   const [accountantCount, setAccountantCount] = useState(0);
   const [supervisorCount, setSupervisorCount] = useState(0);
+  const [pmUnreadCount, setPmUnreadCount] = useState(0);
 
   // ── Profile Dropdown and Modals states ────────────────────────────────────
   const [profileOpen, setProfileOpen] = useState(false);
@@ -496,6 +497,14 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           } else if (user.role === 'pm') {
             const ret = data.pos.filter((p: any) => p.status === 'returned_for_edit').length;
             setReturnedCount(ret);
+            
+            try {
+              const pmRes = await fetch('/api/pm/messages/unread');
+              if (pmRes.ok) {
+                const pmData = await pmRes.json();
+                setPmUnreadCount(pmData.unreadCount || 0);
+              }
+            } catch { /* ignore */ }
           } else if (user.role === 'accountant') {
             const acct = data.pos.filter((p: any) => p.status === 'accountant_processing').length;
             setAccountantCount(acct);
@@ -841,6 +850,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
               </div>
               {pmOpen && (
                 <div className="fade-up" style={{ paddingLeft: '8px' }}>
+                  <NavLink href="/pm/messages" icon="✉️" label="Supervisor Remarks" permissionKey="pm_messages" badge={pmUnreadCount} />
                   <NavLink href="/pm/articles?view=manage" icon="📚" label="Manage Articles" permissionKey="pm_manage_articles" />
                   <NavLink href="/pm/articles?view=create" icon="✨" label="Create Article" permissionKey="pm_create_article" />
                   <NavLink href="/pm/articles?view=deleted" icon="🗑️" label="Deleted Articles" permissionKey="pm_deleted_articles" />
@@ -1036,6 +1046,31 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
 
           {/* ── Bell buttons row ─────────────────────────────────────────── */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+
+            {/* ── PM Message Icon ───────────────────────────────────────── */}
+            {isPM && (
+              <Link
+                href="/pm/messages"
+                title={pmUnreadCount > 0 ? `${pmUnreadCount} new messages` : 'Messages'}
+                style={{
+                  position: 'relative',
+                  background: pmUnreadCount > 0 ? '#f0fdf4' : '#f8fafc',
+                  border: pmUnreadCount > 0 ? '1.5px solid #22c55e' : '1.5px solid var(--border)',
+                  borderRadius: '12px', width: '44px', height: '44px',
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', fontSize: '20px', transition: 'all 0.2s',
+                  boxShadow: pmUnreadCount > 0 ? '0 0 0 3px rgba(34,197,94,0.12)' : 'none',
+                  textDecoration: 'none'
+                }}
+              >
+                ✉️
+                {pmUnreadCount > 0 && (
+                  <span style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#22c55e', color: 'white', fontSize: '10px', fontWeight: 900, borderRadius: '20px', padding: '1px 6px', minWidth: '18px', textAlign: 'center', lineHeight: '16px', border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>
+                    {pmUnreadCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* ── PM / Accountant notification bell ───────────────────── */}
             {hasUserBell && (
