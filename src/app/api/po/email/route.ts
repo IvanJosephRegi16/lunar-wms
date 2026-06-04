@@ -49,6 +49,35 @@ export async function POST(req: NextRequest) {
     // ────────────────────────────────────────────────────────────────────────
     // 🎨 PIXEL-PERFECT TECH-COMPANY INVOICE HTML TEMPLATE (STRIPE / GMAIL COMPATIBLE)
     // ────────────────────────────────────────────────────────────────────────
+
+    // Pre-build the items table HTML to avoid nested template literal issues
+    let itemsTableHtml = '';
+    if (!imageBase64 && items && Array.isArray(items)) {
+      const rowsHtml = items.map((item: any) => {
+        return '<tr>'
+          + '<td class="code-cell">' + (item.material_code || '\u2014') + '</td>'
+          + '<td class="name-cell">' + (item.material_name || '\u2014') + '</td>'
+          + '<td>' + (item.size_thickness || '\u2014') + '</td>'
+          + '<td style="text-align: right;" class="stock-cell">' + (item.current_stock ?? 0).toLocaleString() + '</td>'
+          + '<td style="text-align: right;" class="qty-cell">' + (item.required_qty ?? item.required_quantity ?? 0).toLocaleString() + '</td>'
+          + '<td style="text-align: right;" class="vendor-cell">' + (item.vendor || po.vendor || '\u2014') + '</td>'
+          + '</tr>';
+      }).join('');
+      itemsTableHtml = '<div class="table-container"><table class="po-table"><thead><tr>'
+        + '<th style="width: 15%;">Material Code</th>'
+        + '<th style="width: 30%;">Material Name</th>'
+        + '<th style="width: 15%;">Size / Thk</th>'
+        + '<th style="text-align: right; width: 10%;">Stock</th>'
+        + '<th style="text-align: right; width: 10%;">Req Qty</th>'
+        + '<th style="width: 20%; text-align: right;">Vendor</th>'
+        + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
+    }
+
+    // Pre-build the PO image section
+    const imageHtml = imageBase64
+      ? '<div style="padding: 20px 40px; text-align: center; background-color: #f8fafc;"><img src="cid:po-generated-image" alt="Purchase Order Details" style="width: 100%; max-width: 600px; height: auto; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" /></div>'
+      : '';
+
     const emailHtml = `
 <!DOCTYPE html>
 <html lang="en">
@@ -275,42 +304,8 @@ export async function POST(req: NextRequest) {
         </table>
       </div>
 
-      <!-- PO IMAGE ATTACHMENT -->
-      ${imageBase64 ? `
-      <div style="padding: 20px 40px; text-align: center; background-color: #f8fafc;">
-        <img src="cid:po-generated-image" alt="Purchase Order Details" style="width: 100%; max-width: 600px; height: auto; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);" />
-      </div>
-      ` : ''}
-
-      ${!imageBase64 && items ? `
-      <!-- ITEMS TABLE FALLBACK -->
-      <div class="table-container">
-        <table class="po-table">
-          <thead>
-            <tr>
-              <th style="width: 15%;">Material Code</th>
-              <th style="width: 30%;">Material Name</th>
-              <th style="width: 15%;">Size / Thk</th>
-              <th style="text-align: right; width: 10%;">Stock</th>
-              <th style="text-align: right; width: 10%;">Req Qty</th>
-              <th style="width: 20%; text-align: right;">Vendor</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map((item: any) => \`
-              <tr>
-                <td class="code-cell">\${item.material_code || '—'}</td>
-                <td class="name-cell">\${item.material_name || '—'}</td>
-                <td>\${item.size_thickness || '—'}</td>
-                <td style="text-align: right;" class="stock-cell">\${(item.current_stock ?? 0).toLocaleString()}</td>
-                <td style="text-align: right;" class="qty-cell">\${(item.required_qty ?? item.required_quantity ?? 0).toLocaleString()}</td>
-                <td style="text-align: right;" class="vendor-cell">\${item.vendor || po.vendor || '—'}</td>
-              </tr>
-            \`).join('')}
-          </tbody>
-        </table>
-      </div>
-      ` : ''}
+      ${imageHtml}
+      ${itemsTableHtml}
 
       <!-- FOOTER -->
       <div class="footer">
@@ -338,6 +333,7 @@ export async function POST(req: NextRequest) {
         html: emailHtml,
         attachments: [
           ...(logoBase64 ? [{ filename: 'lunars-logo.png', content: logoBase64 }] : []),
+          // @ts-ignore - cid might not be in the types but works for inline images
           ...(imageBase64 ? [{ filename: `PO_${po.po_number}.png`, content: imageBase64.split(',')[1], cid: 'po-generated-image' }] : [])
         ]
       });
