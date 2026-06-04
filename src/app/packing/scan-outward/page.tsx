@@ -303,27 +303,27 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const canSeal = progress.length > 0 && progress.every(p => p.scanned >= p.required - 1);
 
   return (
-    <div className="fade-up" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', position: 'relative' }}>
+    <div className="fade-up" style={{ padding: '24px', maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
       
       {/* PROFESSIONAL APPROVAL MODAL */}
       {approvalModal?.isOpen && (
         <div style={{
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.7)',
-          backdropFilter: 'blur(4px)',
-          zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center'
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
-          <div className="card-clean" style={{ background: 'white', padding: '32px', maxWidth: '400px', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 12px 0', color: '#1e293b' }}>Variation Detected</h2>
-            <p style={{ margin: '0 0 24px 0', color: 'var(--text-ghost)', fontSize: '15px', lineHeight: '1.5' }}>
+          <div className="card-clean" style={{ background: '#ffffff', padding: '40px', maxWidth: '440px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '56px', marginBottom: '20px', animation: 'bounce 2s infinite' }}>⚠️</div>
+            <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '0 0 16px 0', color: '#0f172a', letterSpacing: '-0.5px' }}>Variation Detected</h2>
+            <p style={{ margin: '0 0 32px 0', color: '#475569', fontSize: '16px', lineHeight: '1.6', fontWeight: 500 }}>
               {approvalModal.message}
             </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <button onClick={cancelApproval} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', flex: 1 }}>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <button onClick={cancelApproval} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '2px solid #fecaca', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px' }}>
                 Reject
               </button>
-              <button onClick={confirmApproval} className="btn-corp" style={{ background: 'var(--neon-violet)', color: 'white', border: 'none', flex: 1 }}>
+              <button onClick={confirmApproval} className="btn-corp" style={{ background: 'var(--neon-violet)', color: 'white', border: 'none', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(124, 58, 237, 0.4)' }}>
                 Approve
               </button>
             </div>
@@ -331,11 +331,16 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
         </div>
       )}
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+      {/* HEADER SECTION */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 800 }}>Scan Outward Session</h1>
-          <p style={{ margin: '4px 0 0 0', color: 'var(--text-ghost)', fontSize: '14px' }}>
-            Session ID: {sessionId} • Article: <strong>{session.article_code}</strong> • Colour: <strong>{session.colour}</strong>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+            <span style={{ background: 'var(--neon-violet)', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, letterSpacing: '1px' }}>SESSION #{sessionId}</span>
+            <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>Scan Outward</h1>
+          </div>
+          <p style={{ margin: 0, color: '#475569', fontSize: '16px', fontWeight: 500 }}>
+            Article: <span style={{ color: '#0f172a', fontWeight: 800 }}>{session.article_code}</span> &nbsp;•&nbsp; 
+            Colour: <span style={{ color: '#0f172a', fontWeight: 800 }}>{session.colour}</span>
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
@@ -343,107 +348,186 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             <button 
               onClick={handleManualSeal}
               className="btn-corp"
-              style={{ background: '#10b981', color: 'white', border: 'none', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}
+              style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 24px', fontSize: '15px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}
             >
-              📦 Seal Carton
+              📦 Finalize & Seal Carton
             </button>
           )}
           <button 
             onClick={handleCancelSession}
             className="btn-corp"
-            style={{ background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca' }}
+            style={{ background: '#ffffff', color: '#ef4444', border: '2px solid #fecaca', padding: '14px 24px', fontSize: '15px', borderRadius: '12px' }}
           >
-            ❌ Cancel Session & Rollback
+            Cancel Session
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
         
         {/* LEFT PANEL: CONFIG REQUIREMENTS GRID */}
-        <div className="card-clean" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 16px 0', display: 'flex', justifyContent: 'space-between' }}>
-            <span>Config Requirements</span>
-            <span style={{ color: 'var(--neon-violet)' }}>{totalScanned} / {totalRequired} Pairs</span>
-          </h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: 0, color: '#0f172a' }}>Packaging Requirements</h2>
+            <div style={{ background: '#f1f5f9', padding: '8px 16px', borderRadius: '20px', fontWeight: 800, color: 'var(--neon-violet)', fontSize: '15px' }}>
+              Total Progress: {totalScanned} / {totalRequired} Pairs
+            </div>
+          </div>
           
-          <table className="corporate-table" style={{ margin: 0 }}>
-            <thead>
-              <tr>
-                <th>Size</th>
-                <th style={{ textAlign: 'center' }}>Required</th>
-                <th style={{ textAlign: 'center' }}>Scanned</th>
-                <th style={{ textAlign: 'center' }}>Remaining</th>
-                <th style={{ textAlign: 'center' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {progress.map(row => {
-                const isComplete = row.remaining === 0;
-                return (
-                  <tr key={row.size} style={{ background: isComplete ? '#f0fdf4' : 'transparent' }}>
-                    <td style={{ fontWeight: 800, fontSize: '14px' }}>{row.size}</td>
-                    <td style={{ textAlign: 'center' }}>{row.required}</td>
-                    <td style={{ textAlign: 'center', fontWeight: 700, color: isComplete ? '#16a34a' : 'var(--text-main)' }}>{row.scanned}</td>
-                    <td style={{ textAlign: 'center', color: isComplete ? '#16a34a' : '#ef4444', fontWeight: 700 }}>{row.remaining}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      {isComplete ? '✅' : '⏳'}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
+            {progress.map(row => {
+              const isComplete = row.remaining === 0;
+              const isOver = row.scanned > row.required;
+              
+              let cardBg = '#ffffff';
+              let borderColor = '#e2e8f0';
+              let accentColor = '#3b82f6'; // default blue
+
+              if (isComplete) {
+                cardBg = '#f0fdf4';
+                borderColor = '#bbf7d0';
+                accentColor = '#22c55e'; // green
+              } else if (isOver) {
+                cardBg = '#fffbeb';
+                borderColor = '#fde68a';
+                accentColor = '#f59e0b'; // amber
+              } else if (row.scanned > 0) {
+                cardBg = '#f8fafc';
+                borderColor = '#cbd5e1';
+                accentColor = 'var(--neon-violet)';
+              }
+
+              return (
+                <div key={row.size} style={{ 
+                  background: cardBg, 
+                  border: `2px solid ${borderColor}`, 
+                  borderRadius: '20px', 
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                  transition: 'all 0.2s ease'
+                }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
+                    SIZE
+                  </div>
+                  <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a', lineHeight: '1', marginBottom: '16px' }}>
+                    {row.size}
+                  </div>
+                  
+                  <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginBottom: '16px', overflow: 'hidden' }}>
+                    <div style={{ 
+                      height: '100%', 
+                      background: accentColor, 
+                      width: `${Math.min(100, (row.scanned / row.required) * 100)}%`,
+                      transition: 'width 0.3s ease'
+                    }} />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '14px', fontWeight: 700 }}>
+                    <div style={{ color: '#64748b' }}>Scanned</div>
+                    <div style={{ color: accentColor, fontSize: '16px', fontWeight: 900 }}>{row.scanned} <span style={{ color: '#94a3b8', fontSize: '12px' }}>/ {row.required}</span></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* RIGHT PANEL: SCAN INPUT */}
-        <div className="card-clean" style={{ padding: '24px', display: 'flex', flexDirection: 'column' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 16px 0' }}>Barcode Scanner Input</h2>
-          
-          <form onSubmit={handleScan} style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-            <input 
-              ref={barcodeInputRef}
-              type="text" 
-              placeholder="Scan barcode here..." 
-              value={barcode}
-              onChange={e => setBarcode(e.target.value)}
-              disabled={isScanning}
-              autoFocus
-              className="corporate-input"
-              style={{ flex: 1, fontSize: '18px', padding: '16px', fontWeight: 800, border: '2px solid var(--neon-violet)' }}
-            />
-            <button 
-              type="submit" 
-              className="btn-corp" 
-              disabled={isScanning || !barcode.trim()}
-              style={{ background: 'var(--neon-violet)', color: 'white', border: 'none', padding: '0 30px', fontSize: '16px', fontWeight: 800 }}
-            >
-              {isScanning ? 'Processing...' : 'Scan'}
-            </button>
-          </form>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="card-clean" style={{ padding: '32px', borderRadius: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)', border: '1px solid #f1f5f9' }}>
+            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 8px 0', color: '#0f172a' }}>Live Scanning Engine</h2>
+            <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px', fontWeight: 500 }}>
+              Scan the article barcode to seamlessly deduct from the inventory pool and pack into this carton.
+            </p>
+            
+            <form onSubmit={handleScan} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+              <input 
+                ref={barcodeInputRef}
+                type="text" 
+                placeholder="Scan barcode (e.g. 2222|GREEN|5|499.00)" 
+                value={barcode}
+                onChange={e => setBarcode(e.target.value)}
+                disabled={isScanning}
+                autoFocus
+                className="corporate-input"
+                style={{ 
+                  width: '100%', 
+                  fontSize: '18px', 
+                  padding: '20px 24px', 
+                  fontWeight: 700, 
+                  border: '2px solid #cbd5e1',
+                  borderRadius: '16px',
+                  backgroundColor: '#f8fafc',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                  boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = 'var(--neon-violet)';
+                  e.target.style.boxShadow = '0 0 0 4px rgba(124, 58, 237, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)';
+                }}
+              />
+              <button 
+                type="submit" 
+                className="btn-corp" 
+                disabled={isScanning || !barcode.trim()}
+                style={{ 
+                  background: 'var(--neon-violet)', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '18px', 
+                  fontSize: '18px', 
+                  fontWeight: 800,
+                  borderRadius: '16px',
+                  boxShadow: '0 10px 15px -3px rgba(124, 58, 237, 0.3)',
+                  opacity: (isScanning || !barcode.trim()) ? 0.7 : 1,
+                  cursor: (isScanning || !barcode.trim()) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isScanning ? 'Processing...' : 'Process Scan'}
+              </button>
+            </form>
 
-          {/* SCAN RESULT FEEDBACK */}
-          <div style={{ flex: 1, background: '#f8fafc', borderRadius: '12px', padding: '20px', border: '1px dashed var(--border)', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            {!scanResult ? (
-              <div style={{ textAlign: 'center', color: 'var(--text-ghost)', fontSize: '14px' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>📠</div>
-                Waiting for scan...
-              </div>
-            ) : scanResult.success ? (
-              <div style={{ textAlign: 'center', color: '#16a34a' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>✅</div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Success!</h3>
-                <p style={{ margin: 0, fontWeight: 700 }}>{scanResult.message}</p>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', color: '#ef4444' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>❌</div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px' }}>Scan Rejected</h3>
-                <p style={{ margin: 0, fontWeight: 700 }}>{scanResult.message}</p>
-              </div>
-            )}
+            {/* SCAN RESULT FEEDBACK */}
+            <div style={{ 
+              background: scanResult?.success ? '#f0fdf4' : scanResult ? '#fef2f2' : '#f8fafc',
+              border: `2px dashed ${scanResult?.success ? '#86efac' : scanResult ? '#fca5a5' : '#cbd5e1'}`,
+              borderRadius: '20px', 
+              padding: '32px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '200px',
+              transition: 'all 0.3s ease'
+            }}>
+              {!scanResult ? (
+                <>
+                  <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>📠</div>
+                  <div style={{ color: '#64748b', fontSize: '16px', fontWeight: 600 }}>Waiting for next scan...</div>
+                </>
+              ) : scanResult.success ? (
+                <>
+                  <div style={{ fontSize: '56px', marginBottom: '16px', animation: 'scale-up 0.3s ease' }}>✅</div>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '22px', color: '#16a34a', fontWeight: 900 }}>Scan Successful</h3>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#15803d', fontSize: '15px' }}>{scanResult.message}</p>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: '56px', marginBottom: '16px', animation: 'shake 0.4s ease' }}>❌</div>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '22px', color: '#dc2626', fontWeight: 900 }}>Scan Rejected</h3>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#b91c1c', fontSize: '15px', textAlign: 'center' }}>{scanResult.message}</p>
+                </>
+              )}
+            </div>
+            
           </div>
-          
         </div>
 
       </div>
