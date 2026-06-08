@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import styles from './page.module.css';
 import { downloadCSV, formatIST } from '@/lib/exportCSV';
+import ExportDropdown from '@/components/ExportDropdown';
 
 interface PackedCarton {
   id: number;
@@ -148,7 +149,7 @@ export default function PackedInventoryPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleExportCSV = () => {
+  const getExportData = () => {
     const headers = ['Carton ID', 'Article Code', 'Colour', 'Configuration Rule', 'Total Pairs', 'Packed Date & Time (IST)', 'Delivered Date & Time (IST)', 'Status', 'Export Date/Time'];
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const rows = filteredInventory.map(item => [
@@ -164,8 +165,11 @@ export default function PackedInventoryPage() {
     ]);
     const label = viewMode === 'today' ? 'Today' : 'History';
     const statusLabel = statusFilter === 'all' ? '' : `_${statusFilter}`;
-    downloadCSV(`Packed_Inventory_${label}${statusLabel}_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+    const filename = `Packed_Inventory_${label}${statusLabel}_${new Date().toISOString().slice(0,10)}`;
+    return { headers, rows, filename };
   };
+
+  const exportData = getExportData();
 
   // Calculate live stats based on search
   const totalCartons = filteredInventory.length;
@@ -281,12 +285,11 @@ export default function PackedInventoryPage() {
         >
           {viewMode === 'today' ? '📅 View Full History' : '⚡ View Today\'s Packing'}
         </button>
-        <button
-          onClick={handleExportCSV}
-          style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '10px', padding: '10px 18px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          📥 Export CSV
-        </button>
+        <ExportDropdown 
+          filename={exportData.filename}
+          headers={exportData.headers}
+          rows={exportData.rows}
+        />
       </div>
 
       {/* 1.5. Master Carton Verification Scanner */}

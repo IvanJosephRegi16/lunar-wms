@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { downloadCSV } from '@/lib/exportCSV';
+import ExportDropdown from '@/components/ExportDropdown';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<any[]>([]);
@@ -81,7 +82,7 @@ export default function InventoryPage() {
     return matchArticle && matchColour;
   });
 
-  const handleExportCSV = () => {
+  const getExportData = () => {
     const headers = ['Article Code', 'Colour', 'Size', 'Initial Stock', 'Total Inward', 'Machine Return', 'Semi Finished', 'Total Outward', 'Available Balance', 'Export Date/Time'];
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const rows: any[][] = [];
@@ -99,8 +100,10 @@ export default function InventoryPage() {
         now
       ]);
     });
-    downloadCSV(`Live_Inventory_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
+    return { headers, rows, filename: `Live_Inventory_${new Date().toISOString().slice(0,10)}` };
   };
+
+  const exportData = getExportData();
 
   return (
     <div className="fade-up">
@@ -110,7 +113,11 @@ export default function InventoryPage() {
            <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>Real-time stock equilibrium monitoring and asset distribution.</p>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button className="btn-corp" onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>📥 Export CSV</button>
+          <ExportDropdown 
+            filename={exportData.filename}
+            headers={exportData.headers}
+            rows={exportData.rows}
+          />
           <button className="btn-corp btn-primary-corp" onClick={loadInventory}>Synchronize</button>
         </div>
       </div>
