@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import styles from './page.module.css';
+import POResetExportPanel from '@/components/POResetExportPanel';
 
 interface POItem {
   id: number;
@@ -220,7 +221,7 @@ export default function PODashboard() {
         </div>
         
         {/* Top Header stats summary */}
-        <div style={{ display: 'flex', gap: '24px', zIndex: 2 }}>
+        <div style={{ display: 'flex', gap: '16px', zIndex: 2, flexWrap: 'wrap', alignItems: 'center' }}>
           <div style={{ padding: '16px 24px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', borderRadius: '16px', backdropFilter: 'blur(10px)' }}>
             <span style={{ fontSize: '10px', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.05em' }}>PRO LEDGER STATUS</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
@@ -228,6 +229,21 @@ export default function PODashboard() {
               <span style={{ fontSize: '14px', fontWeight: 800, color: '#f8fafc' }}>ONLINE & SYNCED</span>
             </div>
           </div>
+          <POResetExportPanel
+            userRole={user?.role || ''}
+            exportFilename={`PO_Dashboard_${new Date().toISOString().slice(0,10)}`}
+            exportHeaders={['PO Number', 'Vendor', 'Status', 'Grand Total (Rs)', 'Amount Paid (Rs)', 'Balance (Rs)', 'PO Date']}
+            exportRows={pos.map((po: any) => [
+              po.po_number,
+              po.vendor || '',
+              po.status?.replace(/_/g, ' ') || '',
+              po.grand_total ?? 0,
+              po.amount_paid ?? 0,
+              po.balance_amount ?? 0,
+              po.po_date || ''
+            ])}
+            onResetComplete={loadData}
+          />
           {(user?.role === 'pm' || user?.role === 'admin') && (
             <Link href="/po/create" className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: 'white', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 10px 20px rgba(37, 99, 235, 0.3)', border: 'none', borderRadius: '16px', padding: '16px 28px', transition: 'all 0.3s' }}>
               + Create Executive PO

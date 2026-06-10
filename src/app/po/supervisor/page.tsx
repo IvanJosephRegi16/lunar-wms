@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import POResetExportPanel from '@/components/POResetExportPanel';
 
 export default function SupervisorVerification() {
   const [pos, setPos] = useState<any[]>([]);
@@ -10,10 +11,14 @@ export default function SupervisorVerification() {
   const [remarks, setRemarks] = useState('');
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [receivedQty, setReceivedQty] = useState<Record<number, string>>({});
+  const [userRole, setUserRole] = useState('');
 
   const loadData = async () => {
     setLoading(true);
     try {
+      const meRes = await fetch('/api/auth/me');
+      const meData = await meRes.json();
+      if (meData.user) setUserRole(meData.user.role);
       const res = await fetch('/api/po/supervisor');
       const data = await res.json();
       if (Array.isArray(data)) setPos(data);
@@ -128,21 +133,37 @@ export default function SupervisorVerification() {
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0 }}>🔍 Supervisor Material Verification</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Verify all materials received against the Purchase Order before final completion.
           </p>
         </div>
-        <div style={{
-          background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', padding: '12px 20px',
-          borderRadius: '14px', border: '1.5px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '10px'
-        }}>
-          <span style={{ fontSize: '24px' }}>📋</span>
-          <div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#4338ca', fontFamily: 'monospace' }}>{pos.length}</div>
-            <div style={{ fontSize: '10px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Review</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <POResetExportPanel
+            userRole={userRole}
+            exportFilename={`Supervisor_POs_${new Date().toISOString().slice(0,10)}`}
+            exportHeaders={['PO Number', 'Vendor', 'Items Count', 'Grand Total (Rs)', 'Payment Status', 'Created By']}
+            exportRows={pos.map((po: any) => [
+              po.po_number,
+              po.vendor || '',
+              (po.items || []).length,
+              po.grand_total ?? 0,
+              po.payment_status || 'unpaid',
+              po.creator_name || ''
+            ])}
+            onResetComplete={loadData}
+          />
+          <div style={{
+            background: 'linear-gradient(135deg, #eef2ff, #e0e7ff)', padding: '12px 20px',
+            borderRadius: '14px', border: '1.5px solid #c7d2fe', display: 'flex', alignItems: 'center', gap: '10px'
+          }}>
+            <span style={{ fontSize: '24px' }}>📋</span>
+            <div>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: '#4338ca', fontFamily: 'monospace' }}>{pos.length}</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, color: '#6366f1', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Review</div>
+            </div>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import BackButton from '@/components/BackButton';
 import EmailModal from '@/components/EmailModal';
+import POResetExportPanel from '@/components/POResetExportPanel';
 
 export default function AccountantWorkspace() {
   const [user, setUser] = useState<any>(null);
@@ -138,11 +139,27 @@ export default function AccountantWorkspace() {
 
       {/* Header */}
       {!selectedPo && (
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800 }}>Accountant Processing Workspace</h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Review, edit line-item quantities &amp; rates, then finalize the PO lifecycle.
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+          <div>
+            <h2 style={{ fontSize: '22px', fontWeight: 800 }}>Accountant Processing Workspace</h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+              Review, edit line-item quantities &amp; rates, then finalize the PO lifecycle.
+            </p>
+          </div>
+          <POResetExportPanel
+            userRole={user?.role || ''}
+            exportFilename={`Accountant_POs_${new Date().toISOString().slice(0,10)}`}
+            exportHeaders={['PO Number', 'Vendor', 'Materials Count', 'Net Total (Rs)', 'Payment Status', 'Admin Approved At']}
+            exportRows={pos.map((po: any) => [
+              po.po_number,
+              po.vendor || '',
+              (po.items || []).length,
+              po.net_amount ?? 0,
+              po.payment_status || 'unpaid',
+              po.approved_timestamp || ''
+            ])}
+            onResetComplete={loadData}
+          />
         </div>
       )}
 

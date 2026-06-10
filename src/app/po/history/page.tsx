@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { downloadCSV } from '@/lib/exportCSV';
-import ExportDropdown from '@/components/ExportDropdown';
+import POResetExportPanel from '@/components/POResetExportPanel';
 
 export default function POHistory() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -11,10 +11,12 @@ export default function POHistory() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'tracker' | 'ledger'>('tracker');
+  const [userRole, setUserRole] = useState('');
   const [selectedPo, setSelectedPo] = useState<any>(null);
 
   const loadData = () => {
     setLoading(true);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.user) setUserRole(d.user.role); }).catch(() => {});
     fetch('/api/po/history')
       .then(res => res.json())
       .then(data => {
@@ -114,10 +116,12 @@ export default function POHistory() {
             Complete chronological ledger and step-by-step visual tracker for all PO lifecycles.
           </p>
         </div>
-        <ExportDropdown 
-          filename={exportData.filename}
-          headers={exportData.headers}
-          rows={exportData.rows}
+        <POResetExportPanel
+          userRole={userRole}
+          exportFilename={exportData.filename}
+          exportHeaders={exportData.headers}
+          exportRows={exportData.rows}
+          onResetComplete={loadData}
         />
       </div>
 
@@ -218,30 +222,26 @@ export default function POHistory() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {pos.filter(p => p.po_number.toLowerCase().includes(search.toLowerCase()) || (p.vendor && p.vendor.toLowerCase().includes(search.toLowerCase()))).map(po => {
                   
-                  // Define stages based on status
+                  // Define stages based on PO lifecycle
                   const stages = [
                     { id: 'draft', label: 'Draft', icon: '📝' },
                     { id: 'pending_admin_approval', label: 'Admin Approval', icon: '🔑' },
                     { id: 'accountant_processing', label: 'Accountant', icon: '💸' },
-                    { id: 'supervisor_review', label: 'Supervisor Review', icon: '🔍' }, // Note: accountant routes use 'accountant_processing' and supervisor page handles review implicitly
+                    { id: 'supervisor_review', label: 'Supervisor Review', icon: '🔍' },
                     { id: 'completed', label: 'Completed', icon: '✅' }
                   ];
 
-                  let currentStageIdx = 0;
-                  if (po.status === 'draft') currentStageIdx = 0;
-                  else if (po.status === 'pending_admin_approval') currentStageIdx = 1;
-                  else if (po.status === 'returned_for_edit') currentStageIdx = 1; // It bounced back, but technically it passed draft. We can keep it at 1 but colored red.
-                  else if (po.status === 'rejected') currentStageIdx = 1;
-                  else if (po.status === 'accountant_processing') currentStageIdx = 2; // For this system, accountant passes it to supervisor. But supervisor route just queries `accountant_processing`? Wait, accountant updates it to `accountant_processing` maybe? No, accountant just processes it.
-                  // Actually, let's just make it simple based on the status
-                  if (po.status === 'accountant_processing') currentStageIdx = 2; // or 3 if it's pending supervisor?
-                  // Let's re-read the exact statuses: draft, pending_admin_approval, returned_for_edit, rejected, accountant_processing, completed.
-                  // Wait! The accountant finalizes and it STAYS `accountant_processing`? Let's assume supervisor checks `accountant_processing` or `supervisor_review`.
-                  // The supervisor page queries `status = 'accountant_processing'`. So Accountant AND Supervisor share this status, or maybe they have an internal flag.
-                  // Let's just track: Draft -> Admin -> Treasury (Accountant) -> Completed.
-                  const activeIdx = po.status === 'completed' ? 4 : 
-                                    po.status === 'accountant_processing' ? 2 : 
-                                    po.status === 'pending_admin_approval' || po.status === 'returned_for_edit' || po.status === 'rejected' ? 1 : 0;
+                  // Map PO status to the correct tracker stage index
+                  const statusToStage: Record<string, number> = {
+                    'draft': 0,
+                    'pending_admin_approval': 1,
+                    'returned_for_edit': 1,
+                    'rejected': 1,
+                    'accountant_processing': 2,
+                    'supervisor_review': 3,
+                    'completed': 4
+                  };
+                  const activeIdx = statusToStage[po.status] ?? 0;
 
                   return (
                     <div key={po.id} onClick={() => setSelectedPo(po)} style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
