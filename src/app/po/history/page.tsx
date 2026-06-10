@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { downloadCSV } from '@/lib/exportCSV';
 import POResetExportPanel from '@/components/POResetExportPanel';
+import ExportDropdown from '@/components/ExportDropdown';
 
 export default function POHistory() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -109,7 +110,7 @@ export default function POHistory() {
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '800px', margin: '0 auto' }}>
       
       {/* Header banner */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <h2 style={{ fontSize: '22px', fontWeight: 800 }}>WMS PO History &amp; Tracking</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -309,32 +310,50 @@ export default function POHistory() {
           justifyContent: 'center',
           zIndex: 9999
         }}>
-          <div className="card-clean fade-up" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '850px', maxHeight: '85vh', padding: '32px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
+          <div className="card-clean fade-up" onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '900px', maxHeight: '90vh', padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 800, textTransform: 'uppercase' }}>Purchase Order Details</span>
                 <h3 style={{ fontSize: '18px', fontWeight: 850, color: 'var(--primary)', marginTop: '4px' }}>PO: {selectedPo.po_number}</h3>
               </div>
-              <button onClick={() => setSelectedPo(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-ghost)' }}>×</button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {selectedPo.status === 'completed' && (
+                  <ExportDropdown
+                    filename={`PO_${selectedPo.po_number}_Completed`}
+                    headers={['Material', 'Description', 'Size', 'Order Rate', 'Req Qty', 'Received Qty', 'Pending Qty', 'Amount (Rs)']}
+                    rows={(selectedPo.items || []).map((item: any) => [
+                      item.material_code,
+                      item.material_name,
+                      item.size_thickness,
+                      item.order_rate,
+                      item.required_qty,
+                      item.received_qty,
+                      Math.max(0, (item.required_qty || 0) - (item.received_qty || 0)),
+                      item.amount
+                    ])}
+                  />
+                )}
+                <button onClick={() => setSelectedPo(null)} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: 'var(--text-ghost)', lineHeight: '1' }}>×</button>
+              </div>
             </div>
 
-            <div className="grid grid-3" style={{ gap: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
+              <div style={{ flex: '1 1 200px' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700 }}>VENDOR / SUPPLIER</div>
                 <div style={{ fontSize: '14px', fontWeight: 750, marginTop: '2px' }}>{selectedPo.vendor || selectedPo.supplier_name || '-'}</div>
               </div>
-              <div>
+              <div style={{ flex: '1 1 200px' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700 }}>PO DATE / LAST UPDATED</div>
                 <div style={{ fontSize: '14px', fontWeight: 750, marginTop: '2px' }}>{selectedPo.po_date || new Date(selectedPo.created_at || Date.now()).toLocaleDateString('en-IN')}</div>
               </div>
-              <div>
+              <div style={{ flex: '1 1 200px' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700 }}>CURRENT STATUS</div>
                 <div style={{ fontSize: '12px', fontWeight: 750, marginTop: '2px', textTransform: 'uppercase', color: selectedPo.status === 'completed' ? '#16a34a' : 'var(--primary)' }}>{selectedPo.status?.replace(/_/g, ' ')}</div>
               </div>
             </div>
 
-            <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Material</th>
