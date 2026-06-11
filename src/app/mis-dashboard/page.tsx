@@ -390,11 +390,11 @@ export default function MISDashboard() {
     if (activeTab === 'Upper Stock Audit') {
       const sizes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
       
-      // Find rows with negative sizes
+      // Find rows with ANY negative value to ensure we don't miss anything due to header spaces/formatting
       const minusRows = upperStockList.filter(r => {
-        return sizes.some(size => {
-          const v = r[size];
+        return Object.entries(r).some(([k, v]) => {
           if (!v) return false;
+          // Only check keys that might reasonably be sizes or totals
           const num = parseFloat(String(v).replace(/,/g, ''));
           return !isNaN(num) && num < 0;
         });
@@ -404,46 +404,72 @@ export default function MISDashboard() {
         const article = selectedAudit['Article'] || selectedAudit['Item'] || '';
         const colour = selectedAudit['Colour'] || '';
 
-        const findMatches = (sheet: any[]) => sheet.filter(s => 
-          (s['Article'] === article || s['Item'] === article) && 
-          (!colour || s['Colour'] === colour)
-        );
+        // Safe match handling
+        const cleanStr = (s: string) => (s || '').toString().trim().toLowerCase();
+        const aClean = cleanStr(article);
+        const cClean = cleanStr(colour);
+
+        const findMatches = (sheet: any[]) => sheet.filter(s => {
+          const sArt = cleanStr(s['Article']) || cleanStr(s['Item']);
+          const sCol = cleanStr(s['Colour']);
+          return sArt === aClean && (!cClean || sCol === cClean);
+        });
 
         const osMatches = findMatches(openingStock);
         const inMatches = findMatches(inStock);
         const outMatches = findMatches(outStock);
         const qcMatches = findMatches(qcData);
 
-        const renderAuditTable = (title: string, data: any[], isSubtract: boolean) => (
-          <div style={{ marginBottom: '24px', background: '#18181b', padding: '16px', borderRadius: '8px', border: `1px solid ${isSubtract ? '#ef4444' : '#10b981'}` }}>
-            <h4 style={{ color: isSubtract ? '#fca5a5' : '#6ee7b7', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {isSubtract ? '➖' : '➕'} {title}
-            </h4>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
-                <thead style={{ background: '#27272a', color: '#9ca3af' }}>
-                  <tr>
-                    <th style={{ padding: '8px' }}>Date</th>
-                    <th style={{ padding: '8px' }}>Identifier</th>
-                    {sizes.map(s => <th key={s} style={{ padding: '8px', textAlign: 'right' }}>Sz {s}</th>)}
-                    <th style={{ padding: '8px', textAlign: 'right' }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((r, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #374151' }}>
-                      <td style={{ padding: '8px' }}>{r['Date'] || '-'}</td>
-                      <td style={{ padding: '8px' }}>{r['Unique ID'] || r['Sl No'] || '-'}</td>
-                      {sizes.map(s => <td key={s} style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace' }}>{getVal(r, s) || '-'}</td>)}
-                      <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total')}</td>
+        // Find which size keys actually exist in the sheet dynamically
+        const getDynamicSizes = (data: any[]) => {
+            if (!data || data.length === 0) return sizes;
+            const firstRow = data[0];
+            const foundSizes = sizes.filter(s => Object.keys(firstRow).some(k => k.trim() === s));
+            return foundSizes.length > 0 ? foundSizes : sizes;
+        };
+
+        const renderAuditTable = (title: string, data: any[], isSubtract: boolean) => {
+          const activeSizes = getDynamicSizes(data);
+          return (
+            <div style={{ marginBottom: '24px', background: '#18181b', padding: '16px', borderRadius: '8px', border: `1px solid ${isSubtract ? '#ef4444' : '#10b981'}` }}>
+              <h4 style={{ color: isSubtract ? '#fca5a5' : '#6ee7b7', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {isSubtract ? '➖' : '➕'} {title}
+              </h4>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                  <thead style={{ background: '#27272a', color: '#9ca3af' }}>
+                    <tr>
+                      <th style={{ padding: '8px' }}>Date</th>
+                      <th style={{ padding: '8px' }}>Identifier</th>
+                      {activeSizes.map(s => <th key={s} style={{ padding: '8px', textAlign: 'right' }}>Sz {s}</th>)}
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Total</th>
                     </tr>
-                  ))}
-                  {data.length === 0 && <tr><td colSpan={15} style={{ padding: '8px', color: '#9ca3af', textAlign: 'center' }}>No entries found</td></tr>}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {data.map((r, i) => {
+                      // Safe lookup for dynamic header spaces
+                      const getSafeVal = (row: any, key: string) => {
+                        const actualKey = Object.keys(row).find(k => k.trim() === key);
+                        if (!actualKey) return '-';
+                        return getVal(row, actualKey) || '-';
+                      };
+                      return (
+                        <tr key={i} style={{ borderBottom: '1px solid #374151' }}>
+                          <td style={{ padding: '8px' }}>{r['Date'] || r['Date '] || '-'}</td>
+                          <td style={{ padding: '8px' }}>{r['Unique ID'] || r['Sl No'] || '-'}</td>
+                          {activeSizes.map(s => <td key={s} style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace' }}>{getSafeVal(r, s)}</td>)}
+                          <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total')}</td>
+                        </tr>
+                      );
+                    })}
+                    {data.length === 0 && <tr><td colSpan={15} style={{ padding: '8px', color: '#9ca3af', textAlign: 'center' }}>No entries found</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        );
+          );
+        };
+
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
