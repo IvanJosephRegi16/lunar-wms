@@ -98,6 +98,7 @@ export default function MISDashboard() {
   const [openingStock, setOpeningStock] = useState<any[]>([]);
   const [inStock, setInStock] = useState<any[]>([]);
   const [outStock, setOutStock] = useState<any[]>([]);
+  const [selectedAudit, setSelectedAudit] = useState<any | null>(null);
 
   const fetchSheet = (sheetName: string): Promise<any[]> => {
     return new Promise((resolve) => {
@@ -398,8 +399,6 @@ export default function MISDashboard() {
           return !isNaN(num) && num < 0;
         });
       });
-
-      const [selectedAudit, setSelectedAudit] = useState<any | null>(null);
 
       if (selectedAudit) {
         const article = selectedAudit['Article'] || selectedAudit['Item'] || '';
