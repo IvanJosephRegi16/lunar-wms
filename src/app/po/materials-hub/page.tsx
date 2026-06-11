@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import styles from '../../pm/articles/page.module.css'; // Reuse the exact same premium styles
+import ExportDropdown from '@/components/ExportDropdown';
 
 const MATERIAL_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro', 'Others'];
 
@@ -158,7 +159,17 @@ export default function MaterialsHub() {
 
       {activeMainTab === 'materials' ? (
         <>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <ExportDropdown
+              filename={`Materials_Hub_${selectedMatCategory}_${new Date().toISOString().slice(0,10)}`}
+              headers={['Material Code', 'Material Name', 'Category', 'Date Added']}
+              rows={filteredMaterials.map(m => [
+                m.material_code,
+                m.material_name,
+                m.category || 'Others',
+                new Date(m.created_at || Date.now()).toLocaleDateString('en-IN')
+              ])}
+            />
             <button className={styles.btnPrimary} onClick={() => setIsMatFormOpen(true)}>
               <span style={{ fontSize: '16px' }}>+</span> Create Material
             </button>
@@ -199,7 +210,15 @@ export default function MaterialsHub() {
         </>
       ) : (
         <>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+            <ExportDropdown
+              filename={`Vendors_Hub_${new Date().toISOString().slice(0,10)}`}
+              headers={['Vendor / Supplier Name', 'Date Added']}
+              rows={vendors.map(v => [
+                v.vendor_name,
+                new Date(v.created_at || Date.now()).toLocaleDateString('en-IN')
+              ])}
+            />
             <button className={styles.btnPrimary} style={{ background: '#8b5cf6' }} onClick={() => setIsVendorFormOpen(true)}>
               <span style={{ fontSize: '16px' }}>+</span> Register Vendor
             </button>
