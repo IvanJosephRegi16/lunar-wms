@@ -828,6 +828,13 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
         <nav style={{ flex: 1 }}>
           <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', marginLeft: '16px' }}>Overview</div>
           <NavLink href="/" icon="📊" label="Dashboard" exact permissionKey="dashboard" />
+          
+          {(isAdmin || isPM) && (
+            <>
+              <NavLink href="/mis-dashboard" icon="🏭" label="MIS Dashboard" exact permissionKey="mis_dashboard" />
+              <NavLink href="/pm/live-sheet" icon="📖" label="Live Ledger" exact permissionKey="pm_live_sheet" />
+            </>
+          )}
 
           {/* Workforce (HR & Payroll) */}
           {(isAdmin || menuVisibility.hr_section !== false) && personalMenuVisibility.hr_section !== false && (
@@ -871,7 +878,6 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/pm/articles?view=deleted" icon="🗑️" label="Deleted Articles" permissionKey="pm_deleted_articles" />
                   <NavLink href="/pm/articles?view=materials" icon="🧵" label="Material Library" permissionKey="pm_material_library" />
                   <NavLink href="/pm/articles?view=costing" icon="💰" label="Cost Analysis" permissionKey="pm_cost_analysis" />
-                  <NavLink href="/pm/live-sheet" icon="📈" label="External Live Ledger" permissionKey="pm_live_sheet" />
                 </div>
               )}
             </>
