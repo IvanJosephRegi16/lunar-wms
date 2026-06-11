@@ -9,6 +9,8 @@ import {
   BarElement,
   LineElement,
   PointElement,
+  BarController,
+  LineController,
   Title,
   Tooltip,
   Legend,
@@ -22,6 +24,8 @@ ChartJS.register(
   BarElement,
   LineElement,
   PointElement,
+  BarController,
+  LineController,
   Title,
   Tooltip,
   Legend,
@@ -88,6 +92,12 @@ export default function MISDashboard() {
   const [stitchingEntry, setStitchingEntry] = useState<any[]>([]);
   const [pouringEntry, setPouringEntry] = useState<any[]>([]);
   const [mcEntry, setMcEntry] = useState<any[]>([]);
+  
+  // Upper Stock Audit States
+  const [upperStockList, setUpperStockList] = useState<any[]>([]);
+  const [openingStock, setOpeningStock] = useState<any[]>([]);
+  const [inStock, setInStock] = useState<any[]>([]);
+  const [outStock, setOutStock] = useState<any[]>([]);
 
   const fetchSheet = (sheetName: string): Promise<any[]> => {
     return new Promise((resolve) => {
@@ -106,7 +116,8 @@ export default function MISDashboard() {
     try {
       const [
         qc, cp,
-        ce, pre, pae, ste, poe, mce
+        ce, pre, pae, ste, poe, mce,
+        usl, os, ins, outs
       ] = await Promise.all([
         fetchSheet('QC'),
         fetchSheet('Cutting_Plan'),
@@ -115,7 +126,11 @@ export default function MISDashboard() {
         fetchSheet('Pasting_Entry'),
         fetchSheet('Stiching_Entry'),
         fetchSheet('Pouring_Entry'),
-        fetchSheet('MC_Entry')
+        fetchSheet('MC_Entry'),
+        fetchSheet('Upper stock list'),
+        fetchSheet('Opening stock'),
+        fetchSheet('IN'),
+        fetchSheet('OUT')
       ]);
 
       setQcData(qc);
@@ -126,6 +141,10 @@ export default function MISDashboard() {
       setStitchingEntry(ste);
       setPouringEntry(poe);
       setMcEntry(mce);
+      setUpperStockList(usl);
+      setOpeningStock(os);
+      setInStock(ins);
+      setOutStock(outs);
       
       setLastSynced(new Date());
     } catch (err) {
@@ -185,11 +204,9 @@ export default function MISDashboard() {
 
   const totalDamage = fQc.reduce((sum, r) => sum + getVal(r, 'Damage'), 0);
 
-  // QC Pass Rate Logic:
-  // Count all Sl Nos that have a valid entry in the Cutting_Plan sheet (in selected date range)
-  const totalSlNosInPlan = fCp.length;
-  // From those same Sl Nos, check how many appear in the QC sheet with a completed QC entry
-  const slNosWithQcCompleted = fCp.filter(cp => {
+  // QC Pass Rate Logic: Calculate globally (ignoring date filter)
+  const totalSlNosInPlan = cuttingPlan.length;
+  const slNosWithQcCompleted = cuttingPlan.filter(cp => {
     return qcData.some(q => q['Unique ID'] === cp['Unique ID'] && getVal(q, 'Total') > 0);
   }).length;
   const qcPassRate = totalSlNosInPlan > 0 ? ((slNosWithQcCompleted / totalSlNosInPlan) * 100).toFixed(1) : '0.0';
@@ -365,6 +382,105 @@ export default function MISDashboard() {
               </tr>
             </tbody>
           </table>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Upper Stock Audit') {
+      // Find rows with any negative numeric value
+      const minusRows = upperStockList.filter(r => {
+        return Object.values(r).some(val => {
+          if (!val) return false;
+          const num = parseFloat(String(val).replace(/,/g, ''));
+          return !isNaN(num) && num < 0;
+        });
+      });
+
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ background: '#27272a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px' }}>
+            <h3 style={{ color: '#ef4444', fontSize: '15px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚠️</span> Negative Upper Stock Alerts
+            </h3>
+            <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '16px' }}>
+              The following entries in the <strong>Upper stock list</strong> sheet have negative balances. Click on any row to audit its exact journey across Opening Stock, IN, OUT, and QC to locate the root cause of the minus balance.
+            </p>
+            <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
+                  <tr>
+                    <th style={{ padding: '12px' }}>Article / Item</th>
+                    <th style={{ padding: '12px' }}>Colour</th>
+                    <th style={{ padding: '12px' }}>Negative Value</th>
+                    <th style={{ padding: '12px', textAlign: 'center' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {minusRows.map((r, i) => {
+                    // Extract the negative field to show it
+                    let negField = '';
+                    let negVal = 0;
+                    Object.entries(r).forEach(([k, v]) => {
+                      if (!v) return;
+                      const num = parseFloat(String(v).replace(/,/g, ''));
+                      if (!isNaN(num) && num < 0) {
+                        negField = k;
+                        negVal = num;
+                      }
+                    });
+
+                    return (
+                      <tr key={i} style={{ borderTop: '1px solid #374151', background: '#18181b' }}>
+                        <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article'] || r['Item'] || r['Name'] || '-'}</td>
+                        <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
+                        <td style={{ padding: '12px', fontFamily: 'monospace', color: '#ef4444', fontWeight: 800 }}>{negField}: {negVal}</td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <button 
+                            onClick={() => {
+                              const article = r['Article'] || r['Item'] || '';
+                              const colour = r['Colour'] || '';
+                              
+                              const findMatches = (sheet: any[]) => sheet.filter(s => 
+                                (s['Article'] === article || s['Item'] === article) && 
+                                (!colour || s['Colour'] === colour)
+                              );
+
+                              const osMatches = findMatches(openingStock);
+                              const inMatches = findMatches(inStock);
+                              const outMatches = findMatches(outStock);
+                              const qcMatches = findMatches(qcData);
+
+                              let alertMsg = `AUDIT REPORT for ${article} ${colour ? '- ' + colour : ''}\n`;
+                              alertMsg += `-------------------------------------------------\n`;
+                              alertMsg += `OPENING STOCK ENTRIES: ${osMatches.length}\n`;
+                              osMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Qty: ${getVal(o, 'Total') || getVal(o, 'Qty')}\n`);
+                              
+                              alertMsg += `\nIN ENTRIES: ${inMatches.length}\n`;
+                              inMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Qty: ${getVal(o, 'Total') || getVal(o, 'Qty')}\n`);
+                              
+                              alertMsg += `\nOUT ENTRIES: ${outMatches.length}\n`;
+                              outMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Qty: ${getVal(o, 'Total') || getVal(o, 'Qty')}\n`);
+                              
+                              alertMsg += `\nQC ENTRIES: ${qcMatches.length}\n`;
+                              qcMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Lot: ${o['Unique ID']} | Total: ${getVal(o, 'Total')} | Damage: ${getVal(o, 'Damage')}\n`);
+                              
+                              alert(alertMsg);
+                            }}
+                            style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            🔍 Audit Root Logic
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {minusRows.length === 0 && (
+                    <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>✅ No negative balances found in Upper Stock.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       );
     }
@@ -615,46 +731,108 @@ export default function MISDashboard() {
       }, {});
       const colorsArr = Object.entries(colorMap).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
 
+      // Build 14-day history array
+      const historyLabels: string[] = [];
+      const historyData = { Cutting: [] as number[], Printing: [] as number[], Pasting: [] as number[], Stitching: [] as number[], Pouring: [] as number[], QC: [] as number[], Packing: [] as number[] };
+      const histEnd = new Date();
+      for (let i = 13; i >= 0; i--) {
+        const d = new Date(histEnd);
+        d.setDate(d.getDate() - i);
+        historyLabels.push(toISODate(d));
+        historyData.Cutting.push(0); historyData.Printing.push(0); historyData.Pasting.push(0);
+        historyData.Stitching.push(0); historyData.Pouring.push(0); historyData.QC.push(0); historyData.Packing.push(0);
+      }
+      
+      const applyHistory = (dataset: any[], key: keyof typeof historyData) => {
+        dataset.forEach(r => {
+          const dStr = r['Date'] || r['Date '] || r['Export Date/Time'];
+          const pd = parseDate(dStr);
+          if (pd) {
+            const idx = historyLabels.indexOf(toISODate(pd));
+            if (idx > -1) {
+              historyData[key][idx] += getVal(r, 'Total');
+            }
+          }
+        });
+      };
+      
+      applyHistory(cuttingEntry, 'Cutting');
+      applyHistory(printingEntry, 'Printing');
+      applyHistory(pastingEntry, 'Pasting');
+      applyHistory(stitchingEntry, 'Stitching');
+      applyHistory(pouringEntry, 'Pouring');
+      applyHistory(qcData, 'QC');
+      applyHistory(mcEntry, 'Packing');
+
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Historical Line Chart */}
           <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
-            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top 5 Articles by Volume (in range)</h3>
-            <div style={{ height: '300px' }}>
-              <Bar 
+            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>14-Day Production Trend (All Departments)</h3>
+            <div style={{ height: '400px' }}>
+              <Chart 
+                type="line"
                 data={{
-                  labels: topArr.map(a => a[0]),
-                  datasets: [{
-                    data: topArr.map(a => a[1]),
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 4
-                  }]
+                  labels: historyLabels,
+                  datasets: [
+                    { type: 'line', label: 'Cutting', data: historyData.Cutting, borderColor: '#6366f1', fill: false, tension: 0.3 },
+                    { type: 'line', label: 'Printing', data: historyData.Printing, borderColor: '#10b981', fill: false, tension: 0.3 },
+                    { type: 'line', label: 'Pasting', data: historyData.Pasting, borderColor: '#f59e0b', fill: false, tension: 0.3 },
+                    { type: 'line', label: 'Stitching', data: historyData.Stitching, borderColor: '#6b7280', fill: false, tension: 0.3 },
+                    { type: 'line', label: 'Pouring', data: historyData.Pouring, borderColor: '#ec4899', fill: false, tension: 0.3 },
+                    { type: 'line', label: 'QC', data: historyData.QC, borderColor: '#3b82f6', fill: false, tension: 0.3 },
+                    { type: 'line', label: 'Packing', data: historyData.Packing, borderColor: '#4b5563', fill: false, tension: 0.3 }
+                  ]
                 }}
                 options={{
                   responsive: true, maintainAspectRatio: false,
-                  plugins: { legend: { display: false } },
-                  scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { grid: { display: false }, ticks: { color: '#9ca3af' } } }
+                  scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } } },
+                  plugins: { legend: { labels: { color: '#d1d5db' } } }
                 }}
               />
             </div>
           </div>
-          <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
-            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top Colors Scheduled (in range)</h3>
-            <div style={{ height: '300px' }}>
-              <Doughnut 
-                data={{
-                  labels: colorsArr.map(a => a[0]),
-                  datasets: [{
-                    data: colorsArr.map(a => a[1] as number),
-                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899'],
-                    borderColor: '#27272a',
-                    borderWidth: 2
-                  }]
-                }}
-                options={{
-                  responsive: true, maintainAspectRatio: false,
-                  plugins: { legend: { position: 'right', labels: { color: '#d1d5db' } } }
-                }}
-              />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
+              <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top 5 Articles by Volume (in range)</h3>
+              <div style={{ height: '300px' }}>
+                <Bar 
+                  data={{
+                    labels: topArr.map(a => a[0]),
+                    datasets: [{
+                      data: topArr.map(a => a[1]),
+                      backgroundColor: '#3b82f6',
+                      borderRadius: 4
+                    }]
+                  }}
+                  options={{
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { grid: { display: false }, ticks: { color: '#9ca3af' } } }
+                  }}
+                />
+              </div>
+            </div>
+            <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
+              <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top Colors Scheduled (in range)</h3>
+              <div style={{ height: '300px' }}>
+                <Doughnut 
+                  data={{
+                    labels: colorsArr.map(a => a[0]),
+                    datasets: [{
+                      data: colorsArr.map(a => a[1] as number),
+                      backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899'],
+                      borderColor: '#27272a',
+                      borderWidth: 2
+                    }]
+                  }}
+                  options={{
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#d1d5db' } } }
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -802,7 +980,7 @@ export default function MISDashboard() {
           {/* Tabs */}
           <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #3f3f46', marginBottom: '24px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['Overview', 'Cutting Plan', 'QC Tracker', 'Pouring Entry', 'Packing Entry', 'Daily Production Report', 'Operator Report', 'Analytics'].map(tab => (
+              {['Overview', 'Cutting Plan', 'QC Tracker', 'Upper Stock Audit', 'Pouring Entry', 'Packing Entry', 'Daily Production Report', 'Operator Report', 'Analytics'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
