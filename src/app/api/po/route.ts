@@ -149,15 +149,19 @@ export async function POST(req: NextRequest) {
       const dd = dateObj.getDate().toString().padStart(2, '0');
       const dayPrefix = `${dd}${mm}${yy}-`;
 
-      const lastPo = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE ? ORDER BY id DESC LIMIT 1`).get(dayPrefix + '%') as { po_number: string } | undefined;
-      let nextSeq = 1;
-      if (lastPo) {
-        const parts = lastPo.po_number.split('-');
-        const seq = parseInt(parts[parts.length - 1]);
-        if (!isNaN(seq)) {
-          nextSeq = seq + 1;
+      const existingPos = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE ?`).all(dayPrefix + '%') as { po_number: string }[];
+      let maxSeq = 0;
+      for (const p of existingPos) {
+        const parts = p.po_number.split('-');
+        const seqStr = parts[parts.length - 1];
+        if (/^\d+$/.test(seqStr)) {
+          const seq = parseInt(seqStr, 10);
+          if (seq > maxSeq) {
+            maxSeq = seq;
+          }
         }
       }
+      const nextSeq = maxSeq + 1;
       po_number = dayPrefix + nextSeq.toString();
     }
 
