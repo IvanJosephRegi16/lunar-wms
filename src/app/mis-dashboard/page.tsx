@@ -384,12 +384,17 @@ export default function MISDashboard() {
             </tbody>
           </table>
         </div>
-      );
-    }
-
-    if (activeTab === 'Upper Stock Audit') {
-      const sizes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
+          if (activeTab === 'Upper Stock Audit') {
+      const logicalSizes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
       
+      const getActualSizeKey = (row: any, sizeStr: string) => {
+        return Object.keys(row).find(k => {
+          // Normalize 'Size - 1', 'size 1', ' 1 ', etc., to just '1'
+          const clean = k.toLowerCase().replace(/size/g, '').replace(/[-_]/g, '').trim();
+          return clean === sizeStr;
+        });
+      };
+
       // Find rows with ANY negative value to ensure we don't miss anything due to header spaces/formatting
       const minusRows = upperStockList.filter(r => {
         return Object.entries(r).some(([k, v]) => {
@@ -420,16 +425,7 @@ export default function MISDashboard() {
         const outMatches = findMatches(outStock);
         const qcMatches = findMatches(qcData);
 
-        // Find which size keys actually exist in the sheet dynamically
-        const getDynamicSizes = (data: any[]) => {
-            if (!data || data.length === 0) return sizes;
-            const firstRow = data[0];
-            const foundSizes = sizes.filter(s => Object.keys(firstRow).some(k => k.trim() === s));
-            return foundSizes.length > 0 ? foundSizes : sizes;
-        };
-
         const renderAuditTable = (title: string, data: any[], isSubtract: boolean) => {
-          const activeSizes = getDynamicSizes(data);
           return (
             <div style={{ marginBottom: '24px', background: '#18181b', padding: '16px', borderRadius: '8px', border: `1px solid ${isSubtract ? '#ef4444' : '#10b981'}` }}>
               <h4 style={{ color: isSubtract ? '#fca5a5' : '#6ee7b7', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -441,35 +437,32 @@ export default function MISDashboard() {
                     <tr>
                       <th style={{ padding: '8px' }}>Date</th>
                       <th style={{ padding: '8px' }}>Identifier</th>
-                      {activeSizes.map(s => <th key={s} style={{ padding: '8px', textAlign: 'right' }}>Sz {s}</th>)}
+                      {logicalSizes.map(s => <th key={s} style={{ padding: '8px', textAlign: 'right' }}>Sz {s}</th>)}
                       <th style={{ padding: '8px', textAlign: 'right' }}>Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.map((r, i) => {
-                      // Safe lookup for dynamic header spaces
-                      const getSafeVal = (row: any, key: string) => {
-                        const actualKey = Object.keys(row).find(k => k.trim() === key);
-                        if (!actualKey) return '-';
-                        return getVal(row, actualKey) || '-';
-                      };
                       return (
                         <tr key={i} style={{ borderBottom: '1px solid #374151' }}>
                           <td style={{ padding: '8px' }}>{r['Date'] || r['Date '] || '-'}</td>
                           <td style={{ padding: '8px' }}>{r['Unique ID'] || r['Sl No'] || '-'}</td>
-                          {activeSizes.map(s => <td key={s} style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace' }}>{getSafeVal(r, s)}</td>)}
+                          {logicalSizes.map(s => {
+                            const actualKey = getActualSizeKey(r, s);
+                            const val = actualKey ? getVal(r, actualKey) : '-';
+                            return <td key={s} style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace' }}>{val || '-'}</td>;
+                          })}
                           <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total')}</td>
                         </tr>
                       );
                     })}
-                    {data.length === 0 && <tr><td colSpan={15} style={{ padding: '8px', color: '#9ca3af', textAlign: 'center' }}>No entries found</td></tr>}
+                    {data.length === 0 && <tr><td colSpan={16} style={{ padding: '8px', color: '#9ca3af', textAlign: 'center' }}>No entries found</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
           );
         };
-
 
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -520,19 +513,29 @@ export default function MISDashboard() {
                 <tbody>
                   {minusRows.map((r, i) => {
                     const negSizes: string[] = [];
-                    sizes.forEach(s => {
-                      const v = r[s];
-                      if (v) {
-                        const num = parseFloat(String(v).replace(/,/g, ''));
-                        if (!isNaN(num) && num < 0) negSizes.push(`Sz ${s}: ${num}`);
+                    logicalSizes.forEach(s => {
+                      const actualKey = getActualSizeKey(r, s);
+                      if (actualKey) {
+                        const v = r[actualKey];
+                        if (v) {
+                          const num = parseFloat(String(v).replace(/,/g, ''));
+                          if (!isNaN(num) && num < 0) negSizes.push(`Sz ${s}: ${num}`);
+                        }
                       }
                     });
+                    
+                    // Also check Total
+                    const totalKey = Object.keys(r).find(k => k.toLowerCase().trim() === 'total');
+                    if (totalKey) {
+                        const num = parseFloat(String(r[totalKey]).replace(/,/g, ''));
+                        if (!isNaN(num) && num < 0) negSizes.push(`TOTAL: ${num}`);
+                    }
 
                     return (
                       <tr key={i} style={{ borderTop: '1px solid #374151', background: '#18181b' }}>
                         <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article'] || r['Item'] || r['Name'] || '-'}</td>
                         <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
-                        <td style={{ padding: '12px', fontFamily: 'monospace', color: '#ef4444', fontWeight: 800 }}>{negSizes.join(' | ')}</td>
+                        <td style={{ padding: '12px', fontFamily: 'monospace', color: '#ef4444', fontWeight: 800 }}>{negSizes.join(' | ') || 'Value mismatch'}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button 
                             onClick={() => setSelectedAudit(r)}
@@ -553,7 +556,7 @@ export default function MISDashboard() {
           </div>
         </div>
       );
-    }
+
 
     if (activeTab === 'Pouring Entry') {
       return (
