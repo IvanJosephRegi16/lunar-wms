@@ -384,7 +384,10 @@ export default function MISDashboard() {
             </tbody>
           </table>
         </div>
-          if (activeTab === 'Upper Stock Audit') {
+      );
+    }
+
+    if (activeTab === 'Upper Stock Audit') {
       const logicalSizes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
       
       const getActualSizeKey = (row: any, sizeStr: string) => {
