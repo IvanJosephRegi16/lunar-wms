@@ -871,6 +871,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/pm/articles?view=deleted" icon="🗑️" label="Deleted Articles" permissionKey="pm_deleted_articles" />
                   <NavLink href="/pm/articles?view=materials" icon="🧵" label="Material Library" permissionKey="pm_material_library" />
                   <NavLink href="/pm/articles?view=costing" icon="💰" label="Cost Analysis" permissionKey="pm_cost_analysis" />
+                  <NavLink href="/pm/live-sheet" icon="📈" label="External Live Ledger" permissionKey="pm_live_sheet" />
                 </div>
               )}
             </>
