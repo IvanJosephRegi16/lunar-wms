@@ -45,19 +45,23 @@ export async function POST(req: NextRequest) {
     const { type, material_code, material_name, vendor_name, category, company_name, address } = body;
 
     if (type === 'material') {
-      if (!material_code || !material_name) {
-        return NextResponse.json({ error: 'Material Code and Material Name are required' }, { status: 400 });
+      if (!material_name) {
+        return NextResponse.json({ error: 'Material Name is required' }, { status: 400 });
       }
 
-      // Check unique
-      const existing = await db.prepare(`SELECT id FROM materials WHERE UPPER(material_code) = UPPER(?)`).get(material_code.trim());
-      if (existing) {
-        return NextResponse.json({ error: `Material Code '${material_code}' is already registered.` }, { status: 400 });
+      const matCode = (material_code || '').trim().toUpperCase();
+      
+      // Check unique only if code is provided
+      if (matCode) {
+        const existing = await db.prepare(`SELECT id FROM materials WHERE UPPER(material_code) = ?`).get(matCode);
+        if (existing) {
+          return NextResponse.json({ error: `Material Code '${matCode}' is already registered.` }, { status: 400 });
+        }
       }
 
       await db.prepare(
         `INSERT INTO materials (material_code, material_name, category) VALUES (?, ?, ?)`
-      ).run(material_code.trim().toUpperCase(), material_name.trim(), category || 'Uncategorized');
+      ).run(matCode, material_name.trim(), category || 'Uncategorized');
 
       return NextResponse.json({ success: true, message: 'Material registered successfully' });
     } else if (type === 'vendor') {

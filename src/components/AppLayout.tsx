@@ -888,6 +888,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po" icon="📊" label="PO Dashboard" exact permissionKey="po_dashboard" />
                   <NavLink href="/po/materials-hub" icon="📦" label="Materials Hub" permissionKey="po_materials_hub" />
                   <NavLink href="/po/create" icon="✍️" label="Create PO" permissionKey="po_create" />
+                  <NavLink href="/po/drafts" icon="📝" label="Draft POs" permissionKey="po_create" />
                   <NavLink href="/po/pending" icon="⏳" label="Pending Approval" badge={pendingCount} permissionKey="po_pending" />
                   <NavLink href="/po/returned" icon="🔄" label="Returned POs" badge={returnedCount} permissionKey="po_returned" />
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />
@@ -969,6 +970,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po" icon="📊" label="PO Dashboard" exact permissionKey="po_dashboard" />
                   <NavLink href="/po/materials-hub" icon="📦" label="Materials Hub" permissionKey="po_materials_hub" />
                   <NavLink href="/po/create" icon="✍️" label="Create PO" permissionKey="po_create" />
+                  <NavLink href="/po/drafts" icon="📝" label="Draft POs" permissionKey="po_create" />
                   <NavLink href="/po/pending" icon="⏳" label="Pending Approval" badge={pendingCount} permissionKey="po_pending" />
                   <NavLink href="/po/returned" icon="🔄" label="Returned POs" badge={returnedCount} permissionKey="po_returned" />
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />

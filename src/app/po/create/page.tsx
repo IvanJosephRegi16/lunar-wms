@@ -461,7 +461,7 @@ function CreatePOFormContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'material',
-          material_code: newMaterialData.material_code,
+          material_code: newMaterialData.material_code.toUpperCase() || '',
           material_name: newMaterialData.material_name,
           category: finalCategory
         })
@@ -847,7 +847,12 @@ function CreatePOFormContent() {
                             }
                           }}
                           options={materialsList
-                            .filter(m => !item.category || (m.category || 'Others') === item.category)
+                            .filter(m => {
+                              if (!item.category) return true;
+                              const itemBaseCat = item.category.startsWith('Rexins') ? 'Rexins' : item.category;
+                              const mBaseCat = (m.category || 'Others').startsWith('Rexins') ? 'Rexins' : (m.category || 'Others');
+                              return itemBaseCat === mBaseCat;
+                            })
                             .map(m => ({ value: m.material_code, label: m.material_name }))}
                           placeholder={!item.category ? "Select Category First..." : "Search or type code (optional)..."}
                         />
@@ -871,7 +876,12 @@ function CreatePOFormContent() {
                                 }
                               }}
                               options={materialsList
-                                .filter(m => !item.category || (m.category || 'Others') === item.category)
+                                .filter(m => {
+                                  if (!item.category) return true;
+                                  const itemBaseCat = item.category.startsWith('Rexins') ? 'Rexins' : item.category;
+                                  const mBaseCat = (m.category || 'Others').startsWith('Rexins') ? 'Rexins' : (m.category || 'Others');
+                                  return itemBaseCat === mBaseCat;
+                                })
                                 .map(m => ({ value: m.material_name, label: m.material_code }))}
                               placeholder={isRegistered ? "Populated from registry..." : "Search or type name..."}
                               required
@@ -1257,8 +1267,8 @@ function CreatePOFormContent() {
                 </div>
               )}
               <div className="form-group-lux">
-                <label>Material Code *</label>
-                <input type="text" placeholder="e.g. EVA-001" required value={newMaterialData.material_code} onChange={e => setNewMaterialData({...newMaterialData, material_code: e.target.value})} />
+                <label>Material Code <span style={{ textTransform: 'none', fontWeight: 500 }}>(Optional)</span></label>
+                <input type="text" placeholder="e.g. EVA-001" value={newMaterialData.material_code} onChange={e => setNewMaterialData({...newMaterialData, material_code: e.target.value})} />
               </div>
               <div className="form-group-lux">
                 <label>Material Name *</label>
