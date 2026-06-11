@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
     const body = await req.json();
-    const { type, material_code, material_name, vendor_name, category } = body;
+    const { type, material_code, material_name, vendor_name, category, company_name, address } = body;
 
     if (type === 'material') {
       if (!material_code || !material_name) {
@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
       }
 
       await db.prepare(
-        `INSERT INTO vendors (vendor_name) VALUES (?)`
-      ).run(vendor_name.trim());
+        `INSERT INTO vendors (vendor_name, company_name, address) VALUES (?, ?, ?)`
+      ).run(vendor_name.trim(), (company_name || '').trim(), (address || '').trim());
 
       return NextResponse.json({ success: true, message: 'Vendor registered successfully' });
     } else {

@@ -511,6 +511,8 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       CREATE TABLE IF NOT EXISTS vendors (
         id SERIAL PRIMARY KEY,
         vendor_name TEXT UNIQUE NOT NULL,
+        company_name TEXT,
+        address TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -796,6 +798,8 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       { table: 'scan_history',        column: 'mrp',                     type: 'REAL' },
       { table: 'scan_history',        column: 'scan_type',               type: "TEXT DEFAULT 'intake'" },
       { table: 'packed_cartons',      column: 'scanned_at',              type: 'TEXT' },
+      { table: 'vendors',             column: 'company_name',            type: 'TEXT' },
+      { table: 'vendors',             column: 'address',                 type: 'TEXT' },
     ];
 
     for (const m of columnMigrations) {

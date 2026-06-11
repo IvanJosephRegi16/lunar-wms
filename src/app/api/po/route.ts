@@ -123,9 +123,9 @@ export async function POST(req: NextRequest) {
 
     // Verify row level items
     for (const [idx, item] of items.entries()) {
-      const { material_code, material_name, size_thickness, order_rate, required_qty } = item;
-      if (!material_code || !material_name || !size_thickness || order_rate === undefined || required_qty === undefined) {
-        return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Code, Name, Size, Rate, or Qty)` }, { status: 400 });
+      const { material_name, size_thickness, order_rate, required_qty } = item;
+      if (!material_name || !size_thickness || order_rate === undefined || required_qty === undefined) {
+        return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name, Size, Rate, or Qty)` }, { status: 400 });
       }
       if (Number(order_rate) <= 0 || Number(required_qty) <= 0) {
         return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Order Rate and Required Quantity` }, { status: 400 });

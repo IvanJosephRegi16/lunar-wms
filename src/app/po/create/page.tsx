@@ -562,8 +562,8 @@ function CreatePOFormContent() {
 
     // Verify row level items
     for (const [idx, item] of items.entries()) {
-      if (!item.material_code || !item.material_name || !item.size_thickness) {
-        setError(`Row #${idx + 1} has incomplete material fields. Material Code, Name, and Size/Thickness are required.`);
+      if (!item.material_name || !item.size_thickness) {
+        setError(`Row #${idx + 1} has incomplete material fields. Material Name and Size/Thickness are required.`);
         return;
       }
       if (Number(item.order_rate) <= 0 || Number(item.required_qty) <= 0) {
@@ -737,8 +737,8 @@ function CreatePOFormContent() {
 
           {/* Row 2: Remarks */}
           <div className="form-group-lux">
-            <label>Global Remarks / internal notes</label>
-            <input type="text" placeholder="Specify order delivery terms, shipping schedules, or priority notices..." value={remarks} onChange={e => setRemarks(e.target.value)} />
+            <label>Remarks (PM Instructions) <span style={{ color: '#94a3b8', fontWeight: 500, fontSize: '10px', textTransform: 'none' }}>— Visible to all approvers</span></label>
+            <input type="text" placeholder="Specify order details, delivery terms, or special instructions for Admin/Accountant/Supervisor..." value={remarks} onChange={e => setRemarks(e.target.value)} />
           </div>
         </div>
 
@@ -768,7 +768,7 @@ function CreatePOFormContent() {
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '40px' }}>#</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Category *</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Name *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Current Stock & Unit</th>
@@ -822,8 +822,7 @@ function CreatePOFormContent() {
                           options={materialsList
                             .filter(m => !item.category || (m.category || 'Others') === item.category)
                             .map(m => ({ value: m.material_code, label: m.material_name }))}
-                          placeholder={!item.category ? "Select Category First..." : "Search or type code..."}
-                          required
+                          placeholder={!item.category ? "Select Category First..." : "Search or type code (optional)..."}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
@@ -890,8 +889,8 @@ function CreatePOFormContent() {
                             step="any"
                             disabled={!item.current_stock_unit}
                             placeholder={!item.current_stock_unit ? 'Select unit first' : `Stock (${item.current_stock_unit === 'Custom' ? (item.custom_current_stock_unit || 'Custom') : item.current_stock_unit})`}
-                            value={item.current_stock || ''}
-                            onChange={e => handleItemChange(idx, 'current_stock', Math.max(parseFloat(e.target.value) || 0, 0))}
+                            value={item.current_stock_unit ? (item.current_stock === '' ? '' : item.current_stock ?? 0) : ''}
+                            onChange={e => handleItemChange(idx, 'current_stock', e.target.value === '' ? 0 : parseFloat(e.target.value) ?? 0)}
                             style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: !item.current_stock_unit ? '#f1f5f9' : 'white', cursor: !item.current_stock_unit ? 'not-allowed' : 'auto' }}
                           />
                         </div>

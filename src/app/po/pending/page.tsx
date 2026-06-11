@@ -154,7 +154,7 @@ export default function AdminPOQueue() {
           <Link href="/po" className="btn-corp btn-primary-corp" style={{ textDecoration: 'none' }}>Go to Dashboard</Link>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {pos.map(po => {
             const itemCount = Array.isArray(po.items) ? po.items.length : 0;
             return (
@@ -166,41 +166,51 @@ export default function AdminPOQueue() {
                 </div>
 
                 {/* Title row */}
-                <div className="grid grid-3" style={{ gap: '24px', alignItems: 'center' }}>
-                  <div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'flex-start' }}>
+                  <div style={{ minWidth: '140px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>PO NUMBER</span>
                     <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)', marginTop: '4px' }}>{po.po_number}</div>
                   </div>
-                  <div>
+                  <div style={{ minWidth: '120px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>PO DATE</span>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>{po.po_date || po.created_at?.split('T')[0] || '-'}</div>
                   </div>
-                  <div>
+                  <div style={{ minWidth: '140px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>VENDOR</span>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-main)', marginTop: '4px' }}>{po.vendor}</div>
                   </div>
-                  <div>
+                  <div style={{ minWidth: '140px' }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>MATERIALS REGISTERED</span>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginTop: '4px' }}>{itemCount} material line{itemCount !== 1 ? 's' : ''}</div>
                   </div>
                 </div>
 
-                {/* Detailed Material items table */}
-                <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                {/* PM Remarks — shown prominently BEFORE the items table */}
+                {po.remarks && (
+                  <div style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '14px 18px', borderRadius: '10px', fontSize: '13px' }}>
+                    <div style={{ fontWeight: 800, color: '#d97706', marginBottom: '6px', textTransform: 'uppercase', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      📋 PM Remarks / Instructions
+                    </div>
+                    <div style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontWeight: 600 }}>{po.remarks}</div>
+                  </div>
+                )}
+
+                {/* Detailed Material items table — scrollable for all screen sizes */}
+                <div style={{ border: '1px solid var(--border)', borderRadius: '10px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                  <table style={{ width: '100%', minWidth: '900px', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Code</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Name</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Size / Thickness</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right' }}>Current Stock</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Stock Unit</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right' }}>Required Qty</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Unit</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right' }}>Order Rate (₹)</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right' }}>Amount (₹)</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Vendor</th>
-                        <th style={{ padding: '8px 12px', color: 'var(--text-ghost)', fontWeight: 800 }}>Remarks</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap' }}>Code</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap' }}>Material Name</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap' }}>Size / Thickness</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right', whiteSpace: 'nowrap' }}>Current Stock</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap' }}>Stock Unit</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right', whiteSpace: 'nowrap' }}>Required Qty</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap' }}>Unit</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right', whiteSpace: 'nowrap' }}>Order Rate (₹)</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, textAlign: 'right', whiteSpace: 'nowrap' }}>Amount (₹)</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap' }}>Vendor</th>
+                        <th style={{ padding: '10px 12px', color: 'var(--text-ghost)', fontWeight: 800, whiteSpace: 'nowrap', minWidth: '160px' }}>Item Remarks</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -211,17 +221,17 @@ export default function AdminPOQueue() {
                       ) : (
                         po.items.map((item: any, i: number) => (
                           <tr key={i} style={{ borderBottom: i !== itemCount - 1 ? '1px solid var(--border)' : 'none' }}>
-                            <td style={{ padding: '8px 12px', fontWeight: 700 }}>{item.material_code}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.material_name}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.size_thickness}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{item.current_stock.toLocaleString()}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px' }}>{item.current_stock_unit || '-'}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace', color: 'var(--primary)' }}>{item.required_qty.toLocaleString()}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--text-ghost)' }}>{item.unit || 'Pair'}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>₹{item.order_rate.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace' }}>₹{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                            <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.vendor || po.vendor}</td>
-                            <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>{item.remarks || '-'}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: 'var(--primary)', whiteSpace: 'nowrap' }}>{item.material_code || '—'}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600, whiteSpace: 'nowrap' }}>{item.size_thickness}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>{item.current_stock?.toLocaleString() ?? 0}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.current_stock_unit || '-'}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace', color: 'var(--primary)', whiteSpace: 'nowrap' }}>{item.required_qty?.toLocaleString()}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 700, color: 'var(--text-ghost)', whiteSpace: 'nowrap' }}>{item.unit || 'Pair'}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>₹{item.order_rate?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#16a34a', whiteSpace: 'nowrap' }}>₹{item.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600, whiteSpace: 'nowrap' }}>{item.vendor || po.vendor}</td>
+                            <td style={{ padding: '10px 12px', color: 'var(--text-muted)', minWidth: '140px' }}>{item.remarks || '—'}</td>
                           </tr>
                         ))
                       )}
@@ -229,12 +239,12 @@ export default function AdminPOQueue() {
                   </table>
                 </div>
 
-                {/* Pricing formulas review */}
-                <div style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: '16px 20px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', gap: '48px' }}>
+                {/* Pricing formulas review — responsive flex-wrap */}
+                <div style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: '16px 20px', borderRadius: '10px', display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '32px' }}>
                     <div>
                       <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Gross Amount</span>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>₹{po.gross_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>₹{po.gross_amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                     </div>
                     <div>
                       <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Discount Applied</span>
@@ -242,25 +252,17 @@ export default function AdminPOQueue() {
                     </div>
                     <div>
                       <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Net Amount Required</span>
-                      <div style={{ fontSize: '16px', fontWeight: 900, color: 'var(--primary)', marginTop: '2px', fontFamily: 'monospace' }}>₹{po.net_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                      <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary)', marginTop: '2px', fontFamily: 'monospace' }}>₹{po.net_amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                     </div>
                   </div>
                 </div>
 
-                {/* Remarks block */}
-                {po.remarks && (
-                  <div style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '16px', borderRadius: '12px', fontSize: '13px' }}>
-                    <div style={{ fontWeight: 800, color: '#d97706', marginBottom: '4px', textTransform: 'uppercase', fontSize: '11px' }}>🔒 Private Remarks / Instructions</div>
-                    <div style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{po.remarks}</div>
-                  </div>
-                )}
-
                 {/* Action buttons */}
-                <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '20px', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '20px', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
                   <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>
                     Created by: {po.creator_name?.toUpperCase()}
                   </div>
-                  <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
                     <button className="btn-corp" style={{ color: 'var(--success)', border: '1px solid #10b981', background: '#f0fdf4' }} onClick={() => {
                       setSelectedPo(po);
                       setActionType('approve');
@@ -290,6 +292,7 @@ export default function AdminPOQueue() {
             );
           })}
         </div>
+
       )}
 
       {/* Interactive modal for comment input */}
