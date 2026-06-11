@@ -701,10 +701,10 @@ function CreatePOFormContent() {
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder="e.g. PO-260517-0001"
+                  placeholder={`e.g. ${poDate ? new Date(poDate).getFullYear().toString().slice(-2) + (new Date(poDate).getMonth() + 1).toString().padStart(2, '0') + new Date(poDate).getDate().toString().padStart(2, '0') : ''}-0001 (Auto-generated on Save)`}
                   required
                   readOnly
-                  value={poNumber}
+                  value={poNumber || ''}
                   style={{ paddingRight: '36px', background: '#f1f5f9', cursor: 'not-allowed', fontWeight: 800 }}
                 />
                 <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', pointerEvents: 'none' }}>🔑</span>

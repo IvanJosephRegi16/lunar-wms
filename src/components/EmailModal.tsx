@@ -38,9 +38,10 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
       <div style={{ background: '#f8fafc', padding: '20px 36px', display: 'flex', gap: '32px', borderBottom: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 250px' }}>
           <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Vendor / Supplier</div>
-          <div style={{ fontWeight: 800, fontSize: '16px', color: '#111827' }}>{po?.vendor || '—'}</div>
-          {vendorDetails?.company_name && <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '4px', fontWeight: 600 }}>🏢 {vendorDetails.company_name}</div>}
-          {vendorDetails?.address && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', whiteSpace: 'pre-wrap' }}>📍 {vendorDetails.address}</div>}
+          <div style={{ fontWeight: 800, fontSize: '15px', color: '#111827', lineHeight: '1.4' }}>
+            {vendorDetails?.company_name ? `${vendorDetails.company_name}, ${po?.vendor || ''}` : (po?.vendor || '—')}
+            {vendorDetails?.address && `, ${vendorDetails.address}`}
+          </div>
         </div>
         <div style={{ flex: '1 1 150px' }}>
           <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>PO Date</div>
@@ -63,10 +64,10 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', tableLayout: 'auto' }}>
           <thead>
             <tr style={{ background: '#1e3a5f' }}>
-              {['#', 'Material Code', 'Material Name', 'Size / Thickness', 'Stock', 'Req. Qty', 'Unit', 'Vendor'].map((h, i) => (
+              {['#', 'Material Code', 'Material Name', 'Size / Thickness', 'Req. Qty', 'Unit', 'Vendor'].map((h, i) => (
                 <th key={i} style={{
                   padding: '11px 12px', color: 'white', fontWeight: 700,
-                  textAlign: i >= 4 && i <= 6 ? 'right' : 'left',
+                  textAlign: i === 4 ? 'right' : 'left',
                   fontSize: '10px', letterSpacing: '0.04em', textTransform: 'uppercase',
                   whiteSpace: 'nowrap'
                 }}>{h}</th>
@@ -82,7 +83,6 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
                   <td style={{ padding: '11px 12px', fontWeight: 800, color: '#1d4ed8', fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.material_code || '—'}</td>
                   <td style={{ padding: '11px 12px', fontWeight: 700, color: '#111827' }}>{item.material_name || '—'}</td>
                   <td style={{ padding: '11px 12px', color: '#374151', whiteSpace: 'nowrap' }}>{item.size_thickness || '—'}</td>
-                  <td style={{ padding: '11px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#374151', whiteSpace: 'nowrap' }}>{(item.current_stock ?? 0).toLocaleString()}</td>
                   <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#111827', whiteSpace: 'nowrap' }}>{qty.toLocaleString()}</td>
                   <td style={{ padding: '11px 12px', color: '#6b7280', whiteSpace: 'nowrap' }}>{item.unit || 'Pair'}</td>
                   <td style={{ padding: '11px 12px', color: '#374151', whiteSpace: 'nowrap' }}>{item.vendor || po?.vendor || '—'}</td>
