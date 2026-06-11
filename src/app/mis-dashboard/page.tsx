@@ -387,45 +387,119 @@ export default function MISDashboard() {
     }
 
     if (activeTab === 'Upper Stock Audit') {
-      // Find rows with any negative numeric value
+      const sizes = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
+      
+      // Find rows with negative sizes
       const minusRows = upperStockList.filter(r => {
-        return Object.values(r).some(val => {
-          if (!val) return false;
-          const num = parseFloat(String(val).replace(/,/g, ''));
+        return sizes.some(size => {
+          const v = r[size];
+          if (!v) return false;
+          const num = parseFloat(String(v).replace(/,/g, ''));
           return !isNaN(num) && num < 0;
         });
       });
+
+      const [selectedAudit, setSelectedAudit] = useState<any | null>(null);
+
+      if (selectedAudit) {
+        const article = selectedAudit['Article'] || selectedAudit['Item'] || '';
+        const colour = selectedAudit['Colour'] || '';
+
+        const findMatches = (sheet: any[]) => sheet.filter(s => 
+          (s['Article'] === article || s['Item'] === article) && 
+          (!colour || s['Colour'] === colour)
+        );
+
+        const osMatches = findMatches(openingStock);
+        const inMatches = findMatches(inStock);
+        const outMatches = findMatches(outStock);
+        const qcMatches = findMatches(qcData);
+
+        const renderAuditTable = (title: string, data: any[], isSubtract: boolean) => (
+          <div style={{ marginBottom: '24px', background: '#18181b', padding: '16px', borderRadius: '8px', border: `1px solid ${isSubtract ? '#ef4444' : '#10b981'}` }}>
+            <h4 style={{ color: isSubtract ? '#fca5a5' : '#6ee7b7', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {isSubtract ? '➖' : '➕'} {title}
+            </h4>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', textAlign: 'left' }}>
+                <thead style={{ background: '#27272a', color: '#9ca3af' }}>
+                  <tr>
+                    <th style={{ padding: '8px' }}>Date</th>
+                    <th style={{ padding: '8px' }}>Identifier</th>
+                    {sizes.map(s => <th key={s} style={{ padding: '8px', textAlign: 'right' }}>Sz {s}</th>)}
+                    <th style={{ padding: '8px', textAlign: 'right' }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #374151' }}>
+                      <td style={{ padding: '8px' }}>{r['Date'] || '-'}</td>
+                      <td style={{ padding: '8px' }}>{r['Unique ID'] || r['Sl No'] || '-'}</td>
+                      {sizes.map(s => <td key={s} style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace' }}>{getVal(r, s) || '-'}</td>)}
+                      <td style={{ padding: '8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total')}</td>
+                    </tr>
+                  ))}
+                  {data.length === 0 && <tr><td colSpan={15} style={{ padding: '8px', color: '#9ca3af', textAlign: 'center' }}>No entries found</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div style={{ background: '#27272a', borderRadius: '8px', padding: '24px', border: '1px solid #3f3f46' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div>
+                  <h3 style={{ color: '#f3f4f6', fontSize: '18px', fontWeight: 800, margin: 0 }}>
+                    Audit Report: <span style={{ color: '#93c5fd' }}>{article}</span> {colour ? `(${colour})` : ''}
+                  </h3>
+                  <p style={{ color: '#9ca3af', fontSize: '12px', marginTop: '4px' }}>Tracing logic: Opening Stock (+) + IN (+) - OUT (-) - QC (-) = Current Balance</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedAudit(null)}
+                  style={{ background: '#3f3f46', color: '#f3f4f6', border: 'none', padding: '8px 16px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}
+                >
+                  ⬅ Back to Audit List
+                </button>
+              </div>
+
+              {renderAuditTable('Upper Opening Stock (Adds to balance)', osMatches, false)}
+              {renderAuditTable('Upper IN (Adds to balance)', inMatches, false)}
+              {renderAuditTable('Upper OUT (Subtracts from balance)', outMatches, true)}
+              {renderAuditTable('QC (Subtracts from balance)', qcMatches, true)}
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ background: '#27272a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px' }}>
             <h3 style={{ color: '#ef4444', fontSize: '15px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚠️</span> Negative Upper Stock Alerts
+              <span>⚠️</span> Negative Upper Stock Alerts (Sizes 1-13)
             </h3>
             <p style={{ color: '#9ca3af', fontSize: '13px', marginBottom: '16px' }}>
-              The following entries in the <strong>Upper stock list</strong> sheet have negative balances. Click on any row to audit its exact journey across Opening Stock, IN, OUT, and QC to locate the root cause of the minus balance.
+              The following entries in the <strong>Upper_stock_List</strong> sheet have negative balances in specific sizes. Click 🔍 to trace the exact IN/OUT/QC journey.
             </p>
             <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                 <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
                   <tr>
-                    <th style={{ padding: '12px' }}>Article / Item</th>
+                    <th style={{ padding: '12px' }}>Article</th>
                     <th style={{ padding: '12px' }}>Colour</th>
-                    <th style={{ padding: '12px' }}>Negative Value</th>
+                    <th style={{ padding: '12px' }}>Negative Sizes Found</th>
                     <th style={{ padding: '12px', textAlign: 'center' }}>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {minusRows.map((r, i) => {
-                    // Extract the negative field to show it
-                    let negField = '';
-                    let negVal = 0;
-                    Object.entries(r).forEach(([k, v]) => {
-                      if (!v) return;
-                      const num = parseFloat(String(v).replace(/,/g, ''));
-                      if (!isNaN(num) && num < 0) {
-                        negField = k;
-                        negVal = num;
+                    const negSizes: string[] = [];
+                    sizes.forEach(s => {
+                      const v = r[s];
+                      if (v) {
+                        const num = parseFloat(String(v).replace(/,/g, ''));
+                        if (!isNaN(num) && num < 0) negSizes.push(`Sz ${s}: ${num}`);
                       }
                     });
 
@@ -433,39 +507,10 @@ export default function MISDashboard() {
                       <tr key={i} style={{ borderTop: '1px solid #374151', background: '#18181b' }}>
                         <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article'] || r['Item'] || r['Name'] || '-'}</td>
                         <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
-                        <td style={{ padding: '12px', fontFamily: 'monospace', color: '#ef4444', fontWeight: 800 }}>{negField}: {negVal}</td>
+                        <td style={{ padding: '12px', fontFamily: 'monospace', color: '#ef4444', fontWeight: 800 }}>{negSizes.join(' | ')}</td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <button 
-                            onClick={() => {
-                              const article = r['Article'] || r['Item'] || '';
-                              const colour = r['Colour'] || '';
-                              
-                              const findMatches = (sheet: any[]) => sheet.filter(s => 
-                                (s['Article'] === article || s['Item'] === article) && 
-                                (!colour || s['Colour'] === colour)
-                              );
-
-                              const osMatches = findMatches(openingStock);
-                              const inMatches = findMatches(inStock);
-                              const outMatches = findMatches(outStock);
-                              const qcMatches = findMatches(qcData);
-
-                              let alertMsg = `AUDIT REPORT for ${article} ${colour ? '- ' + colour : ''}\n`;
-                              alertMsg += `-------------------------------------------------\n`;
-                              alertMsg += `OPENING STOCK ENTRIES: ${osMatches.length}\n`;
-                              osMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Qty: ${getVal(o, 'Total') || getVal(o, 'Qty')}\n`);
-                              
-                              alertMsg += `\nIN ENTRIES: ${inMatches.length}\n`;
-                              inMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Qty: ${getVal(o, 'Total') || getVal(o, 'Qty')}\n`);
-                              
-                              alertMsg += `\nOUT ENTRIES: ${outMatches.length}\n`;
-                              outMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Qty: ${getVal(o, 'Total') || getVal(o, 'Qty')}\n`);
-                              
-                              alertMsg += `\nQC ENTRIES: ${qcMatches.length}\n`;
-                              qcMatches.forEach(o => alertMsg += `  Date: ${o['Date']} | Lot: ${o['Unique ID']} | Total: ${getVal(o, 'Total')} | Damage: ${getVal(o, 'Damage')}\n`);
-                              
-                              alert(alertMsg);
-                            }}
+                            onClick={() => setSelectedAudit(r)}
                             style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 700, cursor: 'pointer' }}
                           >
                             🔍 Audit Root Logic
@@ -475,7 +520,7 @@ export default function MISDashboard() {
                     );
                   })}
                   {minusRows.length === 0 && (
-                    <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>✅ No negative balances found in Upper Stock.</td></tr>
+                    <tr><td colSpan={4} style={{ padding: '20px', textAlign: 'center', color: '#10b981', fontWeight: 700 }}>✅ No negative balances found in Upper Stock sizes 1-13.</td></tr>
                   )}
                 </tbody>
               </table>
