@@ -7,17 +7,21 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
   ArcElement
 } from 'chart.js';
-import { Bar, Doughnut } from 'react-chartjs-2';
+import { Bar, Doughnut, Chart } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
+  LineElement,
+  PointElement,
   Title,
   Tooltip,
   Legend,
@@ -27,22 +31,62 @@ ChartJS.register(
 const GOOGLE_SHEET_ID = '1ErWGgNjV-aBSj25nVMRO-dVuRiMIFd5OgvrwCN5Xegg';
 const getCsvUrl = (sheetName: string) => `https://docs.google.com/spreadsheets/d/${GOOGLE_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
+const parseDate = (dStr: string) => {
+  if (!dStr) return null;
+  const s = dStr.toString().trim();
+  const p1 = s.split('-');
+  const p2 = s.split('/');
+  const parts = p1.length > 1 ? p1 : p2;
+  
+  if (parts.length === 3) {
+    let d = parseInt(parts[0], 10);
+    let m = parts[1];
+    let y = parseInt(parts[2], 10);
+    if (isNaN(y)) return null;
+    if (y < 100) y += 2000;
+    
+    let monthIndex = -1;
+    if (isNaN(parseInt(m, 10))) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      monthIndex = months.findIndex(x => m.toLowerCase().includes(x.toLowerCase()));
+    } else {
+      monthIndex = parseInt(m, 10) - 1;
+    }
+    if (monthIndex > -1) {
+      return new Date(y, monthIndex, d);
+    }
+  }
+  const fallback = new Date(s);
+  return isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const toISODate = (d: Date) => {
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yy}-${mm}-${dd}`;
+};
+
 export default function MISDashboard() {
   const [loading, setLoading] = useState(true);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [activeTab, setActiveTab] = useState('Overview');
 
+  // Date Filter State
+  const [dateMode, setDateMode] = useState<'single'|'range'>('single');
+  const [startDate, setStartDate] = useState(toISODate(new Date()));
+  const [endDate, setEndDate] = useState(toISODate(new Date()));
+
   // Sheet Data States
-  const [statusData, setStatusData] = useState<any[]>([]);
   const [qcData, setQcData] = useState<any[]>([]);
   const [cuttingPlan, setCuttingPlan] = useState<any[]>([]);
-  const [dailyReport, setDailyReport] = useState<any[]>([]);
-
+  
   // Individual Entries
   const [cuttingEntry, setCuttingEntry] = useState<any[]>([]);
   const [printingEntry, setPrintingEntry] = useState<any[]>([]);
   const [pastingEntry, setPastingEntry] = useState<any[]>([]);
   const [stitchingEntry, setStitchingEntry] = useState<any[]>([]);
+  const [pouringEntry, setPouringEntry] = useState<any[]>([]);
   const [mcEntry, setMcEntry] = useState<any[]>([]);
 
   const fetchSheet = (sheetName: string): Promise<any[]> => {
@@ -61,28 +105,26 @@ export default function MISDashboard() {
     setLoading(true);
     try {
       const [
-        st, qc, cp, dr,
-        ce, pre, pae, ste, mce
+        qc, cp,
+        ce, pre, pae, ste, poe, mce
       ] = await Promise.all([
-        fetchSheet('status'),
         fetchSheet('QC'),
         fetchSheet('Cutting_Plan'),
-        fetchSheet('dailyreport data'),
         fetchSheet('Cutting_Entry'),
         fetchSheet('Printing_Entry'),
         fetchSheet('Pasting_Entry'),
         fetchSheet('Stiching_Entry'),
+        fetchSheet('Pouring_Entry'),
         fetchSheet('MC_Entry')
       ]);
 
-      setStatusData(st);
       setQcData(qc);
       setCuttingPlan(cp);
-      setDailyReport(dr);
       setCuttingEntry(ce);
       setPrintingEntry(pre);
       setPastingEntry(pae);
       setStitchingEntry(ste);
+      setPouringEntry(poe);
       setMcEntry(mce);
       
       setLastSynced(new Date());
@@ -96,64 +138,78 @@ export default function MISDashboard() {
   useEffect(() => {
     syncData();
     const interval = setInterval(() => {
-      // Silent refresh
       syncData();
     }, 15 * 60 * 1000); // 15 mins
     return () => clearInterval(interval);
   }, []);
 
-  const getTodayStr = () => {
-    const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const yy = String(today.getFullYear()).slice(-2);
-    // Note: Depends on sheet date format. Usually DD/MM/YY or DD-MMM-YY
-    return `${dd}-${mm}-${yy}`; 
-  };
-
-  // Safe parse
   const getVal = (row: any, key: string) => {
     const v = row[key];
     if (!v || v.trim() === '' || v.toUpperCase() === 'NIL') return 0;
     return parseInt(v.replace(/,/g, ''), 10) || 0;
   };
 
-  // Metrics Calculation
-  const totalCuttingToday = cuttingEntry.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
-  const totalPrintingToday = printingEntry.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
-  const totalPastingToday = pastingEntry.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
-  const totalStitchingToday = stitchingEntry.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
-  const totalQcToday = qcData.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
-  const totalPackingToday = mcEntry.reduce((sum, r) => {
-    // packing sum might require custom logic based on ratio
-    return sum + getVal(r, 'Total'); 
-  }, 0);
+  // Date Filtering Logic
+  const startD = new Date(startDate);
+  startD.setHours(0,0,0,0);
+  const endD = dateMode === 'single' ? new Date(startDate) : new Date(endDate);
+  endD.setHours(23,59,59,999);
+  const daysInRange = Math.max(1, Math.ceil((endD.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)));
 
-  const totalDamage = qcData.reduce((sum, r) => sum + getVal(r, 'Damage'), 0);
-  const totalQcPairs = qcData.reduce((sum, r) => sum + getVal(r, 'QC Qty') || getVal(r, 'Total'), 0);
-  const qcPassRate = totalQcPairs > 0 ? (((totalQcPairs - totalDamage) / totalQcPairs) * 100).toFixed(1) : '100.0';
-  
-  const activeLots = cuttingPlan.filter(r => {
-    const t = getVal(r, 'Total');
-    const qc = getVal(r, 'QC Completed');
-    return t > 0 && qc < t; // Not fully QC'd
+  const filterByDate = (data: any[]) => {
+    return data.filter(row => {
+      const d = parseDate(row['Date'] || row['Date ']);
+      if (!d) return false; // If no valid date, exclude
+      return d.getTime() >= startD.getTime() && d.getTime() <= endD.getTime();
+    });
+  };
+
+  // Filtered Datasets
+  const fQc = filterByDate(qcData);
+  const fCp = filterByDate(cuttingPlan);
+  const fCe = filterByDate(cuttingEntry);
+  const fPre = filterByDate(printingEntry);
+  const fPae = filterByDate(pastingEntry);
+  const fSte = filterByDate(stitchingEntry);
+  const fPoe = filterByDate(pouringEntry);
+  const fMce = filterByDate(mcEntry); // Note: MC_Entry usually has 'Export Date/Time' or similar. We rely on standard 'Date' column. If 'Date' missing, fallback logic might be needed.
+
+  // Metrics Calculation
+  const totalCutting = fCe.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+  const totalPrinting = fPre.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+  const totalPasting = fPae.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+  const totalStitching = fSte.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+  const totalPouring = fPoe.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+  const totalQc = fQc.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+  const totalPacking = fMce.reduce((sum, r) => sum + getVal(r, 'Total'), 0);
+
+  const totalDamage = fQc.reduce((sum, r) => sum + getVal(r, 'Damage'), 0);
+
+  // QC Pass Rate Logic:
+  // Count all Sl Nos that have a valid entry in the Cutting_Plan sheet (in selected date range)
+  const totalSlNosInPlan = fCp.length;
+  // From those same Sl Nos, check how many appear in the QC sheet with a completed QC entry
+  const slNosWithQcCompleted = fCp.filter(cp => {
+    return qcData.some(q => q['Unique ID'] === cp['Unique ID'] && getVal(q, 'Total') > 0);
   }).length;
+  const qcPassRate = totalSlNosInPlan > 0 ? ((slNosWithQcCompleted / totalSlNosInPlan) * 100).toFixed(1) : '0.0';
 
   const renderTabContent = () => {
     if (activeTab === 'Overview') {
       return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <div>
-            <h3 style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>Section efficiency — today</h3>
+            <h3 style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>Section efficiency — Selected Date(s)</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {[
-                { label: 'Cutting', val: totalCuttingToday, max: 3000, color: '#6366f1' },
-                { label: 'Printing', val: totalPrintingToday, max: 3000, color: '#10b981' },
-                { label: 'Pasting', val: totalPastingToday, max: 3000, color: '#f59e0b' },
-                { label: 'QC', val: totalQcToday, max: 3000, color: '#3b82f6' }
+                { label: 'Cutting', val: totalCutting, max: 3000 * daysInRange, color: '#6366f1' },
+                { label: 'Printing', val: totalPrinting, max: 3000 * daysInRange, color: '#10b981' },
+                { label: 'Pasting', val: totalPasting, max: 3000 * daysInRange, color: '#f59e0b' },
+                { label: 'Pouring', val: totalPouring, max: 3000 * daysInRange, color: '#ec4899' },
+                { label: 'QC', val: totalQc, max: 3000 * daysInRange, color: '#3b82f6' }
               ].map(s => {
-                const pct = Math.min(100, Math.round((s.val / s.max) * 100));
+                const pct = s.max > 0 ? Math.min(100, Math.round((s.val / s.max) * 100)) : 0;
                 return (
                   <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     <div style={{ width: '80px', fontSize: '13px', fontWeight: 600 }}>{s.label}</div>
@@ -169,10 +225,10 @@ export default function MISDashboard() {
             <div style={{ marginTop: '32px', height: '250px' }}>
               <Bar 
                 data={{
-                  labels: ['Cutting', 'Printing', 'Pasting', 'QC'],
+                  labels: ['Cutting', 'Printing', 'Pasting', 'Stitching', 'Pouring', 'QC', 'Packing'],
                   datasets: [{
-                    data: [totalCuttingToday, totalPrintingToday, totalPastingToday, totalQcToday],
-                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#3b82f6'],
+                    data: [totalCutting, totalPrinting, totalPasting, totalStitching, totalPouring, totalQc, totalPacking],
+                    backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#6b7280', '#ec4899', '#3b82f6', '#4b5563'],
                     borderRadius: 4
                   }]
                 }}
@@ -190,7 +246,7 @@ export default function MISDashboard() {
           </div>
           
           <div>
-            <h3 style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>QC summary — recent lots</h3>
+            <h3 style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px' }}>QC summary — Filtered Lots</h3>
             <div style={{ border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
                 <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
@@ -203,15 +259,18 @@ export default function MISDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {qcData.slice(-10).reverse().map((r, i) => (
+                  {fQc.slice(-10).reverse().map((r, i) => (
                     <tr key={i} style={{ borderTop: '1px solid #374151' }}>
                       <td style={{ padding: '12px', fontWeight: 600 }}>{r['Unique ID']}</td>
                       <td style={{ padding: '12px' }}>{r['Article']}</td>
                       <td style={{ padding: '12px' }}>{r['Colour']}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString()}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString('en-IN')}</td>
                       <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', color: getVal(r, 'Damage') > 0 ? '#ef4444' : 'inherit' }}>{getVal(r, 'Damage') || 0}</td>
                     </tr>
                   ))}
+                  {fQc.length === 0 && (
+                    <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>No QC entries for selected dates</td></tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -237,7 +296,7 @@ export default function MISDashboard() {
               </tr>
             </thead>
             <tbody>
-              {cuttingPlan.slice(-20).reverse().map((r, i) => {
+              {fCp.slice(-20).reverse().map((r, i) => {
                 const badge = (val: string) => {
                   const v = val?.toString().toUpperCase() || 'NIL';
                   if (v === 'NIL' || v === '') return <span style={{ padding: '4px 8px', background: '#374151', color: '#9ca3af', borderRadius: '4px', fontSize: '10px', fontWeight: 700 }}>Pending</span>;
@@ -250,7 +309,7 @@ export default function MISDashboard() {
                     <td style={{ padding: '12px' }}>{r['Date']}</td>
                     <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article']}</td>
                     <td style={{ padding: '12px' }}>{r['Colour']}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString()}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString('en-IN')}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>{badge(r['Cutting Completed'])}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>{badge(r['Printing Completed'])}</td>
                     <td style={{ padding: '12px', textAlign: 'center' }}>{badge(r['QC Completed'])}</td>
@@ -264,7 +323,7 @@ export default function MISDashboard() {
     }
     
     if (activeTab === 'QC Tracker') {
-      const totalQcValue = qcData.reduce((sum, r) => sum + (getVal(r, 'Total') * (parseFloat(r['Rate']) || 0)), 0);
+      const totalQcValue = fQc.reduce((sum, r) => sum + (getVal(r, 'Total') * (parseFloat(r['Rate']) || 0)), 0);
       return (
         <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
@@ -282,7 +341,7 @@ export default function MISDashboard() {
               </tr>
             </thead>
             <tbody>
-              {qcData.slice(-30).reverse().map((r, i) => {
+              {fQc.map((r, i) => {
                 const qty = getVal(r, 'Total');
                 const rate = parseFloat(r['Rate']) || 0;
                 const damage = getVal(r, 'Damage');
@@ -292,17 +351,17 @@ export default function MISDashboard() {
                     <td style={{ padding: '12px', fontWeight: 600 }}>{r['Unique ID']}</td>
                     <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article']}</td>
                     <td style={{ padding: '12px' }}>{r['Colour']}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{qty.toLocaleString()}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{qty.toLocaleString('en-IN')}</td>
                     <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', color: damage > 0 ? '#ef4444' : 'inherit', fontWeight: damage > 0 ? 800 : 400 }}>{damage}</td>
                     <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{getVal(r, 'Shortages')}</td>
                     <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{rate.toFixed(2)}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{(qty * rate).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{(qty * rate).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
                   </tr>
                 )
               })}
               <tr style={{ background: '#1f2937', fontWeight: 800 }}>
-                <td colSpan={8} style={{ padding: '12px', textAlign: 'right' }}>TOTAL RECENT QC VALUE:</td>
-                <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', color: '#10b981' }}>₹{totalQcValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                <td colSpan={8} style={{ padding: '12px', textAlign: 'right' }}>TOTAL QC VALUE (Filtered):</td>
+                <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', color: '#10b981' }}>₹{totalQcValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
               </tr>
             </tbody>
           </table>
@@ -310,65 +369,246 @@ export default function MISDashboard() {
       );
     }
 
-    if (activeTab === 'Alerts') {
-      const damages = qcData.filter(r => getVal(r, 'Damage') > 0).slice(-10).reverse();
-      const overdue = cuttingPlan.filter(r => {
-        const d = r['Date']; // e.g. "10-Jun-26"
-        const qcDone = getVal(r, 'QC Completed') > 0;
-        return !qcDone && d && r['Cutting Completed'] && r['Cutting Completed'] !== 'NIL';
-      }).slice(-10);
+    if (activeTab === 'Pouring Entry') {
+      return (
+        <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+            <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
+              <tr>
+                <th style={{ padding: '12px' }}>Date</th>
+                <th style={{ padding: '12px' }}>Operator</th>
+                <th style={{ padding: '12px' }}>Sl No</th>
+                <th style={{ padding: '12px' }}>Article</th>
+                <th style={{ padding: '12px' }}>Colour</th>
+                <th style={{ padding: '12px', textAlign: 'right' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fPoe.map((r, i) => (
+                <tr key={i} style={{ borderTop: '1px solid #374151' }}>
+                  <td style={{ padding: '12px' }}>{r['Date']}</td>
+                  <td style={{ padding: '12px', fontWeight: 600 }}>{r['Operator'] || '-'}</td>
+                  <td style={{ padding: '12px' }}>{r['Sl No'] || r['Unique ID'] || '-'}</td>
+                  <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article'] || '-'}</td>
+                  <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString('en-IN')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Packing Entry') {
+      return (
+        <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+            <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
+              <tr>
+                <th style={{ padding: '12px' }}>Date</th>
+                <th style={{ padding: '12px' }}>Packed By</th>
+                <th style={{ padding: '12px' }}>Article</th>
+                <th style={{ padding: '12px' }}>Colour</th>
+                <th style={{ padding: '12px' }}>Ratio</th>
+                <th style={{ padding: '12px', textAlign: 'right' }}>Total Pairs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {fMce.map((r, i) => (
+                <tr key={i} style={{ borderTop: '1px solid #374151' }}>
+                  <td style={{ padding: '12px' }}>{r['Date'] || r['Export Date/Time'] || '-'}</td>
+                  <td style={{ padding: '12px', fontWeight: 600 }}>{r['Packed By'] || '-'}</td>
+                  <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article'] || '-'}</td>
+                  <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
+                  <td style={{ padding: '12px', fontFamily: 'monospace' }}>{r['Ratio'] || '-'}</td>
+                  <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString('en-IN')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Operator Report') {
+      const getOpStats = (data: any[]) => {
+        const ops: Record<string, number> = {};
+        data.forEach(r => {
+          const op = r['Operator'] || 'Unknown';
+          ops[op] = (ops[op] || 0) + getVal(r, 'Total');
+        });
+        return Object.entries(ops).sort((a,b) => b[1] - a[1]);
+      };
 
       return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-          <div style={{ background: '#27272a', border: '1px solid #ef4444', borderRadius: '8px', padding: '16px' }}>
-            <h3 style={{ color: '#ef4444', fontSize: '15px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⚠️</span> Recent QC Damages
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {damages.map((d, i) => (
-                <div key={i} style={{ background: '#18181b', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 700, color: '#f3f4f6' }}>Lot: {d['Unique ID']}</span>
-                    <span style={{ color: '#ef4444', fontWeight: 800 }}>{getVal(d, 'Damage')} Damaged</span>
-                  </div>
-                  <div style={{ color: '#9ca3af' }}>{d['Article']} - {d['Colour']}</div>
-                  {d['Remarks'] && <div style={{ color: '#f87171', fontSize: '12px', marginTop: '4px' }}>Reason: {d['Remarks']}</div>}
-                </div>
-              ))}
-              {damages.length === 0 && <div style={{ color: '#9ca3af' }}>No recent damages found.</div>}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px' }}>
+          {/* Printing */}
+          <div style={{ border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden' }}>
+            <h3 style={{ background: '#1f2937', padding: '12px', margin: 0, fontSize: '13px', color: '#f3f4f6', textTransform: 'uppercase' }}>Printing Operators</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+              <tbody>
+                {getOpStats(fPre).map((op, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #374151' }}>
+                    <td style={{ padding: '12px', fontWeight: 600, color: '#10b981' }}>{op[0]}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{op[1].toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Stitching */}
+          <div style={{ border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden' }}>
+            <h3 style={{ background: '#1f2937', padding: '12px', margin: 0, fontSize: '13px', color: '#f3f4f6', textTransform: 'uppercase' }}>Stitching Operators</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+              <tbody>
+                {getOpStats(fSte).map((op, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #374151' }}>
+                    <td style={{ padding: '12px', fontWeight: 600, color: '#6b7280' }}>{op[0]}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{op[1].toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {/* Pouring */}
+          <div style={{ border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden' }}>
+            <h3 style={{ background: '#1f2937', padding: '12px', margin: 0, fontSize: '13px', color: '#f3f4f6', textTransform: 'uppercase' }}>Pouring Operators</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+              <tbody>
+                {getOpStats(fPoe).map((op, i) => (
+                  <tr key={i} style={{ borderTop: '1px solid #374151' }}>
+                    <td style={{ padding: '12px', fontWeight: 600, color: '#ec4899' }}>{op[0]}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{op[1].toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'Daily Production Report') {
+      const topArticle = fCp.reduce((acc, r) => {
+        const art = r['Article'];
+        if (!art) return acc;
+        acc.map[art] = (acc.map[art] || 0) + getVal(r, 'Total');
+        if (acc.map[art] > acc.maxVal) { acc.maxVal = acc.map[art]; acc.top = art; }
+        return acc;
+      }, { map: {} as Record<string,number>, maxVal: 0, top: 'N/A' }).top;
+
+      // Article-wise breakdown
+      const articleBreakdown: Record<string, { [key:string]: number }> = {};
+      [ { d: fCe, key: 'Cutting' }, { d: fPre, key: 'Printing' }, { d: fPae, key: 'Pasting' }, { d: fSte, key: 'Stitching' }, { d: fPoe, key: 'Pouring' }, { d: fQc, key: 'QC' }, { d: fMce, key: 'Packing' } ].forEach(set => {
+        set.d.forEach(r => {
+          const art = r['Article'] || 'Unknown';
+          if (!articleBreakdown[art]) articleBreakdown[art] = { Cutting:0, Printing:0, Pasting:0, Stitching:0, Pouring:0, QC:0, Packing:0 };
+          articleBreakdown[art][set.key] += getVal(r, 'Total');
+        });
+      });
+
+      return (
+        <div>
+          {/* Combo Chart */}
+          <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46', marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Output Overview ({dateMode === 'single' ? startDate : `${startDate} to ${endDate}`})</h3>
+            <div style={{ height: '350px' }}>
+              <Chart 
+                type='bar'
+                data={{
+                  labels: ['Cutting', 'Printing', 'Pasting', 'Stitching', 'Pouring', 'QC', 'Packing'],
+                  datasets: [
+                    {
+                      type: 'line' as const,
+                      label: 'Trend Line',
+                      data: [totalCutting, totalPrinting, totalPasting, totalStitching, totalPouring, totalQc, totalPacking],
+                      borderColor: '#facc15',
+                      borderWidth: 2,
+                      fill: false,
+                      tension: 0.3
+                    },
+                    {
+                      type: 'bar' as const,
+                      label: 'Total Units',
+                      data: [totalCutting, totalPrinting, totalPasting, totalStitching, totalPouring, totalQc, totalPacking],
+                      backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#6b7280', '#ec4899', '#3b82f6', '#4b5563'],
+                      borderRadius: 4
+                    }
+                  ]
+                }}
+                options={{
+                  responsive: true, maintainAspectRatio: false,
+                  scales: { y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af' } }, x: { grid: { display: false }, ticks: { color: '#9ca3af' } } }
+                }}
+              />
             </div>
           </div>
 
-          <div style={{ background: '#27272a', border: '1px solid #f59e0b', borderRadius: '8px', padding: '16px' }}>
-            <h3 style={{ color: '#f59e0b', fontSize: '15px', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>⏳</span> Overdue for QC (Cutting Done)
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {overdue.map((o, i) => (
-                <div key={i} style={{ background: '#18181b', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontWeight: 700, color: '#f3f4f6' }}>Lot: {o['Unique ID']}</span>
-                    <span style={{ color: '#f59e0b', fontWeight: 800 }}>Pending</span>
-                  </div>
-                  <div style={{ color: '#9ca3af' }}>{o['Article']} - {o['Colour']} ({getVal(o, 'Total')} pairs)</div>
-                  <div style={{ color: '#9ca3af', fontSize: '12px', marginTop: '4px' }}>Started: {o['Date']}</div>
-                </div>
-              ))}
-              {overdue.length === 0 && <div style={{ color: '#9ca3af' }}>No overdue lots found.</div>}
+          {/* Stats Panel */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+            <div style={{ background: '#1f2937', padding: '16px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' }}>Total Days</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px' }}>{daysInRange}</div>
             </div>
+            <div style={{ background: '#1f2937', padding: '16px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' }}>Top Article</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px', color: '#93c5fd' }}>{topArticle}</div>
+            </div>
+            <div style={{ background: '#1f2937', padding: '16px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' }}>Avg Daily QC</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px' }}>{Math.round(totalQc / daysInRange).toLocaleString('en-IN')}</div>
+            </div>
+            <div style={{ background: '#1f2937', padding: '16px', borderRadius: '8px' }}>
+              <div style={{ fontSize: '11px', color: '#9ca3af', textTransform: 'uppercase' }}>Total Packed</div>
+              <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '4px' }}>{totalPacking.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+
+          {/* Article Breakdown */}
+          <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
+            <h3 style={{ background: '#1f2937', padding: '12px', margin: 0, fontSize: '13px', color: '#f3f4f6', textTransform: 'uppercase' }}>Article-Wise Breakdown</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+              <thead style={{ background: '#27272a', color: '#9ca3af', textTransform: 'uppercase', borderBottom: '1px solid #374151' }}>
+                <tr>
+                  <th style={{ padding: '12px' }}>Article</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>Cutting</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>Printing</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>Pasting</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>Stitching</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>Pouring</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>QC</th>
+                  <th style={{ padding: '12px', textAlign: 'right' }}>Packing</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(articleBreakdown).sort((a,b) => b[1].QC - a[1].QC).map(([art, vals], i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #374151' }}>
+                    <td style={{ padding: '12px', fontWeight: 600 }}>{art}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{vals.Cutting.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{vals.Printing.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{vals.Pasting.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{vals.Stitching.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{vals.Pouring.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#3b82f6' }}>{vals.QC.toLocaleString('en-IN')}</td>
+                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace' }}>{vals.Packing.toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       );
     }
 
     if (activeTab === 'Analytics') {
-      const topArticles = cuttingPlan.reduce((acc: any, r) => {
+      const topArticles = fCp.reduce((acc: any, r) => {
         acc[r['Article']] = (acc[r['Article']] || 0) + getVal(r, 'Total');
         return acc;
       }, {});
       const topArr = Object.entries(topArticles).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
 
-      const colorMap = cuttingPlan.reduce((acc: any, r) => {
+      const colorMap = fCp.reduce((acc: any, r) => {
         if (!r['Colour']) return acc;
         acc[r['Colour']] = (acc[r['Colour']] || 0) + getVal(r, 'Total');
         return acc;
@@ -378,7 +618,7 @@ export default function MISDashboard() {
       return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
-            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top 5 Articles by Volume</h3>
+            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top 5 Articles by Volume (in range)</h3>
             <div style={{ height: '300px' }}>
               <Bar 
                 data={{
@@ -398,7 +638,7 @@ export default function MISDashboard() {
             </div>
           </div>
           <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
-            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top Colors Scheduled</h3>
+            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Top Colors Scheduled (in range)</h3>
             <div style={{ height: '300px' }}>
               <Doughnut 
                 data={{
@@ -421,99 +661,6 @@ export default function MISDashboard() {
       );
     }
 
-    if (activeTab === 'Daily Report') {
-      return (
-        <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-            <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
-              <tr>
-                <th style={{ padding: '12px' }}>Date</th>
-                <th style={{ padding: '12px' }}>Section</th>
-                <th style={{ padding: '12px' }}>Article</th>
-                <th style={{ padding: '12px' }}>Colour</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Total Output</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dailyReport.slice(-30).reverse().map((r, i) => (
-                <tr key={i} style={{ borderTop: '1px solid #374151' }}>
-                  <td style={{ padding: '12px' }}>{r['Date'] || '-'}</td>
-                  <td style={{ padding: '12px', fontWeight: 600 }}>{r['Section'] || '-'}</td>
-                  <td style={{ padding: '12px' }}>{r['Article'] || '-'}</td>
-                  <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
-    if (activeTab === 'Operator Report') {
-      return (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-          <div style={{ border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden' }}>
-            <h3 style={{ background: '#1f2937', padding: '12px', margin: 0, fontSize: '13px', color: '#f3f4f6', textTransform: 'uppercase' }}>Printing Operators</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-              <tbody>
-                {printingEntry.slice(-15).reverse().map((r, i) => (
-                  <tr key={i} style={{ borderTop: '1px solid #374151' }}>
-                    <td style={{ padding: '12px', fontWeight: 600, color: '#10b981' }}>{r['Operator'] || 'Unknown'}</td>
-                    <td style={{ padding: '12px' }}>{r['Article']}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div style={{ border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden' }}>
-            <h3 style={{ background: '#1f2937', padding: '12px', margin: 0, fontSize: '13px', color: '#f3f4f6', textTransform: 'uppercase' }}>Stitching Operators</h3>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-              <tbody>
-                {stitchingEntry.slice(-15).reverse().map((r, i) => (
-                  <tr key={i} style={{ borderTop: '1px solid #374151' }}>
-                    <td style={{ padding: '12px', fontWeight: 600, color: '#6b7280' }}>{r['Operator'] || 'Unknown'}</td>
-                    <td style={{ padding: '12px' }}>{r['Article']}</td>
-                    <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
-    }
-
-    if (activeTab === 'Packing Tracker') {
-      return (
-        <div style={{ overflowX: 'auto', border: '1px solid #374151', borderRadius: '8px' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-            <thead style={{ background: '#1f2937', color: '#9ca3af', textTransform: 'uppercase' }}>
-              <tr>
-                <th style={{ padding: '12px' }}>Packed By</th>
-                <th style={{ padding: '12px' }}>Article</th>
-                <th style={{ padding: '12px' }}>Colour</th>
-                <th style={{ padding: '12px' }}>Ratio</th>
-                <th style={{ padding: '12px', textAlign: 'right' }}>Total Pairs</th>
-              </tr>
-            </thead>
-            <tbody>
-              {mcEntry.slice(-30).reverse().map((r, i) => (
-                <tr key={i} style={{ borderTop: '1px solid #374151' }}>
-                  <td style={{ padding: '12px', fontWeight: 600 }}>{r['Packed By'] || '-'}</td>
-                  <td style={{ padding: '12px', fontWeight: 600, color: '#93c5fd' }}>{r['Article'] || '-'}</td>
-                  <td style={{ padding: '12px' }}>{r['Colour'] || '-'}</td>
-                  <td style={{ padding: '12px', fontFamily: 'monospace' }}>{r['Ratio'] || '-'}</td>
-                  <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{getVal(r, 'Total').toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    }
-
     return <div style={{ color: '#9ca3af' }}>Select a tab to view data.</div>;
   };
 
@@ -526,14 +673,46 @@ export default function MISDashboard() {
   return (
     <div style={{ backgroundColor: '#18181b', minHeight: '100vh', color: '#f3f4f6', padding: '32px', fontFamily: 'Inter, sans-serif' }}>
       
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+      {/* Header & Filters */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '20px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ fontSize: '28px' }}>🏭</span> Lunar Slippers MIS Dashboard
           </h1>
           <p style={{ color: '#9ca3af', fontSize: '13px', marginTop: '4px' }}>Real-time Production Management System</p>
         </div>
+        
+        {/* Date Filter Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#27272a', padding: '8px 16px', borderRadius: '12px', border: '1px solid #3f3f46' }} className="no-print">
+          <select 
+            value={dateMode} 
+            onChange={e => setDateMode(e.target.value as 'single'|'range')}
+            style={{ background: '#18181b', color: 'white', border: '1px solid #374151', padding: '6px 12px', borderRadius: '6px', fontSize: '13px' }}
+          >
+            <option value="single">Single Date</option>
+            <option value="range">Date Range</option>
+          </select>
+          
+          <input 
+            type="date" 
+            value={startDate} 
+            onChange={e => setStartDate(e.target.value)}
+            style={{ background: '#18181b', color: 'white', border: '1px solid #374151', padding: '6px 12px', borderRadius: '6px', fontSize: '13px' }}
+          />
+          
+          {dateMode === 'range' && (
+            <>
+              <span style={{ color: '#9ca3af', fontSize: '13px' }}>to</span>
+              <input 
+                type="date" 
+                value={endDate} 
+                onChange={e => setEndDate(e.target.value)}
+                style={{ background: '#18181b', color: 'white', border: '1px solid #374151', padding: '6px 12px', borderRadius: '6px', fontSize: '13px' }}
+              />
+            </>
+          )}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }} className="no-print">
           <span style={{ fontSize: '12px', color: '#6b7280' }}>
             Last synced: <span style={{ color: '#d1d5db', fontWeight: 600 }}>{getSinceTime()}</span>
@@ -573,45 +752,47 @@ export default function MISDashboard() {
       {(!loading || lastSynced) && (
         <>
           {/* Top Metrics Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '16px', marginBottom: '32px' }}>
             {[
-              { title: 'CUTTING TODAY', value: totalCuttingToday.toLocaleString(), sub: '↑ from sheet' },
-              { title: 'PRINTING TODAY', value: totalPrintingToday.toLocaleString(), sub: '↑ from sheet' },
-              { title: 'PASTING TODAY', value: totalPastingToday.toLocaleString(), sub: '↑ from sheet' },
-              { title: 'QC CLEARED', value: totalQcToday.toLocaleString(), sub: `${totalDamage} damage`, isError: totalDamage > 0 },
-              { title: 'ACTIVE LOTS', value: activeLots, sub: 'in Cutting Plan' }
+              { title: 'CUTTING TOTAL', value: totalCutting.toLocaleString('en-IN'), sub: 'In range' },
+              { title: 'PRINTING TOTAL', value: totalPrinting.toLocaleString('en-IN'), sub: 'In range' },
+              { title: 'PASTING TOTAL', value: totalPasting.toLocaleString('en-IN'), sub: 'In range' },
+              { title: 'POURING TOTAL', value: totalPouring.toLocaleString('en-IN'), sub: 'In range' },
+              { title: 'PACKING TOTAL', value: totalPacking.toLocaleString('en-IN'), sub: 'In range' },
+              { title: 'QC CLEARED', value: totalQc.toLocaleString('en-IN'), sub: `${totalDamage} damage`, isError: totalDamage > 0 }
             ].map((m, i) => (
               <div key={i} style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46' }}>
                 <div style={{ fontSize: '11px', fontWeight: 700, color: '#a1a1aa', letterSpacing: '0.05em' }}>{m.title}</div>
-                <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px' }}>{m.value}</div>
+                <div style={{ fontSize: '24px', fontWeight: 800, marginTop: '8px' }}>{m.value}</div>
                 <div style={{ fontSize: '12px', color: m.isError ? '#ef4444' : '#10b981', marginTop: '4px' }}>{m.sub}</div>
               </div>
             ))}
           </div>
 
           <div style={{ background: '#27272a', padding: '20px', borderRadius: '12px', border: '1px solid #3f3f46', width: '250px', marginBottom: '32px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: '#a1a1aa', letterSpacing: '0.05em' }}>QC PASS RATE</div>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#a1a1aa', letterSpacing: '0.05em' }}>QC PASS RATE (IN RANGE)</div>
             <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px' }}>{qcPassRate}%</div>
-            <div style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>Target ≥98%</div>
+            <div style={{ fontSize: '12px', color: '#10b981', marginTop: '4px' }}>Based on Cutting Plan entries</div>
           </div>
 
           {/* Pipeline flow */}
           <div style={{ marginBottom: '32px' }}>
-            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Today's pipeline flow</h3>
+            <h3 style={{ fontSize: '14px', color: '#f3f4f6', marginBottom: '16px' }}>Pipeline flow ({dateMode === 'single' ? startDate : 'Date Range'})</h3>
             <div style={{ display: 'flex', gap: '16px' }}>
               {[
-                { label: 'Cutting', val: totalCuttingToday, color: '#6366f1' },
-                { label: 'Printing', val: totalPrintingToday, color: '#10b981' },
-                { label: 'Pasting', val: totalPastingToday, color: '#f59e0b' },
-                { label: 'Stitching', val: totalStitchingToday, color: '#6b7280' },
-                { label: 'QC', val: totalQcToday, color: '#3b82f6' },
-                { label: 'Packing', val: totalPackingToday, color: '#4b5563' }
+                { label: 'Cutting', val: totalCutting, color: '#6366f1' },
+                { label: 'Printing', val: totalPrinting, color: '#10b981' },
+                { label: 'Pasting', val: totalPasting, color: '#f59e0b' },
+                { label: 'Stitching', val: totalStitching, color: '#6b7280' },
+                { label: 'Pouring', val: totalPouring, color: '#ec4899' },
+                { label: 'QC', val: totalQc, color: '#3b82f6' },
+                { label: 'Packing', val: totalPacking, color: '#4b5563' }
               ].map((p, i) => (
                 <div key={i} style={{ flex: 1, background: '#27272a', padding: '16px', borderRadius: '12px', border: '1px solid #3f3f46', textAlign: 'center' }}>
                   <div style={{ fontSize: '12px', fontWeight: 600, color: '#d1d5db' }}>{p.label}</div>
-                  <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '8px', marginBottom: '12px' }}>{p.val.toLocaleString()}</div>
+                  <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '8px', marginBottom: '12px' }}>{p.val.toLocaleString('en-IN')}</div>
                   <div style={{ background: '#374151', height: '4px', borderRadius: '2px', width: '80%', margin: '0 auto', overflow: 'hidden' }}>
-                    <div style={{ background: p.color, height: '100%', width: Math.min(100, (p.val / 3000) * 100) + '%' }} />
+                    <div style={{ background: p.color, height: '100%', width: Math.min(100, (p.val / (3000 * daysInRange)) * 100) + '%' }} />
                   </div>
                 </div>
               ))}
@@ -621,7 +802,7 @@ export default function MISDashboard() {
           {/* Tabs */}
           <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid #3f3f46', marginBottom: '24px', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['Overview', 'Cutting Plan', 'QC Tracker', 'Alerts', 'Analytics', 'Daily Report', 'Operator Report', 'Packing Tracker'].map(tab => (
+              {['Overview', 'Cutting Plan', 'QC Tracker', 'Pouring Entry', 'Packing Entry', 'Daily Production Report', 'Operator Report', 'Analytics'].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -651,10 +832,8 @@ export default function MISDashboard() {
                 onChange={e => {
                   const val = e.target.value.trim().toUpperCase();
                   if (val) {
-                    const lot = cuttingPlan.find(r => r['Unique ID'] === val);
+                    const lot = cuttingPlan.find(r => r['Unique ID'] === val); // Look in global unfiltered plan for search
                     if (lot) {
-                      // Switch to cutting plan or a generic view. Just filtering is complex for all tabs,
-                      // but we can alert the user with the journey status.
                       alert(`Lot: ${val}\nArticle: ${lot['Article']} - ${lot['Colour']}\nTotal: ${lot['Total']}\nCutting: ${lot['Cutting Completed'] || 'Pending'}\nPrinting: ${lot['Printing Completed'] || 'Pending'}\nQC: ${lot['QC Completed'] || 'Pending'}`);
                     }
                   }
