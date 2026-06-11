@@ -1050,9 +1050,36 @@ function CreatePOFormContent() {
                 Review all past items ordered across all approved, completed, or draft purchase orders.
               </p>
             </div>
-            <span style={{ fontSize: '12px', background: '#d1fae5', color: '#065f46', padding: '4px 10px', borderRadius: '6px', fontWeight: 700 }}>
-              {historicalPoItems.length} Past Items
-            </span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button onClick={(e) => {
+                e.preventDefault();
+                if (historicalPoItems.length === 0) return alert('No historical data to export');
+                const headers = ['PO Ref', 'Material Code', 'Material Name', 'Size/Thickness', 'Required Qty', 'Unit', 'Order Rate', 'Amount', 'Vendor', 'Status'];
+                const rows = historicalPoItems.map(it => [
+                  `"${it.po_number || ''}"`,
+                  `"${it.material_code || ''}"`,
+                  `"${it.material_name || ''}"`,
+                  `"${it.size_thickness || ''}"`,
+                  `"${it.required_qty || 0}"`,
+                  `"${it.unit || ''}"`,
+                  `"${it.order_rate || 0}"`,
+                  `"${it.amount || ((it.order_rate || 0) * (it.required_qty || 0))}"`,
+                  `"${it.vendor || ''}"`,
+                  `"${it.status || ''}"`
+                ]);
+                const csvStr = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+                const blob = new Blob([csvStr], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `PO_Historical_Ledger_${new Date().toISOString().split('T')[0]}.csv`;
+                link.click();
+              }} style={{ fontSize: '12px', background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 10px', borderRadius: '6px', fontWeight: 700, cursor: 'pointer' }}>
+                ⬇️ Export CSV
+              </button>
+              <span style={{ fontSize: '12px', background: '#d1fae5', color: '#065f46', padding: '4px 10px', borderRadius: '6px', fontWeight: 700 }}>
+                {historicalPoItems.length} Past Items
+              </span>
+            </div>
           </div>
 
           <div style={{ overflowX: 'auto', maxHeight: '350px' }}>
