@@ -266,6 +266,7 @@ function CreatePOFormContent() {
   const [showNewVendorModal, setShowNewVendorModal] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
   const [savingVendor, setSavingVendor] = useState(false);
+  const [customMaterialCategory, setCustomMaterialCategory] = useState('');
 
   // Registered Hub Data Lists
   const [materialsList, setMaterialsList] = useState<any[]>([]);
@@ -427,10 +428,32 @@ function CreatePOFormContent() {
     init();
   }, [editId]);
 
+  // Auto-fill row vendors when main vendor changes
+  useEffect(() => {
+    if (vendor && items.length > 0) {
+      const updated = items.map(it => {
+        if (!it.vendor || it.vendor.trim() === '') {
+          return { ...it, vendor };
+        }
+        return it;
+      });
+      // Only set if different to prevent infinite loop
+      const isDifferent = updated.some((u, i) => u.vendor !== items[i].vendor);
+      if (isDifferent) {
+        setItems(updated);
+      }
+    }
+  }, [vendor, items]);
+
   // Dynamic Row Actions
   const handleAddMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingMaterial(true);
+    let finalCategory = newMaterialData.category;
+    if (newMaterialData.category === 'Others' && customMaterialCategory.trim() !== '') {
+      finalCategory = `Others - ${customMaterialCategory.trim()}`;
+    }
+
     try {
       const res = await fetch('/api/po/materials', {
         method: 'POST',
@@ -439,7 +462,7 @@ function CreatePOFormContent() {
           type: 'material',
           material_code: newMaterialData.material_code,
           material_name: newMaterialData.material_name,
-          category: newMaterialData.category
+          category: finalCategory
         })
       });
       const data = await res.json();
@@ -450,10 +473,11 @@ function CreatePOFormContent() {
         setMaterialsList([...materialsList, {
           material_code: newMaterialData.material_code.toUpperCase(),
           material_name: newMaterialData.material_name,
-          category: newMaterialData.category
+          category: finalCategory
         }]);
         setShowNewMaterialModal(false);
         setNewMaterialData({ category: '', material_code: '', material_name: '', date: '' });
+        setCustomMaterialCategory('');
       }
     } catch (err) {
       alert('Failed to save material');
@@ -490,7 +514,7 @@ function CreatePOFormContent() {
   const addRow = () => {
     setItems([
       ...items,
-      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
     ]);
   };
 
@@ -503,7 +527,7 @@ function CreatePOFormContent() {
 
   const clearTable = () => {
     setItems([
-      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
     ]);
   };
 
@@ -1175,6 +1199,12 @@ function CreatePOFormContent() {
                   {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
+              {newMaterialData.category === 'Others' && (
+                <div className="form-group-lux">
+                  <label>Specify Category Name</label>
+                  <input type="text" placeholder="e.g. Adhesives" value={customMaterialCategory} onChange={e => setCustomMaterialCategory(e.target.value)} />
+                </div>
+              )}
               <div className="form-group-lux">
                 <label>Material Code *</label>
                 <input type="text" placeholder="e.g. EVA-001" required value={newMaterialData.material_code} onChange={e => setNewMaterialData({...newMaterialData, material_code: e.target.value})} />

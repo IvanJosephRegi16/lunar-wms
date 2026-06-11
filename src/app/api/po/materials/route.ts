@@ -84,3 +84,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.role !== 'admin' && user.role !== 'pm') {
+      return NextResponse.json({ error: 'Forbidden: Only Admins or PMs can delete materials/vendors' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const type = searchParams.get('type');
+
+    if (!id || !type) {
+      return NextResponse.json({ error: 'Missing ID or Type parameter' }, { status: 400 });
+    }
+
+    const db = getDb();
+
+    if (type === 'material') {
+      await db.prepare(`DELETE FROM materials WHERE id = ?`).run(id);
+      return NextResponse.json({ success: true, message: 'Material deleted successfully' });
+    } else if (type === 'vendor') {
+      await db.prepare(`DELETE FROM vendors WHERE id = ?`).run(id);
+      return NextResponse.json({ success: true, message: 'Vendor deleted successfully' });
+    } else {
+      return NextResponse.json({ error: 'Invalid type parameter.' }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('[API MATERIALS DELETE ERROR]', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

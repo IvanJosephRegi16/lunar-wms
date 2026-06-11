@@ -20,6 +20,7 @@ export default function MaterialsHub() {
   const [newMatCode, setNewMatCode] = useState('');
   const [newMatName, setNewMatName] = useState('');
   const [newMatCategory, setNewMatCategory] = useState(MATERIAL_CATEGORIES[0]);
+  const [customCategory, setCustomCategory] = useState('');
 
   useEffect(() => {
     fetchMaterials();
@@ -44,6 +45,12 @@ export default function MaterialsHub() {
   const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMatCode || !newMatName) return alert('Code and Name are required');
+    
+    let finalCategory = newMatCategory;
+    if (newMatCategory === 'Others' && customCategory.trim() !== '') {
+      finalCategory = `Others - ${customCategory.trim()}`;
+    }
+
     setSaving(true);
     try {
       const res = await fetch('/api/po/materials', {
@@ -53,7 +60,7 @@ export default function MaterialsHub() {
           type: 'material',
           material_code: newMatCode,
           material_name: newMatName,
-          category: newMatCategory
+          category: finalCategory
         })
       });
       const data = await res.json();
@@ -61,6 +68,7 @@ export default function MaterialsHub() {
         setIsMatFormOpen(false);
         setNewMatCode('');
         setNewMatName('');
+        setCustomCategory('');
         fetchMaterials();
       } else {
         alert(data.error || 'Failed to create material');
@@ -69,6 +77,21 @@ export default function MaterialsHub() {
       alert('Network Error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (id: number, type: 'material' | 'vendor') => {
+    if (!confirm(`Are you sure you want to delete this ${type}? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/po/materials?id=${id}&type=${type}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (res.ok) {
+        fetchMaterials();
+      } else {
+        alert(data.error || `Failed to delete ${type}`);
+      }
+    } catch (err) {
+      alert('Network Error');
     }
   };
 
@@ -156,10 +179,15 @@ export default function MaterialsHub() {
           {/* Materials Grid */}
           <div className={styles.materialsGrid}>
             {filteredMaterials.map(mat => (
-              <div key={mat.id} className={styles.materialCard}>
+              <div key={mat.id} className={styles.materialCard} style={{ position: 'relative' }}>
                 <div className={styles.matCode}>{mat.material_code}</div>
                 <div className={styles.matName}>{mat.material_name}</div>
                 <div className={styles.matDate}>Added: {new Date(mat.created_at || Date.now()).toLocaleDateString()}</div>
+                <button 
+                  onClick={() => handleDelete(mat.id, 'material')}
+                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}
+                  title="Delete Material"
+                >🗑️</button>
               </div>
             ))}
             {filteredMaterials.length === 0 && (
@@ -178,10 +206,15 @@ export default function MaterialsHub() {
           </div>
           <div className={styles.materialsGrid}>
             {vendors.map(v => (
-              <div key={v.id} className={styles.materialCard} style={{ borderLeftColor: '#8b5cf6' }}>
+              <div key={v.id} className={styles.materialCard} style={{ borderLeftColor: '#8b5cf6', position: 'relative' }}>
                 <div className={styles.matCode} style={{ color: '#8b5cf6' }}>VENDOR</div>
                 <div className={styles.matName}>{v.vendor_name}</div>
                 <div className={styles.matDate}>Added: {new Date(v.created_at || Date.now()).toLocaleDateString()}</div>
+                <button 
+                  onClick={() => handleDelete(v.id, 'vendor')}
+                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}
+                  title="Delete Vendor"
+                >🗑️</button>
               </div>
             ))}
             {vendors.length === 0 && (
@@ -209,6 +242,12 @@ export default function MaterialsHub() {
                     {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
+                {newMatCategory === 'Others' && (
+                  <div className={styles.fieldGroup}>
+                    <label>Specify Category Name</label>
+                    <input className={styles.input} placeholder="e.g. Adhesives" value={customCategory} onChange={e => setCustomCategory(e.target.value)} />
+                  </div>
+                )}
                 <div className={styles.fieldGroup}>
                   <label>Material Code *</label>
                   <input required className={styles.input} placeholder="e.g. RXN-001" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />

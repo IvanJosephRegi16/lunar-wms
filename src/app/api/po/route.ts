@@ -142,12 +142,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `PO Number '${po_number}' is already taken. Please specify a unique PO Number.` }, { status: 400 });
       }
     } else {
-      // 1. Auto-generate sequential PO number PO-YYMMDD-XXXX
+      // 1. Auto-generate sequential PO number DDMMYY-N (e.g. 110626-1)
       const dateObj = new Date();
       const yy = dateObj.getFullYear().toString().slice(-2);
       const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
       const dd = dateObj.getDate().toString().padStart(2, '0');
-      const dayPrefix = `PO-${yy}${mm}${dd}-`;
+      const dayPrefix = `${dd}${mm}${yy}-`;
 
       const lastPo = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE ? ORDER BY id DESC LIMIT 1`).get(dayPrefix + '%') as { po_number: string } | undefined;
       let nextSeq = 1;
@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
           nextSeq = seq + 1;
         }
       }
-      po_number = dayPrefix + nextSeq.toString().padStart(4, '0');
+      po_number = dayPrefix + nextSeq.toString();
     }
 
     // 2. Perform dynamic row Calculations

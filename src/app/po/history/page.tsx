@@ -352,6 +352,13 @@ export default function POHistory() {
               </div>
             </div>
 
+            {selectedPo.remarks && (
+              <div style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '16px', borderRadius: '8px', fontSize: '13px' }}>
+                <div style={{ fontWeight: 800, color: '#d97706', marginBottom: '4px', textTransform: 'uppercase', fontSize: '11px' }}>🔒 Private Remarks / Instructions</div>
+                <div style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{selectedPo.remarks}</div>
+              </div>
+            )}
+
             <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
               <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>

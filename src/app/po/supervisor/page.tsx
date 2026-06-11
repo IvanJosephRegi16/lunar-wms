@@ -270,6 +270,13 @@ export default function SupervisorVerification() {
             </div>
           </div>
 
+          {selectedPO.remarks && (
+            <div style={{ background: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '16px', borderRadius: '12px', fontSize: '13px' }}>
+              <div style={{ fontWeight: 800, color: '#d97706', marginBottom: '4px', textTransform: 'uppercase', fontSize: '11px' }}>🔒 Private Remarks / Instructions</div>
+              <div style={{ color: '#92400e', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{selectedPO.remarks}</div>
+            </div>
+          )}
+
           {/* Material Verification Table */}
           <div style={{ background: 'white', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div style={{
