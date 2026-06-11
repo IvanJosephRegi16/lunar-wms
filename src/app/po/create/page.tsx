@@ -784,7 +784,6 @@ function CreatePOFormContent() {
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Order Rate (₹) *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '110px' }}>Amount (₹)</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '140px' }}>Vendor</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Remarks</th>
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '50px' }}>Action</th>
                 </tr>
               </thead>
@@ -796,9 +795,9 @@ function CreatePOFormContent() {
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', textAlign: 'center' }}>{idx + 1}</td>
                       <td style={{ padding: '8px' }}>
                         <select
-                          value={item.category || ''}
+                          value={(item.category || '').startsWith('Rexins') ? 'Rexins' : (item.category || '')}
                           onChange={e => {
-                            const newCategory = e.target.value;
+                            const newCategory = e.target.value === 'Rexins' ? 'Rexins - Sandwich' : e.target.value;
                             handleItemChange(idx, {
                               category: newCategory,
                               material_code: '', // Reset when category changes
@@ -811,6 +810,26 @@ function CreatePOFormContent() {
                           <option value="">-- Category --</option>
                           {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
+                        {(item.category || '').startsWith('Rexins') && (
+                          <div style={{ marginTop: '8px', display: 'flex', gap: '8px', fontSize: '11px', fontWeight: 600, color: 'var(--text-main)', background: '#eff6ff', padding: '6px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                              <input 
+                                type="radio" 
+                                name={`rexin_type_${idx}`} 
+                                checked={item.category === 'Rexins - Sandwich'} 
+                                onChange={() => handleItemChange(idx, 'category', 'Rexins - Sandwich')} 
+                              /> Sandwich
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
+                              <input 
+                                type="radio" 
+                                name={`rexin_type_${idx}`} 
+                                checked={item.category === 'Rexins - Insoles'} 
+                                onChange={() => handleItemChange(idx, 'category', 'Rexins - Insoles')} 
+                              /> Insoles
+                            </label>
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '8px', minWidth: '220px' }}>
                         <PremiumSearchDropdown
@@ -981,9 +1000,7 @@ function CreatePOFormContent() {
                       <td style={{ padding: '8px' }}>
                         <input type="text" placeholder="Row Vendor (Optional)" value={item.vendor} onChange={e => handleItemChange(idx, 'vendor', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
                       </td>
-                      <td style={{ padding: '8px' }}>
-                        <input type="text" placeholder="Note specifications..." value={item.remarks} onChange={e => handleItemChange(idx, 'remarks', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 500 }} />
-                      </td>
+
                       <td style={{ padding: '8px 16px', textAlign: 'center' }}>
                         <button disabled={items.length <= 1} onClick={() => removeRow(idx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: items.length > 1 ? 'pointer' : 'not-allowed', fontSize: '16px', opacity: items.length > 1 ? 1 : 0.4 }}>
                           🗑️

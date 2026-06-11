@@ -142,12 +142,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: `PO Number '${po_number}' is already taken. Please specify a unique PO Number.` }, { status: 400 });
       }
     } else {
-      // 1. Auto-generate sequential PO number DDMMYY-XXXX based on the provided PO Date
+      // 1. Auto-generate sequential PO number YYMMDD-XXXX based on the provided PO Date
       const dateObj = po_date ? new Date(po_date) : new Date();
       const yy = dateObj.getFullYear().toString().slice(-2);
       const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
       const dd = dateObj.getDate().toString().padStart(2, '0');
-      const dayPrefix = `${dd}${mm}${yy}-`;
+      const dayPrefix = `${yy}${mm}${dd}-`;
 
       const existingPos = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE ?`).all(dayPrefix + '%') as { po_number: string }[];
       let maxSeq = 0;
