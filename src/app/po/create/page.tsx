@@ -265,6 +265,8 @@ function CreatePOFormContent() {
   const [savingMaterial, setSavingMaterial] = useState(false);
   const [showNewVendorModal, setShowNewVendorModal] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
+  const [newVendorCompany, setNewVendorCompany] = useState('');
+  const [newVendorAddress, setNewVendorAddress] = useState('');
   const [savingVendor, setSavingVendor] = useState(false);
   const [customMaterialCategory, setCustomMaterialCategory] = useState('');
 
@@ -338,9 +340,8 @@ function CreatePOFormContent() {
         setPoDate(todayIST);
         
         if (!editId) {
-          // Generate a guaranteed unique sequential & timestamp PO number PO-YYMMDD-XXXX
-          const randSuffix = Math.floor(1000 + Math.random() * 9000);
-          setPoNumber(`PO-${yy}${mm}${dd}-${randSuffix}`);
+          // Leave poNumber blank so the backend generates a sequential DDMMYY-N number
+          setPoNumber('');
 
           // Check for AI Draft prefilling
           const aiCode = searchParams.get('article_code');
@@ -493,7 +494,12 @@ function CreatePOFormContent() {
       const res = await fetch('/api/po/materials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'vendor', vendor_name: newVendorName })
+        body: JSON.stringify({ 
+          type: 'vendor', 
+          vendor_name: newVendorName,
+          company_name: newVendorCompany,
+          address: newVendorAddress
+        })
       });
       const data = await res.json();
       if (data.error) {
@@ -503,6 +509,8 @@ function CreatePOFormContent() {
         setVendor(newVendorName.trim());
         setShowNewVendorModal(false);
         setNewVendorName('');
+        setNewVendorCompany('');
+        setNewVendorAddress('');
       }
     } catch (err) {
       alert('Failed to save vendor');
@@ -1232,6 +1240,14 @@ function CreatePOFormContent() {
               <div className="form-group-lux">
                 <label>Vendor / Supplier Name *</label>
                 <input type="text" placeholder="e.g. ABC Traders Pvt Ltd" required value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
+              </div>
+              <div className="form-group-lux">
+                <label>Company Name</label>
+                <input type="text" placeholder="Official Registered Name (Optional)" value={newVendorCompany} onChange={e => setNewVendorCompany(e.target.value)} />
+              </div>
+              <div className="form-group-lux">
+                <label>Full Address</label>
+                <textarea placeholder="Street, City, State, ZIP (Optional)" value={newVendorAddress} onChange={e => setNewVendorAddress(e.target.value)} style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', fontWeight: 500, outline: 'none', resize: 'vertical', minHeight: '80px' }} />
               </div>
               <button type="submit" disabled={savingVendor} className="btn-corp btn-primary-corp" style={{ width: '100%', marginTop: '10px', padding: '12px', fontSize: '14px' }}>
                 {savingVendor ? 'Saving...' : 'Register Vendor'}

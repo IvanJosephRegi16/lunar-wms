@@ -9,11 +9,7 @@ interface Props {
 }
 
 // The full-resolution bill content, shared between visible preview and hidden capture target
-function BillContent({ po, items, today }: { po: any; items: any[]; today: string }) {
-  const grossAmount = items.reduce((sum, it) => sum + (Number(it.order_rate) || 0) * (Number(it.required_qty ?? it.required_quantity) || 0), 0);
-  const discountPct = Number(po?.discount_percent) || 0;
-  const netAmount = grossAmount * (1 - discountPct / 100);
-
+function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[]; today: string; vendorDetails?: any }) {
   return (
     <div style={{ background: 'white', fontFamily: 'Arial, sans-serif' }}>
       {/* Bill Header */}
@@ -40,15 +36,17 @@ function BillContent({ po, items, today }: { po: any; items: any[]; today: strin
 
       {/* Vendor & Meta */}
       <div style={{ background: '#f8fafc', padding: '20px 36px', display: 'flex', gap: '32px', borderBottom: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
-        <div style={{ flex: '1 1 180px' }}>
+        <div style={{ flex: '1 1 250px' }}>
           <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Vendor / Supplier</div>
           <div style={{ fontWeight: 800, fontSize: '16px', color: '#111827' }}>{po?.vendor || '—'}</div>
+          {vendorDetails?.company_name && <div style={{ fontSize: '13px', color: '#4b5563', marginTop: '4px', fontWeight: 600 }}>🏢 {vendorDetails.company_name}</div>}
+          {vendorDetails?.address && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px', whiteSpace: 'pre-wrap' }}>📍 {vendorDetails.address}</div>}
         </div>
-        <div style={{ flex: '1 1 180px' }}>
+        <div style={{ flex: '1 1 150px' }}>
           <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>PO Date</div>
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#374151' }}>{po?.po_date || today}</div>
         </div>
-        <div style={{ flex: '1 1 180px' }}>
+        <div style={{ flex: '1 1 150px' }}>
           <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Approved Date</div>
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#374151' }}>{po?.approved_timestamp || '—'}</div>
         </div>
@@ -60,15 +58,15 @@ function BillContent({ po, items, today }: { po: any; items: any[]; today: strin
         )}
       </div>
 
-      {/* Items Table — all columns, no horizontal scroll */}
+      {/* Items Table — removed Amount and Remarks per user request */}
       <div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', tableLayout: 'auto' }}>
           <thead>
             <tr style={{ background: '#1e3a5f' }}>
-              {['#', 'Material Code', 'Material Name', 'Size / Thickness', 'Stock', 'Req. Qty', 'Unit', 'Order Rate (₹)', 'Amount (₹)', 'Vendor', 'Remarks'].map((h, i) => (
+              {['#', 'Material Code', 'Material Name', 'Size / Thickness', 'Stock', 'Req. Qty', 'Unit', 'Vendor'].map((h, i) => (
                 <th key={i} style={{
                   padding: '11px 12px', color: 'white', fontWeight: 700,
-                  textAlign: i >= 4 && i <= 8 ? 'right' : 'left',
+                  textAlign: i >= 4 && i <= 6 ? 'right' : 'left',
                   fontSize: '10px', letterSpacing: '0.04em', textTransform: 'uppercase',
                   whiteSpace: 'nowrap'
                 }}>{h}</th>
@@ -77,9 +75,7 @@ function BillContent({ po, items, today }: { po: any; items: any[]; today: strin
           </thead>
           <tbody>
             {items.map((item, i) => {
-              const rate = Number(item.order_rate) || 0;
               const qty = Number(item.required_qty ?? item.required_quantity) || 0;
-              const amount = rate * qty;
               return (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '11px 12px', color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap' }}>{i + 1}</td>
@@ -89,33 +85,12 @@ function BillContent({ po, items, today }: { po: any; items: any[]; today: strin
                   <td style={{ padding: '11px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#374151', whiteSpace: 'nowrap' }}>{(item.current_stock ?? 0).toLocaleString()}</td>
                   <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#111827', whiteSpace: 'nowrap' }}>{qty.toLocaleString()}</td>
                   <td style={{ padding: '11px 12px', color: '#6b7280', whiteSpace: 'nowrap' }}>{item.unit || 'Pair'}</td>
-                  <td style={{ padding: '11px 12px', textAlign: 'right', fontFamily: 'monospace', color: '#374151', whiteSpace: 'nowrap' }}>₹{rate.toFixed(2)}</td>
-                  <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#16a34a', whiteSpace: 'nowrap' }}>₹{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                   <td style={{ padding: '11px 12px', color: '#374151', whiteSpace: 'nowrap' }}>{item.vendor || po?.vendor || '—'}</td>
-                  <td style={{ padding: '11px 12px', color: '#6b7280', fontSize: '11px' }}>{item.remarks || '—'}</td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-      </div>
-
-      {/* Totals row */}
-      <div style={{ background: '#f8fafc', padding: '16px 36px', display: 'flex', justifyContent: 'flex-end', gap: '48px', borderTop: '2px solid #e5e7eb' }}>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Gross Total</div>
-          <div style={{ fontWeight: 700, fontSize: '14px', color: '#374151', fontFamily: 'monospace', marginTop: '4px' }}>₹{grossAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-        </div>
-        {discountPct > 0 && (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Discount</div>
-            <div style={{ fontWeight: 700, fontSize: '14px', color: '#ef4444', fontFamily: 'monospace', marginTop: '4px' }}>-{discountPct}%</div>
-          </div>
-        )}
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Net Total</div>
-          <div style={{ fontWeight: 900, fontSize: '18px', color: '#1d4ed8', fontFamily: 'monospace', marginTop: '4px' }}>₹{netAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-        </div>
       </div>
 
       {/* Bill Footer */}
@@ -132,6 +107,27 @@ export default function EmailModal({ po, items, onClose }: Props) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [vendorDetails, setVendorDetails] = useState<any>(null);
+
+  // Fetch vendor details when modal opens
+  import('react').then(React => {
+    React.useEffect(() => {
+      async function fetchVendor() {
+        if (!po?.vendor) return;
+        try {
+          const res = await fetch('/api/po/materials');
+          const data = await res.json();
+          if (data.success && data.vendors) {
+            const v = data.vendors.find((vd: any) => vd.vendor_name === po.vendor);
+            if (v) setVendorDetails(v);
+          }
+        } catch (err) {
+          console.error("Failed to fetch vendor details", err);
+        }
+      }
+      fetchVendor();
+    }, [po?.vendor]);
+  });
 
   // This ref is for the HIDDEN full-width capture target (off-screen, not clipped)
   const captureRef = useRef<HTMLDivElement>(null);
@@ -240,7 +236,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
           pointerEvents: 'none',
         }}
       >
-        <BillContent po={po} items={items} today={today} />
+        <BillContent po={po} items={items} today={today} vendorDetails={vendorDetails} />
       </div>
 
       {/* Visible modal */}
@@ -299,7 +295,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
         <div style={{ margin: '20px 28px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <div style={{ minWidth: '900px' }}>
-              <BillContent po={po} items={items} today={today} />
+              <BillContent po={po} items={items} today={today} vendorDetails={vendorDetails} />
             </div>
           </div>
           <div style={{ background: '#f0f9ff', padding: '8px 16px', borderTop: '1px solid #bae6fd', fontSize: '11px', color: '#0369a1', fontWeight: 600 }}>
