@@ -864,6 +864,13 @@ function CreatePOFormContent() {
                               updates.size_thickness = mmMatch[0].toUpperCase();
                             }
 
+                            // Auto-fill Rate Logic (digits at the very end of string)
+                            const cleanVal = val.trim();
+                            const priceMatch = cleanVal.match(/(\d+(?:\.\d+)?)$/);
+                            if (priceMatch && !isNaN(parseFloat(priceMatch[1]))) {
+                              updates.order_rate = parseFloat(priceMatch[1]);
+                            }
+
                             handleItemChange(idx, updates);
                           }}
                           options={materialsList
@@ -900,7 +907,7 @@ function CreatePOFormContent() {
                                 
                                 // Auto-fill Rate Logic (digits at the very end of string)
                                 const cleanVal = val.trim();
-                                const priceMatch = cleanVal.match(/(?:Rs\.?\s*|₹\s*|\s+)(\d+(?:\.\d+)?)$/i);
+                                const priceMatch = cleanVal.match(/(\d+(?:\.\d+)?)$/);
                                 if (priceMatch && !isNaN(parseFloat(priceMatch[1]))) {
                                   updates.order_rate = parseFloat(priceMatch[1]);
                                 }
