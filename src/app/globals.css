@@ -1355,201 +1355,6 @@ select:disabled {
   }
   div[style*="maxWidth: '900px'"] {
     max-width: calc(100vw - 24px) !important;
-/* ── Tablet (≤ 1200px): wider padding squeeze ── */
-@media (max-width: 1200px) {
-  .main-content {
-    padding: 40px 40px;
-  }
-  .card-clean {
-    padding: 28px;
-  }
-}
-
-/* ── Tablet portrait + narrow laptop (≤ 992px) ── */
-@media (max-width: 992px) {
-  /* Sidebar becomes an off-canvas overlay */
-  .sidebar-corporate {
-    position: fixed;
-    left: -290px;
-    top: 0;
-    height: 100vh;
-    width: 270px;
-    z-index: 200;
-    transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 4px 0 40px rgba(0,0,0,0.35);
-    overflow-y: auto;
-  }
-  .sidebar-corporate.open {
-    left: 0;
-  }
-
-  /* Show the sticky mobile top bar */
-  .mobile-header {
-    display: flex !important;
-    position: sticky;
-    top: 0;
-    z-index: 150;
-  }
-
-  /* Main content no longer needs left-offset */
-  .main-content {
-    padding: 24px 20px 40px;
-    margin-left: 0 !important;
-  }
-
-  /* Layout wrapper becomes block so sidebar floats above */
-  .app-container {
-    display: block;
-  }
-
-  /* Grid squeeze */
-  .grid-4 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
-  .grid-3 { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
-
-  /* Card padding */
-  .card-clean { padding: 20px; margin-bottom: 20px; }
-
-  /* AI Copilot position adjustment */
-  .ai-copilot-desk {
-    width: calc(100vw - 32px) !important;
-    right: 16px !important;
-    left: 16px !important;
-  }
-
-  /* Hero/Command headers */
-  .ai-command-header { padding: 20px 24px; }
-  .ai-command-header h1 { font-size: 22px !important; }
-}
-
-/* ── Mobile (≤ 768px) ── */
-@media (max-width: 768px) {
-  /* Single column everything */
-  .grid-4,
-  .grid-3,
-  .grid-2,
-  .grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-
-  /* Full-width main content */
-  .main-content { padding: 16px 12px 32px; }
-
-  /* Cards */
-  .card-clean { padding: 16px; border-radius: 12px; margin-bottom: 16px; }
-
-  /* All tables get horizontal scroll so they never overflow */
-  table {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    white-space: nowrap;
-  }
-  .table-responsive { border-radius: 10px; }
-  .table-corporate th,
-  .table-corporate td { padding: 12px 14px; font-size: 12px; }
-
-  /* Modals: full-width, centred with small margin */
-  [style*="position: fixed"][style*="zIndex: 9999"] > div,
-  [style*="position: fixed"][style*="z-index: 9999"] > div {
-    width: calc(100vw - 24px) !important;
-    max-width: 100% !important;
-    max-height: 90vh !important;
-    padding: 16px !important;
-    border-radius: 16px !important;
-    overflow-y: auto !important;
-  }
-
-  /* Title text sizes */
-  .title-main { font-size: 20px !important; }
-  .ai-command-header h1 { font-size: 18px !important; }
-  .ai-command-header { padding: 16px; }
-
-  /* Buttons full-width on small screens when stacked */
-  .flex-between {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  /* Login card */
-  .login-card-6d {
-    width: calc(100vw - 32px) !important;
-    padding: 32px 20px !important;
-    border-radius: 20px !important;
-  }
-  .silk-header h1 { font-size: 24px !important; }
-
-  /* Silk form fields */
-  .silk-field input,
-  .silk-field select,
-  .silk-field textarea {
-    font-size: 16px !important; /* prevents iOS auto-zoom */
-    padding: 12px 14px !important;
-  }
-
-  /* PO Tracker status stages: allow wrapping on tiny screens */
-  [style*="display: flex"][style*="justifyContent: space-between"] {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  /* AI Copilot floating button — smaller */
-  .ai-copilot-button {
-    padding: 10px 14px !important;
-    font-size: 12px !important;
-    bottom: 16px !important;
-    right: 12px !important;
-  }
-  .ai-copilot-desk {
-    bottom: 72px !important;
-    right: 8px !important;
-    left: 8px !important;
-    width: calc(100vw - 16px) !important;
-    height: 70vh !important;
-  }
-
-  /* Notification dropdown: full width */
-  [style*="position: absolute"][style*="width: 360px"] {
-    width: calc(100vw - 24px) !important;
-    right: 0 !important;
-    left: 12px !important;
-  }
-
-  /* Hide non-essential columns in compact tables */
-  .hide-mobile { display: none !important; }
-}
-
-/* ── Small phones (≤ 480px) ── */
-@media (max-width: 480px) {
-  .main-content { padding: 12px 8px 24px; }
-  .card-clean { padding: 12px; }
-
-  /* Metric value sizes */
-  [style*="fontSize: '32px'"],
-  [style*="fontSize: '28px'"] {
-    font-size: 22px !important;
-  }
-
-  /* Nav link text — keep emoji, shrink label */
-  .nav-btn { font-size: 12px; padding: 10px 12px; }
-
-  /* Buttons */
-  .btn-corp { padding: 8px 14px; font-size: 13px; }
-  .btn-sentinel { padding: 14px; font-size: 14px; }
-}
-
-/* ── Ensure table wrapper div inside card also scrolls ── */
-@media (max-width: 768px) {
-  div[style*="overflowX: 'auto'"],
-  div[style*="overflow-x: auto"],
-  div[style*="overflowX:auto"] {
-    -webkit-overflow-scrolling: touch;
-  }
-  /* Force any hardcoded wide container to stay in viewport */
-  div[style*="maxWidth: '850px'"] {
-    max-width: calc(100vw - 24px) !important;
-  }
-  div[style*="maxWidth: '900px'"] {
-    max-width: calc(100vw - 24px) !important;
   }
   div[style*="maxWidth: '1000px'"] {
     max-width: calc(100vw - 24px) !important;
@@ -1589,8 +1394,14 @@ select:disabled {
     max-width: 80vw !important;
   }
 }
-/ *    % %  A D D I T I O N A L   M O B I L E   R E S P O N S I V E N E S S   ( P O   C r e a t e   &   A d m i n )    % %  * /  
- @ m e d i a   ( m a x - w i d t h :   7 6 8 p x )   {   . f l e x - b e t w e e n   {   f l e x - d i r e c t i o n :   c o l u m n ;   a l i g n - i t e m s :   s t r e t c h ;   g a p :   1 6 p x ;   }   . s i l k - f i e l d   {   m a r g i n - b o t t o m :   1 6 p x ;   }   . g r i d - 3 ,   . g r i d - 4   {   g r i d - t e m p l a t e - c o l u m n s :   1 f r ;   }   . c a r d - c l e a n   {   p a d d i n g :   2 0 p x ;   o v e r f l o w - x :   a u t o ;   }   . t a b l e - c o r p o r a t e   t h ,   . t a b l e - c o r p o r a t e   t d   {   w h i t e - s p a c e :   n o w r a p ;   p a d d i n g :   1 2 p x   1 0 p x ;   }   f o r m [ s t y l e * = \  
- d i s p l a y :  
- f l e x \ ]   {   f l e x - d i r e c t i o n :   c o l u m n   ! i m p o r t a n t ;   a l i g n - i t e m s :   s t r e t c h   ! i m p o r t a n t ;   }   . t a b l e - c o r p o r a t e   i n p u t ,   . t a b l e - c o r p o r a t e   s e l e c t   {   m i n - w i d t h :   1 2 0 p x ;   }   }  
- 
+
+/* %% ADDITIONAL MOBILE RESPONSIVENESS (PO Create & Admin) %% */
+@media (max-width: 768px) {
+  .flex-between { flex-direction: column; align-items: stretch; gap: 16px; }
+  .silk-field { margin-bottom: 16px; }
+  .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .card-clean { padding: 20px; overflow-x: auto; }
+  .table-corporate th, .table-corporate td { white-space: nowrap; padding: 12px 10px; }
+  form[style*="display: flex"] { flex-direction: column !important; align-items: stretch !important; }
+  .table-corporate input, .table-corporate select { min-width: 120px; }
+}
