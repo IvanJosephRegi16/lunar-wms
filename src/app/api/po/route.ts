@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
     const mergedPos = await Promise.all(pos.map(async p => {
       const healed = await healPoData(p);
       const items = await db.prepare(`
-        SELECT id, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks 
+        SELECT id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks 
         FROM purchase_order_items 
         WHERE po_id = ?
       `).all(healed.id) as any[];

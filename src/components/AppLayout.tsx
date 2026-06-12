@@ -817,7 +817,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
             {mobileSidebarOpen && (
               <button 
                 onClick={() => setMobileSidebarOpen(false)}
-                style={{ background: 'none', border: 'none', fontSize: '28px', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ background: 'none', border: 'none', fontSize: '32px', color: '#ffffff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 8px' }}
               >
                 ×
               </button>
