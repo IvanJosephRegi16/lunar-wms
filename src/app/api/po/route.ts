@@ -121,14 +121,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Purchase Order must contain at least one material item' }, { status: 400 });
     }
 
-    // Verify row level items
-    for (const [idx, item] of items.entries()) {
-      const { material_name, size_thickness, order_rate, required_qty } = item;
-      if (!material_name || !size_thickness || order_rate === undefined || required_qty === undefined) {
-        return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name, Size, Rate, or Qty)` }, { status: 400 });
-      }
-      if (Number(order_rate) <= 0 || Number(required_qty) <= 0) {
-        return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Order Rate and Required Quantity` }, { status: 400 });
+    // Verify row level items (Skip strict validation for drafts)
+    if (status !== 'draft') {
+      for (const [idx, item] of items.entries()) {
+        const { material_name, size_thickness, required_qty } = item;
+        if (!material_name || !size_thickness || required_qty === undefined) {
+          return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name, Size, or Qty)` }, { status: 400 });
+        }
+        if (Number(required_qty) <= 0) {
+          return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Required Quantity` }, { status: 400 });
+        }
       }
     }
 
@@ -256,6 +258,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, id: result, po_number });
   } catch (error: any) {
     console.error('Error creating PO:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Only Admin and PM can delete drafts
+    if (user.role !== 'pm' && user.role !== 'admin') {
+      return NextResponse.json({ error: 'Only Purchase Managers or Admins can delete PO drafts' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Missing PO ID' }, { status: 400 });
+    }
+
+    const db = getDb();
+    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(id) as any;
+
+    if (!po) {
+      return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
+    }
+
+    if (po.status !== 'draft') {
+      return NextResponse.json({ error: 'Only drafts can be deleted' }, { status: 400 });
+    }
+
+    // Role check: PM can only delete their own drafts unless they are admin
+    if (user.role === 'pm' && po.created_by !== user.id) {
+      return NextResponse.json({ error: 'You can only delete your own drafts' }, { status: 403 });
+    }
+
+    await db.prepare(`UPDATE purchase_orders SET is_deleted = 1 WHERE id = ?`).run(id);
+
+    return NextResponse.json({ success: true, message: 'Draft deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting PO:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

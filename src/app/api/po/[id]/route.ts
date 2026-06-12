@@ -139,14 +139,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Purchase Order must contain at least one material item' }, { status: 400 });
     }
 
-    // Verify row level items
-    for (const [idx, item] of items.entries()) {
-      const { material_name, size_thickness, order_rate, required_qty } = item;
-      if (!material_name || !size_thickness || order_rate === undefined || required_qty === undefined) {
-        return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name, Size, Rate, or Qty)` }, { status: 400 });
-      }
-      if (Number(order_rate) <= 0 || Number(required_qty) <= 0) {
-        return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Order Rate and Required Quantity` }, { status: 400 });
+    // Verify row level items (Skip strict validation for drafts)
+    if (status !== 'draft') {
+      for (const [idx, item] of items.entries()) {
+        const { material_name, size_thickness, required_qty } = item;
+        if (!material_name || !size_thickness || required_qty === undefined) {
+          return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name, Size, or Qty)` }, { status: 400 });
+        }
+        if (Number(required_qty) <= 0) {
+          return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Required Quantity` }, { status: 400 });
+        }
       }
     }
 

@@ -313,11 +313,12 @@ function CreatePOFormContent() {
         // Fetch Historical PO Items for bottom grid
         const historyRes = await fetch('/api/po');
         const historyData = await historyRes.json();
-        if (historyData.pos) {
-          const allItems: any[] = [];
-          historyData.pos.forEach((po: any) => {
-            if (Array.isArray(po.items)) {
-              po.items.forEach((it: any) => {
+          if (historyData.pos) {
+            const allItems: any[] = [];
+            historyData.pos.forEach((po: any) => {
+              if (po.status === 'draft') return; // Exclude drafts from historical ledger
+              if (Array.isArray(po.items)) {
+                po.items.forEach((it: any) => {
                 allItems.push({
                   ...it,
                   po_number: po.po_number,
@@ -505,8 +506,9 @@ function CreatePOFormContent() {
       if (data.error) {
         alert(data.error);
       } else {
-        setVendorsList([...vendorsList, { vendor_name: newVendorName.trim() }]);
-        setVendor(newVendorName.trim());
+        const finalVendorName = newVendorName.trim() || newVendorCompany.trim();
+        setVendorsList([...vendorsList, { vendor_name: finalVendorName }]);
+        setVendor(finalVendorName);
         setShowNewVendorModal(false);
         setNewVendorName('');
         setNewVendorCompany('');
@@ -569,19 +571,21 @@ function CreatePOFormContent() {
     }
 
     // Verify row level items
-    for (const [idx, item] of items.entries()) {
-      if (!item.material_name || !item.size_thickness) {
-        setError(`Row #${idx + 1} has incomplete material fields. Material Name and Size/Thickness are required.`);
-        return;
-      }
-      if (Number(item.order_rate) <= 0 || Number(item.required_qty) <= 0) {
-        setError(`Row #${idx + 1} must have a positive Order Rate and Required Quantity.`);
-        return;
-      }
-      const unitValue = item.unit === 'Custom' ? item.custom_unit : item.unit;
-      if (!unitValue || !unitValue.trim()) {
-        setError(`Row #${idx + 1} requires a unit selection or custom input.`);
-        return;
+    if (status !== 'draft') {
+      for (const [idx, item] of items.entries()) {
+        if (!item.material_name || !item.size_thickness) {
+          setError(`Row #${idx + 1} has incomplete material fields. Material Name and Size/Thickness are required.`);
+          return;
+        }
+        if (Number(item.required_qty) <= 0) {
+          setError(`Row #${idx + 1} must have a positive Required Quantity.`);
+          return;
+        }
+        const unitValue = item.unit === 'Custom' ? item.custom_unit : item.unit;
+        if (!unitValue || !unitValue.trim()) {
+          setError(`Row #${idx + 1} requires a unit selection or custom input.`);
+          return;
+        }
       }
     }
 
@@ -781,9 +785,10 @@ function CreatePOFormContent() {
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Current Stock & Unit</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Required Qty & Unit *</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Order Rate (₹) *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Order Rate (₹)</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '110px' }}>Amount (₹)</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '140px' }}>Vendor</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '140px' }}>Remarks</th>
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '50px' }}>Action</th>
                 </tr>
               </thead>
@@ -794,22 +799,20 @@ function CreatePOFormContent() {
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', textAlign: 'center' }}>{idx + 1}</td>
                       <td style={{ padding: '8px' }}>
-                        <select
+                        <PremiumSearchDropdown
                           value={(item.category || '').startsWith('Rexins') ? 'Rexins' : (item.category || '')}
-                          onChange={e => {
-                            const newCategory = e.target.value === 'Rexins' ? 'Rexins - Sandwich' : e.target.value;
+                          onChange={(val: string) => {
+                            const newCategory = val === 'Rexins' ? 'Rexins - Sandwich' : val;
                             handleItemChange(idx, {
                               category: newCategory,
                               material_code: '', // Reset when category changes
                               material_name: ''
                             });
                           }}
-                          style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: 'white' }}
+                          options={Array.from(new Set([...MATERIAL_CATEGORIES, ...materialsList.map(m => m.category).filter(c => c)])).map(cat => ({ value: cat, label: 'Category' }))}
+                          placeholder="Select or add..."
                           required
-                        >
-                          <option value="">-- Category --</option>
-                          {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
+                        />
                         {(item.category || '').startsWith('Rexins') && (
                           <div style={{ marginTop: '8px', display: 'flex', gap: '8px', fontSize: '11px', fontWeight: 600, color: 'var(--text-main)', background: '#eff6ff', padding: '6px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
                             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}>
@@ -836,15 +839,19 @@ function CreatePOFormContent() {
                           value={item.material_code}
                           onChange={(val: string) => {
                             const selected = materialsList.find(m => m.material_code.toUpperCase() === val.toUpperCase());
+                            let updates: any = { material_code: val };
                             if (selected) {
-                              handleItemChange(idx, {
-                                material_code: val,
-                                material_name: selected.material_name,
-                                category: selected.category || item.category || 'Others'
-                              });
-                            } else {
-                              handleItemChange(idx, 'material_code', val);
+                              updates.material_name = selected.material_name;
+                              updates.category = selected.category || item.category || 'Others';
                             }
+
+                            // Auto-fill MM Logic
+                            const mmMatch = val.match(/(\d+(?:\.\d+)?)\s*[mM][mM]/);
+                            if (mmMatch) {
+                              updates.size_thickness = mmMatch[0].toUpperCase();
+                            }
+
+                            handleItemChange(idx, updates);
                           }}
                           options={materialsList
                             .filter(m => {
@@ -865,15 +872,26 @@ function CreatePOFormContent() {
                               value={item.material_name}
                               onChange={(val: string) => {
                                 const selected = materialsList.find(m => m.material_name.toUpperCase() === val.toUpperCase());
+                                let updates: any = { material_name: val };
+                                
                                 if (selected) {
-                                  handleItemChange(idx, {
-                                    material_code: selected.material_code,
-                                    material_name: val,
-                                    category: selected.category || item.category || 'Others'
-                                  });
-                                } else {
-                                  handleItemChange(idx, 'material_name', val);
+                                  updates.material_code = selected.material_code;
+                                  updates.category = selected.category || item.category || 'Others';
                                 }
+
+                                // Auto-fill MM Logic
+                                const mmMatch = val.match(/(\d+(?:\.\d+)?)\s*[mM][mM]/);
+                                if (mmMatch) {
+                                  updates.size_thickness = mmMatch[0].toUpperCase();
+                                }
+                                
+                                // Auto-fill Rate Logic (digits at the very end of string)
+                                const priceMatch = val.match(/\s+(\d+(?:\.\d+)?)$/);
+                                if (priceMatch && !isNaN(parseFloat(priceMatch[1]))) {
+                                  updates.order_rate = parseFloat(priceMatch[1]);
+                                }
+
+                                handleItemChange(idx, updates);
                               }}
                               options={materialsList
                                 .filter(m => {
@@ -907,6 +925,7 @@ function CreatePOFormContent() {
                             <option value="Pair">Pair</option>
                             <option value="piece">Piece</option>
                             <option value="Meter">Meter</option>
+                            <option value="KG">KG</option>
                             <option value="Custom">Custom</option>
                           </select>
 
@@ -958,6 +977,7 @@ function CreatePOFormContent() {
                             <option value="Pair">Pair</option>
                             <option value="piece">Piece</option>
                             <option value="Meter">Meter</option>
+                            <option value="KG">KG</option>
                             <option value="Custom">Custom</option>
                           </select>
 
@@ -1002,13 +1022,16 @@ function CreatePOFormContent() {
                         </div>
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <input type="number" min="0.01" step="any" required value={item.order_rate || ''} onChange={e => handleItemChange(idx, 'order_rate', Math.max(parseFloat(e.target.value) || 0, 0))} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: '#fffbeb' }} />
+                        <input type="number" min="0" step="any" placeholder="Optional" value={item.order_rate || ''} onChange={e => handleItemChange(idx, 'order_rate', Math.max(parseFloat(e.target.value) || 0, 0))} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: '#fffbeb' }} />
                       </td>
                       <td style={{ padding: '12px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--primary)' }}>
                         ₹{itemAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input type="text" placeholder="Row Vendor (Optional)" value={item.vendor} onChange={e => handleItemChange(idx, 'vendor', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
+                      </td>
+                      <td style={{ padding: '8px' }}>
+                        <input type="text" placeholder="Remarks (Internal)" value={item.remarks || ''} onChange={e => handleItemChange(idx, 'remarks', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
                       </td>
 
                       <td style={{ padding: '8px 16px', textAlign: 'center' }}>
@@ -1034,23 +1057,6 @@ function CreatePOFormContent() {
             <div>
               <h3 style={{ fontSize: '14px', fontWeight: 800 }}>Spreadsheet Procurement Formula Ledger</h3>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Real-time dynamic calculations on Raw Materials.</p>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '10px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Gross Total (Rate × Qty)</span>
-                <span style={{ fontSize: '14px', fontWeight: 800, fontFamily: 'monospace' }}>₹{grossAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border)', paddingBottom: '10px', alignItems: 'center' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Global Discount %</span>
-                <input type="number" min="0" max="100" value={discountPercent || ''} onChange={e => setDiscountPercent(Math.min(Math.max(parseFloat(e.target.value) || 0, 0), 100))} style={{ width: '70px', padding: '4px 8px', textAlign: 'center', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 700, fontFamily: 'monospace' }} />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '4px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Net Procurement Total</span>
-                <span style={{ fontSize: '17px', fontWeight: 900, fontFamily: 'monospace', color: 'var(--primary)' }}>₹{netAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1292,12 +1298,12 @@ function CreatePOFormContent() {
             </div>
             <form onSubmit={handleAddVendor} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="form-group-lux">
-                <label>Vendor / Supplier Name *</label>
-                <input type="text" placeholder="e.g. ABC Traders Pvt Ltd" required value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
+                <label>Company Name *</label>
+                <input type="text" placeholder="Official Registered Name" required value={newVendorCompany} onChange={e => setNewVendorCompany(e.target.value)} />
               </div>
               <div className="form-group-lux">
-                <label>Company Name</label>
-                <input type="text" placeholder="Official Registered Name (Optional)" value={newVendorCompany} onChange={e => setNewVendorCompany(e.target.value)} />
+                <label>Vendor / Supplier Name (Optional)</label>
+                <input type="text" placeholder="e.g. ABC Traders Pvt Ltd" value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
               </div>
               <div className="form-group-lux">
                 <label>Full Address</label>

@@ -16,6 +16,8 @@ export default function MaterialsHub() {
   const [selectedMatCategory, setSelectedMatCategory] = useState(MATERIAL_CATEGORIES[0]);
   const [vendors, setVendors] = useState<any[]>([]);
   const [newVendorName, setNewVendorName] = useState('');
+  const [newVendorCompany, setNewVendorCompany] = useState('');
+  const [newVendorAddress, setNewVendorAddress] = useState('');
   const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
   const [isMatFormOpen, setIsMatFormOpen] = useState(false);
   const [newMatCode, setNewMatCode] = useState('');
@@ -45,7 +47,7 @@ export default function MaterialsHub() {
 
   const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMatCode || !newMatName) return alert('Code and Name are required');
+    if (!newMatName) return alert('Material Name is required');
     
     let finalCategory = newMatCategory;
     if (newMatCategory === 'Others' && customCategory.trim() !== '') {
@@ -98,7 +100,7 @@ export default function MaterialsHub() {
 
   const handleCreateVendor = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVendorName) return alert('Vendor Name is required');
+    if (!newVendorCompany) return alert('Company Name is required');
     setSaving(true);
     try {
       const res = await fetch('/api/po/materials', {
@@ -106,13 +108,17 @@ export default function MaterialsHub() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'vendor',
-          vendor_name: newVendorName
+          vendor_name: newVendorName,
+          company_name: newVendorCompany,
+          address: newVendorAddress
         })
       });
       const data = await res.json();
       if (res.ok) {
         setIsVendorFormOpen(false);
         setNewVendorName('');
+        setNewVendorCompany('');
+        setNewVendorAddress('');
         fetchMaterials();
       } else {
         alert(data.error || 'Failed to create vendor');
@@ -268,8 +274,8 @@ export default function MaterialsHub() {
                   </div>
                 )}
                 <div className={styles.fieldGroup}>
-                  <label>Material Code *</label>
-                  <input required className={styles.input} placeholder="e.g. RXN-001" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />
+                  <label>Material Code (Optional)</label>
+                  <input className={styles.input} placeholder="e.g. RXN-001" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
                   <label>Material Name *</label>
@@ -300,8 +306,16 @@ export default function MaterialsHub() {
             <form onSubmit={handleCreateVendor} style={{ display: 'flex', flexDirection: 'column' }}>
               <div className={styles.modalBody}>
                 <div className={styles.fieldGroup}>
-                  <label>Vendor / Supplier Name *</label>
-                  <input required className={styles.input} placeholder="e.g. Alpha Chemicals Ltd." value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
+                  <label>Company Name *</label>
+                  <input required className={styles.input} placeholder="e.g. Alpha Chemicals Ltd." value={newVendorCompany} onChange={e => setNewVendorCompany(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Vendor / Supplier Name (Optional)</label>
+                  <input className={styles.input} placeholder="e.g. Alpha Chemicals" value={newVendorName} onChange={e => setNewVendorName(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Full Address (Optional)</label>
+                  <input className={styles.input} placeholder="e.g. 123 Industrial Area..." value={newVendorAddress} onChange={e => setNewVendorAddress(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
                   <label>Registration Date</label>

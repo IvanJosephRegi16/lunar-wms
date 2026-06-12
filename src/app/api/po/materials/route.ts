@@ -51,13 +51,7 @@ export async function POST(req: NextRequest) {
 
       const matCode = (material_code || '').trim().toUpperCase();
       
-      // Check unique only if code is provided
-      if (matCode) {
-        const existing = await db.prepare(`SELECT id FROM materials WHERE UPPER(material_code) = ?`).get(matCode);
-        if (existing) {
-          return NextResponse.json({ error: `Material Code '${matCode}' is already registered.` }, { status: 400 });
-        }
-      }
+      // Removed unique check as requested by user to allow duplicates/empty codes
 
       await db.prepare(
         `INSERT INTO materials (material_code, material_name, category) VALUES (?, ?, ?)`
@@ -65,19 +59,22 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ success: true, message: 'Material registered successfully' });
     } else if (type === 'vendor') {
-      if (!vendor_name) {
-        return NextResponse.json({ error: 'Vendor Name is required' }, { status: 400 });
+      const companyName = (company_name || '').trim();
+      if (!companyName) {
+        return NextResponse.json({ error: 'Company Name is required' }, { status: 400 });
       }
 
+      const vendorName = (vendor_name || '').trim() || companyName;
+
       // Check unique
-      const existing = await db.prepare(`SELECT id FROM vendors WHERE UPPER(vendor_name) = UPPER(?)`).get(vendor_name.trim());
+      const existing = await db.prepare(`SELECT id FROM vendors WHERE UPPER(vendor_name) = UPPER(?)`).get(vendorName);
       if (existing) {
-        return NextResponse.json({ error: `Vendor '${vendor_name}' is already registered.` }, { status: 400 });
+        return NextResponse.json({ error: `Vendor '${vendorName}' is already registered.` }, { status: 400 });
       }
 
       await db.prepare(
         `INSERT INTO vendors (vendor_name, company_name, address) VALUES (?, ?, ?)`
-      ).run(vendor_name.trim(), (company_name || '').trim(), (address || '').trim());
+      ).run(vendorName, companyName, (address || '').trim());
 
       return NextResponse.json({ success: true, message: 'Vendor registered successfully' });
     } else {

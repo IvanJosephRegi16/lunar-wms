@@ -63,6 +63,21 @@ export default function DraftPOs() {
   const isPM = user?.role === 'pm';
   const isAdmin = user?.role === 'admin';
 
+  const handleDeleteDraft = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/po?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.error) {
+        alert(data.error);
+      } else {
+        setPos(prev => prev.filter(p => p.id !== id));
+      }
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete draft');
+    }
+  };
+
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
@@ -104,16 +119,21 @@ export default function DraftPOs() {
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Net Amount</span>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', fontFamily: 'monospace' }}>₹{(po.net_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => setSelectedPo(po)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 12px' }}>
-                      👁️ View Sheet
-                    </button>
-                    {(isPM || isAdmin) && (
-                      <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}>
-                        📝 Resume Draft
-                      </Link>
-                    )}
-                  </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => setSelectedPo(po)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 12px' }}>
+                        👁️ View Sheet
+                      </button>
+                      {(isPM || isAdmin) && (
+                        <>
+                          <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}>
+                            📝 Resume Draft
+                          </Link>
+                          <button onClick={() => handleDeleteDraft(po.id)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 14px', background: '#fee2e2', borderColor: '#fca5a5', color: '#b91c1c' }}>
+                            🗑️ Delete
+                          </button>
+                        </>
+                      )}
+                    </div>
                 </div>
 
                 <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 600 }}>
