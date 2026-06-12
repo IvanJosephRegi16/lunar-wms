@@ -274,6 +274,7 @@ function CreatePOFormContent() {
   const [materialsList, setMaterialsList] = useState<any[]>([]);
   const [vendorsList, setVendorsList] = useState<any[]>([]);
   const [historicalPoItems, setHistoricalPoItems] = useState<any[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
 
   // PO Header Details
   const [vendor, setVendor] = useState('');
@@ -287,18 +288,17 @@ function CreatePOFormContent() {
     { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
   ]);
 
-  // Derived dynamic categories from materials API
+  // Derived dynamic categories: base + custom from DB + any already in materials list
   const dynamicCategories = useMemo(() => {
     const cats = new Set(MATERIAL_CATEGORIES.filter(c => c !== 'Others'));
+    customCategories.forEach(c => cats.add(c));
     materialsList.forEach(m => {
       if (m.category && m.category.trim() !== '' && !m.category.startsWith('Others - ')) {
         cats.add(m.category);
       }
     });
-    const arr = Array.from(cats).sort();
-    arr.push('Others');
-    return arr;
-  }, [materialsList]);
+    return Array.from(cats).sort();
+  }, [materialsList, customCategories]);
 
   // Fetch session and prefill edit details if applicable
   useEffect(() => {
@@ -315,12 +315,19 @@ function CreatePOFormContent() {
         }
         setUser(meData.user);
 
-        // Fetch dynamic registry lists (Materials & Vendors)
-        const registryRes = await fetch('/api/po/materials');
+        // Fetch dynamic registry lists (Materials, Vendors & Custom Categories)
+        const [registryRes, catRes] = await Promise.all([
+          fetch('/api/po/materials'),
+          fetch('/api/po/categories')
+        ]);
         const registryData = await registryRes.json();
         if (registryData.success) {
           setMaterialsList(registryData.materials || []);
           setVendorsList(registryData.vendors || []);
+        }
+        if (catRes.ok) {
+          const catData = await catRes.json();
+          setCustomCategories(catData.categories || []);
         }
 
         // Fetch Historical PO Items for bottom grid

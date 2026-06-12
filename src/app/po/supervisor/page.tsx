@@ -330,7 +330,7 @@ export default function SupervisorVerification() {
                           }}>{checkedItems[i] ? '✓' : ''}</span>
                         </label>
                       </td>
-                      <td style={{ padding: '12px', fontWeight: 600, color: '#64748b', fontSize: '12px' }}>{item.material_category || 'Uncategorized'}</td>
+                      <td style={{ padding: '12px', fontWeight: 700, fontSize: '11px', color: '#7c3aed', background: '#f5f3ff', borderRadius: '6px', whiteSpace: 'nowrap' }}>{item.category || 'Uncategorized'}</td>
                       <td style={{ padding: '12px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--primary)' }}>{item.material_code}</td>
                       <td style={{ padding: '12px', fontWeight: 700 }}>{item.material_name}</td>
                       <td style={{ padding: '12px', color: '#64748b' }}>{item.size_thickness || '-'}</td>

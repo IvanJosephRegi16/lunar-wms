@@ -1,54 +1,68 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import styles from '../../pm/articles/page.module.css'; // Reuse the exact same premium styles
+import styles from '../../pm/articles/page.module.css';
 import ExportDropdown from '@/components/ExportDropdown';
 
-const MATERIAL_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro', 'Others'];
+const BASE_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro'];
 
 export default function MaterialsHub() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Material Library States
-  const [activeMainTab, setActiveMainTab] = useState<'materials' | 'vendors'>('materials');
-  const [selectedMatCategory, setSelectedMatCategory] = useState(MATERIAL_CATEGORIES[0]);
+  // Custom categories from DB
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [newCatName, setNewCatName] = useState('');
+  const [savingCat, setSavingCat] = useState(false);
+  const [showAddCatForm, setShowAddCatForm] = useState(false);
+
+  // Tab control
+  const [activeMainTab, setActiveMainTab] = useState<'materials' | 'vendors' | 'categories'>('materials');
+  const [selectedMatCategory, setSelectedMatCategory] = useState(BASE_CATEGORIES[0]);
+
+  // Vendors
   const [vendors, setVendors] = useState<any[]>([]);
   const [newVendorName, setNewVendorName] = useState('');
   const [newVendorCompany, setNewVendorCompany] = useState('');
   const [newVendorAddress, setNewVendorAddress] = useState('');
   const [isVendorFormOpen, setIsVendorFormOpen] = useState(false);
+
+  // Material form
   const [isMatFormOpen, setIsMatFormOpen] = useState(false);
   const [newMatCode, setNewMatCode] = useState('');
   const [newMatName, setNewMatName] = useState('');
-  const [newMatCategory, setNewMatCategory] = useState(MATERIAL_CATEGORIES[0]);
-  const [customCategory, setCustomCategory] = useState('');
+  const [newMatCategory, setNewMatCategory] = useState(BASE_CATEGORIES[0]);
 
-  const dynamicCategories = useMemo(() => {
-    const cats = new Set(MATERIAL_CATEGORIES.filter(c => c !== 'Others'));
+  // All categories: base + custom (no "Others" anymore — user adds explicit names)
+  const allCategories = useMemo(() => {
+    const all = new Set([...BASE_CATEGORIES, ...customCategories]);
+    // Also collect any category already assigned to a material that isn't in known lists
     materials.forEach(m => {
-      if (m.category && m.category.trim() !== '' && !m.category.startsWith('Others - ')) {
-        cats.add(m.category);
-      }
+      if (m.category && m.category.trim()) all.add(m.category.trim());
     });
-    const arr = Array.from(cats).sort();
-    arr.push('Others');
-    return arr;
-  }, [materials]);
+    return Array.from(all).sort();
+  }, [customCategories, materials]);
 
   useEffect(() => {
-    fetchMaterials();
+    fetchAll();
   }, []);
 
-  const fetchMaterials = async () => {
+  const fetchAll = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/po/materials');
-      if (res.ok) {
-        const data = await res.json();
+      const [matRes, catRes] = await Promise.all([
+        fetch('/api/po/materials'),
+        fetch('/api/po/categories')
+      ]);
+      if (matRes.ok) {
+        const data = await matRes.json();
         setMaterials(data.materials || []);
         setVendors(data.vendors || []);
+      }
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        setCustomCategories(catData.categories || []);
       }
     } catch (err) {
       console.error('Failed to fetch hub data', err);
@@ -57,34 +71,59 @@ export default function MaterialsHub() {
     }
   };
 
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = newCatName.trim();
+    if (!name) return alert('Category name is required');
+    setSavingCat(true);
+    try {
+      const res = await fetch('/api/po/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCustomCategories(prev => [...new Set([...prev, name])].sort());
+        setNewCatName('');
+        setShowAddCatForm(false);
+      } else {
+        alert(data.error || 'Failed to add category');
+      }
+    } catch (err) {
+      alert('Network Error');
+    } finally {
+      setSavingCat(false);
+    }
+  };
+
+  const handleDeleteCategory = async (name: string) => {
+    if (!confirm(`Delete category "${name}"? Materials using it will keep their assigned category.`)) return;
+    try {
+      await fetch(`/api/po/categories?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+      setCustomCategories(prev => prev.filter(c => c !== name));
+    } catch (err) {
+      alert('Network Error');
+    }
+  };
+
   const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMatName) return alert('Material Name is required');
-    
-    let finalCategory = newMatCategory;
-    if (newMatCategory === 'Others' && customCategory.trim() !== '') {
-      finalCategory = customCategory.trim();
-    }
-
     setSaving(true);
     try {
       const res = await fetch('/api/po/materials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'material',
-          material_code: newMatCode,
-          material_name: newMatName,
-          category: finalCategory
-        })
+        body: JSON.stringify({ type: 'material', material_code: newMatCode, material_name: newMatName, category: newMatCategory })
       });
       const data = await res.json();
       if (res.ok) {
         setIsMatFormOpen(false);
         setNewMatCode('');
         setNewMatName('');
-        setCustomCategory('');
-        fetchMaterials();
+        setNewMatCategory(BASE_CATEGORIES[0]);
+        fetchAll();
       } else {
         alert(data.error || 'Failed to create material');
       }
@@ -100,11 +139,8 @@ export default function MaterialsHub() {
     try {
       const res = await fetch(`/api/po/materials?id=${id}&type=${type}`, { method: 'DELETE' });
       const data = await res.json();
-      if (res.ok) {
-        fetchMaterials();
-      } else {
-        alert(data.error || `Failed to delete ${type}`);
-      }
+      if (res.ok) fetchAll();
+      else alert(data.error || `Failed to delete ${type}`);
     } catch (err) {
       alert('Network Error');
     }
@@ -118,20 +154,13 @@ export default function MaterialsHub() {
       const res = await fetch('/api/po/materials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'vendor',
-          vendor_name: newVendorName,
-          company_name: newVendorCompany,
-          address: newVendorAddress
-        })
+        body: JSON.stringify({ type: 'vendor', vendor_name: newVendorName, company_name: newVendorCompany, address: newVendorAddress })
       });
       const data = await res.json();
       if (res.ok) {
         setIsVendorFormOpen(false);
-        setNewVendorName('');
-        setNewVendorCompany('');
-        setNewVendorAddress('');
-        fetchMaterials();
+        setNewVendorName(''); setNewVendorCompany(''); setNewVendorAddress('');
+        fetchAll();
       } else {
         alert(data.error || 'Failed to create vendor');
       }
@@ -143,7 +172,7 @@ export default function MaterialsHub() {
   };
 
   const filteredMaterials = useMemo(() => {
-    return materials.filter(m => (m.category || 'Others') === selectedMatCategory);
+    return materials.filter(m => (m.category || 'Uncategorized') === selectedMatCategory);
   }, [materials, selectedMatCategory]);
 
   if (loading) {
@@ -155,31 +184,33 @@ export default function MaterialsHub() {
       <header className={styles.header}>
         <div className={styles.titleBox}>
           <h1>Master Hub Data</h1>
-          <p>Enterprise Registry for Raw Materials & Vendor Suppliers</p>
+          <p>Enterprise Registry for Raw Materials, Vendor Suppliers &amp; Categories</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            className={styles.btnPrimary} 
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            className={styles.btnPrimary}
             style={{ background: activeMainTab === 'materials' ? 'var(--primary)' : 'white', color: activeMainTab === 'materials' ? 'white' : 'var(--text-main)', border: '1px solid var(--border)' }}
             onClick={() => setActiveMainTab('materials')}
-          >
-            📦 Materials
-          </button>
-          <button 
-            className={styles.btnPrimary} 
+          >📦 Materials</button>
+          <button
+            className={styles.btnPrimary}
+            style={{ background: activeMainTab === 'categories' ? '#10b981' : 'white', color: activeMainTab === 'categories' ? 'white' : 'var(--text-main)', border: '1px solid var(--border)' }}
+            onClick={() => setActiveMainTab('categories')}
+          >🏷️ Categories</button>
+          <button
+            className={styles.btnPrimary}
             style={{ background: activeMainTab === 'vendors' ? '#8b5cf6' : 'white', color: activeMainTab === 'vendors' ? 'white' : 'var(--text-main)', border: '1px solid var(--border)' }}
             onClick={() => setActiveMainTab('vendors')}
-          >
-            🏢 Vendors
-          </button>
+          >🏢 Vendors</button>
         </div>
       </header>
 
-      {activeMainTab === 'materials' ? (
+      {/* ─── MATERIALS TAB ─── */}
+      {activeMainTab === 'materials' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <ExportDropdown
-              filename={`Materials_Hub_${selectedMatCategory}_${new Date().toISOString().slice(0,10)}`}
+              filename={`Materials_Hub_${selectedMatCategory}_${new Date().toISOString().slice(0, 10)}`}
               headers={['Material Code', 'Material Name', 'Category', 'Date Added']}
               rows={filteredMaterials.map(m => [
                 m.material_code,
@@ -194,17 +225,14 @@ export default function MaterialsHub() {
           </div>
           {/* Category Tabs */}
           <div className={styles.tabsContainer}>
-            {dynamicCategories.map(cat => (
-              <button 
+            {allCategories.map(cat => (
+              <button
                 key={cat}
                 className={`${styles.tabBtn} ${selectedMatCategory === cat ? styles.tabActive : ''}`}
                 onClick={() => setSelectedMatCategory(cat)}
-              >
-                {cat}
-              </button>
+              >{cat}</button>
             ))}
           </div>
-
           {/* Materials Grid */}
           <div className={styles.materialsGrid}>
             {filteredMaterials.map(mat => (
@@ -212,30 +240,113 @@ export default function MaterialsHub() {
                 <div className={styles.matCode}>{mat.material_code}</div>
                 <div className={styles.matName}>{mat.material_name}</div>
                 <div className={styles.matDate}>Added: {new Date(mat.created_at || Date.now()).toLocaleDateString()}</div>
-                <button 
-                  onClick={() => handleDelete(mat.id, 'material')}
-                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}
-                  title="Delete Material"
-                >🗑️</button>
+                <button onClick={() => handleDelete(mat.id, 'material')} style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }} title="Delete Material">🗑️</button>
               </div>
             ))}
             {filteredMaterials.length === 0 && (
               <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                No materials found in {selectedMatCategory}.
+                No materials found in "{selectedMatCategory}".
               </div>
             )}
           </div>
         </>
-      ) : (
+      )}
+
+      {/* ─── CATEGORIES TAB ─── */}
+      {activeMainTab === 'categories' && (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '16px', color: '#0f172a' }}>Category Management</div>
+              <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px' }}>Add custom categories here. They will appear in the dropdown when creating POs and materials.</div>
+            </div>
+            <button
+              className={styles.btnPrimary}
+              style={{ background: '#10b981' }}
+              onClick={() => setShowAddCatForm(v => !v)}
+            >
+              <span style={{ fontSize: '16px' }}>+</span> Add New Category
+            </button>
+          </div>
+
+          {/* Add Category inline form */}
+          {showAddCatForm && (
+            <div style={{ background: '#f0fdf4', border: '2px solid #6ee7b7', borderRadius: '14px', padding: '24px', marginBottom: '24px', maxWidth: '480px' }}>
+              <div style={{ fontWeight: 800, fontSize: '14px', color: '#065f46', marginBottom: '16px' }}>📁 Create New Category</div>
+              <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#374151', marginBottom: '6px', textTransform: 'uppercase' }}>Category Name *</label>
+                  <input
+                    required
+                    className={styles.input}
+                    placeholder="e.g. Adhesives, Foam, Lining..."
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    style={{ padding: '10px 14px', border: '1.5px solid #6ee7b7', borderRadius: '8px', fontSize: '14px', fontWeight: 600, outline: 'none', width: '100%' }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={savingCat}
+                  style={{ padding: '11px 20px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 800, fontSize: '13px', cursor: savingCat ? 'wait' : 'pointer' }}
+                >{savingCat ? 'Saving...' : '✓ Save'}</button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddCatForm(false); setNewCatName(''); }}
+                  style={{ padding: '11px 16px', background: 'white', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+                >Cancel</button>
+              </form>
+            </div>
+          )}
+
+          {/* Base categories (read-only) */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>Built-in Categories (cannot be deleted)</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              {BASE_CATEGORIES.map(cat => (
+                <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '8px 16px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#374151' }}>📦 {cat}</span>
+                  <span style={{ fontSize: '10px', background: '#e2e8f0', color: '#94a3b8', borderRadius: '6px', padding: '2px 8px', fontWeight: 700 }}>BUILT-IN</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom categories */}
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>Custom Categories ({customCategories.length})</div>
+            {customCategories.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', background: '#f8fafc', borderRadius: '12px', border: '1px dashed #e2e8f0' }}>
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏷️</div>
+                <div style={{ fontWeight: 700, fontSize: '14px' }}>No custom categories yet</div>
+                <div style={{ fontSize: '12px', marginTop: '4px' }}>Click "+ Add New Category" above to create your first one.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {customCategories.map(cat => (
+                  <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f0fdf4', border: '1.5px solid #6ee7b7', borderRadius: '10px', padding: '8px 16px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 700, color: '#065f46' }}>🏷️ {cat}</span>
+                    <button
+                      onClick={() => handleDeleteCategory(cat)}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '13px', padding: '0', lineHeight: 1 }}
+                      title="Delete category"
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ─── VENDORS TAB ─── */}
+      {activeMainTab === 'vendors' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <ExportDropdown
-              filename={`Vendors_Hub_${new Date().toISOString().slice(0,10)}`}
+              filename={`Vendors_Hub_${new Date().toISOString().slice(0, 10)}`}
               headers={['Vendor / Supplier Name', 'Date Added']}
-              rows={vendors.map(v => [
-                v.vendor_name,
-                new Date(v.created_at || Date.now()).toLocaleDateString('en-IN')
-              ])}
+              rows={vendors.map(v => [v.vendor_name, new Date(v.created_at || Date.now()).toLocaleDateString('en-IN')])}
             />
             <button className={styles.btnPrimary} style={{ background: '#8b5cf6' }} onClick={() => setIsVendorFormOpen(true)}>
               <span style={{ fontSize: '16px' }}>+</span> Register Vendor
@@ -247,23 +358,17 @@ export default function MaterialsHub() {
                 <div className={styles.matCode} style={{ color: '#8b5cf6' }}>VENDOR</div>
                 <div className={styles.matName}>{v.vendor_name}</div>
                 <div className={styles.matDate}>Added: {new Date(v.created_at || Date.now()).toLocaleDateString()}</div>
-                <button 
-                  onClick={() => handleDelete(v.id, 'vendor')}
-                  style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}
-                  title="Delete Vendor"
-                >🗑️</button>
+                <button onClick={() => handleDelete(v.id, 'vendor')} style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }} title="Delete Vendor">🗑️</button>
               </div>
             ))}
             {vendors.length === 0 && (
-              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                No vendors registered.
-              </div>
+              <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No vendors registered.</div>
             )}
           </div>
         </>
       )}
 
-      {/* Create Material Modal */}
+      {/* ─── Create Material Modal ─── */}
       {isMatFormOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsMatFormOpen(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
@@ -276,15 +381,9 @@ export default function MaterialsHub() {
                 <div className={styles.fieldGroup}>
                   <label>Material Category</label>
                   <select className={styles.input} value={newMatCategory} onChange={e => setNewMatCategory(e.target.value)}>
-                    {dynamicCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {allCategories.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
-                {newMatCategory === 'Others' && (
-                  <div className={styles.fieldGroup}>
-                    <label>Specify Category Name</label>
-                    <input className={styles.input} placeholder="e.g. Adhesives" value={customCategory} onChange={e => setCustomCategory(e.target.value)} />
-                  </div>
-                )}
                 <div className={styles.fieldGroup}>
                   <label>Material Code (Optional)</label>
                   <input className={styles.input} placeholder="e.g. RXN-001" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />
@@ -307,7 +406,7 @@ export default function MaterialsHub() {
         </div>
       )}
 
-      {/* Create Vendor Modal */}
+      {/* ─── Create Vendor Modal ─── */}
       {isVendorFormOpen && (
         <div className={styles.modalOverlay} onClick={() => setIsVendorFormOpen(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>

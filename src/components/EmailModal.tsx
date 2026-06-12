@@ -51,12 +51,7 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
           <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Approved Date</div>
           <div style={{ fontWeight: 700, fontSize: '14px', color: '#374151' }}>{po?.approved_timestamp || '—'}</div>
         </div>
-        {po?.remarks && (
-          <div style={{ flex: '2 1 300px' }}>
-            <div style={{ fontSize: '10px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>PM Remarks / Instructions</div>
-            <div style={{ fontWeight: 600, fontSize: '13px', color: '#92400e', background: '#fffbeb', padding: '8px 12px', borderRadius: '6px', borderLeft: '3px solid #f59e0b' }}>{po.remarks}</div>
-          </div>
-        )}
+        {/*  PM Remarks are intentionally excluded from the bill sent to vendors */}
       </div>
 
       {/* Items Table — includes Rexin sub-category badge */}

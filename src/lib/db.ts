@@ -853,6 +853,17 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       }
     } catch (e: any) { console.warn('[SEED] mat_categories skipped:', e.message); }
 
+    // ── Custom Material Categories (PO workflow) ─────────────────────────
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS custom_material_categories (
+          id SERIAL PRIMARY KEY,
+          category_name TEXT UNIQUE NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `);
+    } catch (e: any) { console.warn('[MIGRATION] custom_material_categories skipped:', e.message); }
+
     try {
       const { rows: [sc] } = await client.query(`SELECT COUNT(*) as cnt FROM hr_salary_components`);
       if (Number(sc.cnt) === 0) {

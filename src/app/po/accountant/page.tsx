@@ -274,6 +274,7 @@ export default function AccountantWorkspace() {
                 <thead>
                   <tr>
                     <th>#</th>
+                    <th>Category</th>
                     <th>Material Code</th>
                     <th>Material Name</th>
                     <th>Size / Thickness</th>
@@ -291,6 +292,7 @@ export default function AccountantWorkspace() {
                     return (
                       <tr key={idx} className="tr-hover">
                         <td style={{ color: 'var(--text-ghost)', fontWeight: 600 }}>{idx + 1}</td>
+                        <td style={{ fontWeight: 600, fontSize: '11px', color: '#7c3aed', background: '#f5f3ff', padding: '4px 8px', borderRadius: '6px', whiteSpace: 'nowrap' }}>{item.category || '—'}</td>
                         <td style={{ fontWeight: 800, color: 'var(--primary)', fontFamily: 'monospace', fontSize: '12px' }}>{item.material_code}</td>
                         <td style={{ fontWeight: 600 }}>{item.material_name}</td>
                         <td>{item.size_thickness}</td>
@@ -392,7 +394,7 @@ export default function AccountantWorkspace() {
 
             {/* Calculation sidebar */}
             <div className="card-clean" style={{ padding: '24px', position: 'sticky', top: '24px' }}>
-              <div style={{ fontWeight: 800, fontSize: '15px', marginBottom: '20px' }}>Live Ledger</div>
+              <div style={{ fontWeight: 800, fontSize: '15px', marginBottom: '20px' }}>📤 Send to Jobin</div>
               {[
                 { label: 'Gross Total', value: `₹${grossTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--text-main)', fontWeight: 700 },
                 { label: `Discount (${discountPercent}%)`, value: `-₹${discountValue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, color: 'var(--danger)', fontWeight: 700, show: discountPercent > 0 },
