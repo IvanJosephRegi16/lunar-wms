@@ -831,7 +831,6 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           
           {(isAdmin || isPM) && (
             <>
-              <NavLink href="/mis-dashboard" icon="🏭" label="MIS Dashboard" exact permissionKey="mis_dashboard" />
               <NavLink href="/pm/live-sheet" icon="📖" label="Live Ledger" exact permissionKey="pm_live_sheet" />
             </>
           )}
