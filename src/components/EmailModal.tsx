@@ -59,15 +59,15 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
         )}
       </div>
 
-      {/* Items Table — removed Amount and Remarks per user request */}
+      {/* Items Table — includes Rexin sub-category badge */}
       <div>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', tableLayout: 'auto' }}>
           <thead>
             <tr style={{ background: '#1e3a5f' }}>
-              {['#', 'Material Code', 'Material Name', 'Size / Thickness', 'Req. Qty', 'Unit', 'Vendor'].map((h, i) => (
+              {['#', 'Material Code', 'Material Name', 'Category / Type', 'Size / Thickness', 'Req. Qty', 'Unit', 'Vendor'].map((h, i) => (
                 <th key={i} style={{
                   padding: '11px 12px', color: 'white', fontWeight: 700,
-                  textAlign: i === 4 ? 'right' : 'left',
+                  textAlign: i === 5 ? 'right' : 'left',
                   fontSize: '10px', letterSpacing: '0.04em', textTransform: 'uppercase',
                   whiteSpace: 'nowrap'
                 }}>{h}</th>
@@ -77,11 +77,29 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
           <tbody>
             {items.map((item, i) => {
               const qty = Number(item.required_qty ?? item.required_quantity) || 0;
+              const isRexin = (item.category || '').startsWith('Rexins -');
+              const rexinSubType = isRexin ? (item.category || '').replace('Rexins - ', '') : null;
+              const categoryLabel = isRexin ? 'Rexins' : (item.category || '—');
               return (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
                   <td style={{ padding: '11px 12px', color: '#9ca3af', fontWeight: 600, whiteSpace: 'nowrap' }}>{i + 1}</td>
                   <td style={{ padding: '11px 12px', fontWeight: 800, color: '#1d4ed8', fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.material_code || '—'}</td>
                   <td style={{ padding: '11px 12px', fontWeight: 700, color: '#111827' }}>{item.material_name || '—'}</td>
+                  <td style={{ padding: '11px 12px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#374151' }}>{categoryLabel}</span>
+                    {rexinSubType && (
+                      <span style={{
+                        display: 'inline-block', marginLeft: '6px',
+                        background: rexinSubType === 'Insoles' ? '#dbeafe' : '#fef3c7',
+                        color: rexinSubType === 'Insoles' ? '#1d4ed8' : '#92400e',
+                        border: `1px solid ${rexinSubType === 'Insoles' ? '#93c5fd' : '#fbbf24'}`,
+                        borderRadius: '4px', padding: '1px 7px',
+                        fontSize: '10px', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase'
+                      }}>
+                        {rexinSubType}
+                      </span>
+                    )}
+                  </td>
                   <td style={{ padding: '11px 12px', color: '#374151', whiteSpace: 'nowrap' }}>{item.size_thickness || '—'}</td>
                   <td style={{ padding: '11px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#111827', whiteSpace: 'nowrap' }}>{qty.toLocaleString()}</td>
                   <td style={{ padding: '11px 12px', color: '#6b7280', whiteSpace: 'nowrap' }}>{item.unit || 'Pair'}</td>

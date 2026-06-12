@@ -54,9 +54,16 @@ export async function POST(req: NextRequest) {
     let itemsTableHtml = '';
     if (!imageBase64 && items && Array.isArray(items)) {
       const rowsHtml = items.map((item: any) => {
+        const isRexin = (item.category || '').startsWith('Rexins -');
+        const rexinSubType = isRexin ? (item.category || '').replace('Rexins - ', '') : null;
+        const categoryLabel = isRexin ? 'Rexins' : (item.category || '\u2014');
+        const badgeHtml = rexinSubType
+          ? `<span style="display:inline-block;margin-left:6px;background:${rexinSubType === 'Insoles' ? '#dbeafe' : '#fef3c7'};color:${rexinSubType === 'Insoles' ? '#1d4ed8' : '#92400e'};border:1px solid ${rexinSubType === 'Insoles' ? '#93c5fd' : '#fbbf24'};border-radius:4px;padding:1px 7px;font-size:10px;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;">${rexinSubType}</span>`
+          : '';
         return '<tr>'
           + '<td class="code-cell">' + (item.material_code || '\u2014') + '</td>'
           + '<td class="name-cell">' + (item.material_name || '\u2014') + '</td>'
+          + '<td>' + categoryLabel + badgeHtml + '</td>'
           + '<td>' + (item.size_thickness || '\u2014') + '</td>'
           + '<td style="text-align: right;" class="stock-cell">' + (item.current_stock ?? 0).toLocaleString() + '</td>'
           + '<td style="text-align: right;" class="qty-cell">' + (item.required_qty ?? item.required_quantity ?? 0).toLocaleString() + '</td>'
@@ -65,11 +72,12 @@ export async function POST(req: NextRequest) {
       }).join('');
       itemsTableHtml = '<div class="table-container"><table class="po-table"><thead><tr>'
         + '<th style="width: 15%;">Material Code</th>'
-        + '<th style="width: 30%;">Material Name</th>'
-        + '<th style="width: 15%;">Size / Thk</th>'
-        + '<th style="text-align: right; width: 10%;">Stock</th>'
-        + '<th style="text-align: right; width: 10%;">Req Qty</th>'
-        + '<th style="width: 20%; text-align: right;">Vendor</th>'
+        + '<th style="width: 25%;">Material Name</th>'
+        + '<th style="width: 15%;">Category / Type</th>'
+        + '<th style="width: 12%;">Size / Thk</th>'
+        + '<th style="text-align: right; width: 8%;">Stock</th>'
+        + '<th style="text-align: right; width: 8%;">Req Qty</th>'
+        + '<th style="width: 17%; text-align: right;">Vendor</th>'
         + '</tr></thead><tbody>' + rowsHtml + '</tbody></table></div>';
     }
 
