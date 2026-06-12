@@ -201,10 +201,11 @@ export async function POST(req: NextRequest) {
       for (const item of computedItems) {
         await db.prepare(`
           INSERT INTO purchase_order_items (
-            po_id, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            po_id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           poId,
+          item.category || '',
           item.material_code,
           item.material_name,
           item.size_thickness,

@@ -779,6 +779,7 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
     const columnMigrations = [
       { table: 'purchase_orders',     column: 'is_deleted',              type: 'INTEGER DEFAULT 0' },
       { table: 'purchase_order_items',column: 'received_qty',            type: 'REAL DEFAULT 0' },
+      { table: 'purchase_order_items',column: 'category',                type: 'TEXT DEFAULT \'\'' },
       { table: 'purchase_orders',     column: 'supervisor_verified_by',  type: 'INTEGER' },
       { table: 'purchase_orders',     column: 'supervisor_verified_at',  type: 'TEXT' },
       { table: 'purchase_orders',     column: 'remarks',                 type: 'TEXT DEFAULT \'\''},

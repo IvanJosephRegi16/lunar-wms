@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -284,8 +284,21 @@ function CreatePOFormContent() {
 
   // Spreadsheet Dynamic Rows
   const [items, setItems] = useState<any[]>([
-    { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+    { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
   ]);
+
+  // Derived dynamic categories from materials API
+  const dynamicCategories = useMemo(() => {
+    const cats = new Set(MATERIAL_CATEGORIES.filter(c => c !== 'Others'));
+    materialsList.forEach(m => {
+      if (m.category && m.category.trim() !== '' && !m.category.startsWith('Others - ')) {
+        cats.add(m.category);
+      }
+    });
+    const arr = Array.from(cats).sort();
+    arr.push('Others');
+    return arr;
+  }, [materialsList]);
 
   // Fetch session and prefill edit details if applicable
   useEffect(() => {
@@ -453,7 +466,7 @@ function CreatePOFormContent() {
     setSavingMaterial(true);
     let finalCategory = newMaterialData.category;
     if (newMaterialData.category === 'Others' && customMaterialCategory.trim() !== '') {
-      finalCategory = `Others - ${customMaterialCategory.trim()}`;
+      finalCategory = customMaterialCategory.trim();
     }
 
     try {
@@ -524,7 +537,7 @@ function CreatePOFormContent() {
   const addRow = () => {
     setItems([
       ...items,
-      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
     ]);
   };
 
@@ -537,7 +550,7 @@ function CreatePOFormContent() {
 
   const clearTable = () => {
     setItems([
-      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: 0, current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
     ]);
   };
 
@@ -886,7 +899,8 @@ function CreatePOFormContent() {
                                 }
                                 
                                 // Auto-fill Rate Logic (digits at the very end of string)
-                                const priceMatch = val.match(/\s+(\d+(?:\.\d+)?)$/);
+                                const cleanVal = val.trim();
+                                const priceMatch = cleanVal.match(/(?:Rs\.?\s*|₹\s*|\s+)(\d+(?:\.\d+)?)$/i);
                                 if (priceMatch && !isNaN(parseFloat(priceMatch[1]))) {
                                   updates.order_rate = parseFloat(priceMatch[1]);
                                 }
@@ -945,8 +959,8 @@ function CreatePOFormContent() {
                             step="any"
                             disabled={!item.current_stock_unit}
                             placeholder={!item.current_stock_unit ? 'Select unit first' : `Stock (${item.current_stock_unit === 'Custom' ? (item.custom_current_stock_unit || 'Custom') : item.current_stock_unit})`}
-                            value={item.current_stock_unit ? (item.current_stock === '' ? '' : item.current_stock ?? 0) : ''}
-                            onChange={e => handleItemChange(idx, 'current_stock', e.target.value === '' ? 0 : parseFloat(e.target.value) ?? 0)}
+                            value={item.current_stock_unit ? (item.current_stock === '' ? '' : item.current_stock ?? '') : ''}
+                            onChange={e => handleItemChange(idx, 'current_stock', e.target.value === '' ? '' : parseFloat(e.target.value) ?? '')}
                             style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: !item.current_stock_unit ? '#f1f5f9' : 'white', cursor: !item.current_stock_unit ? 'not-allowed' : 'auto' }}
                           />
                         </div>
@@ -1263,7 +1277,7 @@ function CreatePOFormContent() {
                   required
                 >
                   <option value="">-- Select Category --</option>
-                  {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  {dynamicCategories.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
               </div>
               {newMaterialData.category === 'Others' && (

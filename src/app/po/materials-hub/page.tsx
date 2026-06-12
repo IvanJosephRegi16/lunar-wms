@@ -25,6 +25,18 @@ export default function MaterialsHub() {
   const [newMatCategory, setNewMatCategory] = useState(MATERIAL_CATEGORIES[0]);
   const [customCategory, setCustomCategory] = useState('');
 
+  const dynamicCategories = useMemo(() => {
+    const cats = new Set(MATERIAL_CATEGORIES.filter(c => c !== 'Others'));
+    materials.forEach(m => {
+      if (m.category && m.category.trim() !== '' && !m.category.startsWith('Others - ')) {
+        cats.add(m.category);
+      }
+    });
+    const arr = Array.from(cats).sort();
+    arr.push('Others');
+    return arr;
+  }, [materials]);
+
   useEffect(() => {
     fetchMaterials();
   }, []);
@@ -51,7 +63,7 @@ export default function MaterialsHub() {
     
     let finalCategory = newMatCategory;
     if (newMatCategory === 'Others' && customCategory.trim() !== '') {
-      finalCategory = `Others - ${customCategory.trim()}`;
+      finalCategory = customCategory.trim();
     }
 
     setSaving(true);
@@ -182,7 +194,7 @@ export default function MaterialsHub() {
           </div>
           {/* Category Tabs */}
           <div className={styles.tabsContainer}>
-            {MATERIAL_CATEGORIES.map(cat => (
+            {dynamicCategories.map(cat => (
               <button 
                 key={cat}
                 className={`${styles.tabBtn} ${selectedMatCategory === cat ? styles.tabActive : ''}`}
@@ -264,7 +276,7 @@ export default function MaterialsHub() {
                 <div className={styles.fieldGroup}>
                   <label>Material Category</label>
                   <select className={styles.input} value={newMatCategory} onChange={e => setNewMatCategory(e.target.value)}>
-                    {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    {dynamicCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
                 </div>
                 {newMatCategory === 'Others' && (

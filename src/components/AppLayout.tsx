@@ -779,7 +779,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-main)',
+            color: 'white',
             fontSize: '24px',
             cursor: 'pointer',
             padding: '4px',
