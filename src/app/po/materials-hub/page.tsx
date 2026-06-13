@@ -340,18 +340,6 @@ export default function MaterialsHub() {
             </div>
           )}
 
-          {/* Base categories (read-only) */}
-          <div style={{ marginBottom: '16px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '12px' }}>Built-in Categories (cannot be deleted)</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              {BASE_CATEGORIES.map(cat => (
-                <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: '10px', padding: '8px 16px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 700, color: '#374151' }}>📦 {cat}</span>
-                  <span style={{ fontSize: '10px', background: '#e2e8f0', color: '#94a3b8', borderRadius: '6px', padding: '2px 8px', fontWeight: 700 }}>BUILT-IN</span>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Custom categories */}
           <div>
