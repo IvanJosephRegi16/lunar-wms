@@ -500,12 +500,18 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
     await client.query(`
       CREATE TABLE IF NOT EXISTS materials (
         id SERIAL PRIMARY KEY,
-        material_code TEXT UNIQUE NOT NULL,
+        material_code TEXT NOT NULL,
         material_name TEXT NOT NULL,
         category TEXT DEFAULT 'Uncategorized',
         created_at TEXT DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    // Drop the unique constraint on material_code if it exists (allow duplicates)
+    try {
+      await client.query(`ALTER TABLE materials DROP CONSTRAINT IF EXISTS materials_material_code_key`);
+      console.log('[MIGRATION] Dropped unique constraint on materials.material_code');
+    } catch (e: any) { console.warn('[MIGRATION] materials_material_code_key drop skipped:', e.message); }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS vendors (
@@ -863,6 +869,25 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
         )
       `);
     } catch (e: any) { console.warn('[MIGRATION] custom_material_categories skipped:', e.message); }
+
+    // Seed base PO categories into custom_material_categories (so all are manageable/deletable)
+    try {
+      const basePOCats = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro'];
+      for (const cat of basePOCats) {
+        await client.query(
+          `INSERT INTO custom_material_categories (category_name) VALUES ($1) ON CONFLICT (category_name) DO NOTHING`,
+          [cat]
+        );
+      }
+      console.log('[SEED] Base PO categories seeded into custom_material_categories');
+    } catch (e: any) { console.warn('[SEED] base PO categories skipped:', e.message); }
+
+    // Remove 'Others' from both mat_categories and custom_material_categories
+    try {
+      await client.query(`DELETE FROM mat_categories WHERE LOWER(category_name) LIKE '%others%'`);
+      await client.query(`DELETE FROM custom_material_categories WHERE LOWER(category_name) LIKE '%others%'`);
+      console.log('[MIGRATION] Removed Others categories');
+    } catch (e: any) { console.warn('[MIGRATION] Others cleanup skipped:', e.message); }
 
     try {
       const { rows: [sc] } = await client.query(`SELECT COUNT(*) as cnt FROM hr_salary_components`);

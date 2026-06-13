@@ -8,7 +8,7 @@ import path from 'path';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'UPPER STOCK - WMS',
+  title: "LUNAR'S VIKING",
   description: 'Enterprise internal warehouse management software',
 };
 

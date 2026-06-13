@@ -4,14 +4,12 @@ import { useState, useEffect, useMemo } from 'react';
 import styles from '../../pm/articles/page.module.css';
 import ExportDropdown from '@/components/ExportDropdown';
 
-const BASE_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro'];
-
 export default function MaterialsHub() {
   const [materials, setMaterials] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Custom categories from DB
+  // Categories from DB (all dynamic, no hardcoded base)
   const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [newCatName, setNewCatName] = useState('');
   const [savingCat, setSavingCat] = useState(false);
@@ -19,7 +17,7 @@ export default function MaterialsHub() {
 
   // Tab control
   const [activeMainTab, setActiveMainTab] = useState<'materials' | 'vendors' | 'categories'>('materials');
-  const [selectedMatCategory, setSelectedMatCategory] = useState(BASE_CATEGORIES[0]);
+  const [selectedMatCategory, setSelectedMatCategory] = useState('');
 
   // Vendors
   const [vendors, setVendors] = useState<any[]>([]);
@@ -32,12 +30,15 @@ export default function MaterialsHub() {
   const [isMatFormOpen, setIsMatFormOpen] = useState(false);
   const [newMatCode, setNewMatCode] = useState('');
   const [newMatName, setNewMatName] = useState('');
-  const [newMatCategory, setNewMatCategory] = useState(BASE_CATEGORIES[0]);
+  const [newMatCategory, setNewMatCategory] = useState('');
 
-  // All categories: base + custom (no "Others" anymore — user adds explicit names)
+  // Edit state
+  const [editingMat, setEditingMat] = useState<any>(null);
+  const [editingVendor, setEditingVendor] = useState<any>(null);
+
+  // All categories from DB + any orphan categories on materials
   const allCategories = useMemo(() => {
-    const all = new Set([...BASE_CATEGORIES, ...customCategories]);
-    // Also collect any category already assigned to a material that isn't in known lists
+    const all = new Set([...customCategories]);
     materials.forEach(m => {
       if (m.category && m.category.trim()) all.add(m.category.trim());
     });
@@ -62,7 +63,10 @@ export default function MaterialsHub() {
       }
       if (catRes.ok) {
         const catData = await catRes.json();
-        setCustomCategories(catData.categories || []);
+        const cats = catData.categories || [];
+        setCustomCategories(cats);
+        if (!selectedMatCategory && cats.length > 0) setSelectedMatCategory(cats[0]);
+        if (!newMatCategory && cats.length > 0) setNewMatCategory(cats[0]);
       }
     } catch (err) {
       console.error('Failed to fetch hub data', err);
@@ -122,7 +126,7 @@ export default function MaterialsHub() {
         setIsMatFormOpen(false);
         setNewMatCode('');
         setNewMatName('');
-        setNewMatCategory(BASE_CATEGORIES[0]);
+        setNewMatCategory(allCategories[0] || '');
         fetchAll();
       } else {
         alert(data.error || 'Failed to create material');
@@ -132,6 +136,40 @@ export default function MaterialsHub() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleEditMaterial = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMat) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/po/materials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'material', id: editingMat.id, material_code: editingMat.material_code, material_name: editingMat.material_name, category: editingMat.category })
+      });
+      const data = await res.json();
+      if (res.ok) { setEditingMat(null); fetchAll(); }
+      else alert(data.error || 'Failed to update material');
+    } catch { alert('Network Error'); }
+    finally { setSaving(false); }
+  };
+
+  const handleEditVendor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingVendor) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/po/materials', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'vendor', id: editingVendor.id, vendor_name: editingVendor.vendor_name, company_name: editingVendor.company_name, address: editingVendor.address })
+      });
+      const data = await res.json();
+      if (res.ok) { setEditingVendor(null); fetchAll(); }
+      else alert(data.error || 'Failed to update vendor');
+    } catch { alert('Network Error'); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id: number, type: 'material' | 'vendor') => {
@@ -236,11 +274,14 @@ export default function MaterialsHub() {
           {/* Materials Grid */}
           <div className={styles.materialsGrid}>
             {filteredMaterials.map(mat => (
-              <div key={mat.id} className={styles.materialCard} style={{ position: 'relative' }}>
+              <div key={mat.id} className={styles.materialCard} style={{ position: 'relative', paddingRight: '60px' }}>
                 <div className={styles.matCode}>{mat.material_code}</div>
                 <div className={styles.matName}>{mat.material_name}</div>
                 <div className={styles.matDate}>Added: {new Date(mat.created_at || Date.now()).toLocaleDateString()}</div>
-                <button onClick={() => handleDelete(mat.id, 'material')} style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }} title="Delete Material">🗑️</button>
+                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setEditingMat(mat)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '14px' }} title="Edit Material">✏️</button>
+                  <button onClick={() => handleDelete(mat.id, 'material')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }} title="Delete Material">🗑️</button>
+                </div>
               </div>
             ))}
             {filteredMaterials.length === 0 && (
@@ -354,11 +395,14 @@ export default function MaterialsHub() {
           </div>
           <div className={styles.materialsGrid}>
             {vendors.map(v => (
-              <div key={v.id} className={styles.materialCard} style={{ borderLeftColor: '#8b5cf6', position: 'relative' }}>
+              <div key={v.id} className={styles.materialCard} style={{ borderLeftColor: '#8b5cf6', position: 'relative', paddingRight: '60px' }}>
                 <div className={styles.matCode} style={{ color: '#8b5cf6' }}>VENDOR</div>
                 <div className={styles.matName}>{v.vendor_name}</div>
                 <div className={styles.matDate}>Added: {new Date(v.created_at || Date.now()).toLocaleDateString()}</div>
-                <button onClick={() => handleDelete(v.id, 'vendor')} style={{ position: 'absolute', top: '12px', right: '12px', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }} title="Delete Vendor">🗑️</button>
+                <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setEditingVendor(v)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '14px' }} title="Edit Vendor">✏️</button>
+                  <button onClick={() => handleDelete(v.id, 'vendor')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }} title="Delete Vendor">🗑️</button>
+                </div>
               </div>
             ))}
             {vendors.length === 0 && (
@@ -436,6 +480,72 @@ export default function MaterialsHub() {
               <div className={styles.modalFooter}>
                 <button type="button" className={styles.btnPrimary} style={{ background: 'white', color: '#0f172a', border: '1px solid #cbd5e1' }} onClick={() => setIsVendorFormOpen(false)}>Cancel</button>
                 <button type="submit" className={styles.btnPrimary} style={{ background: '#8b5cf6' }} disabled={saving}>{saving ? 'Saving...' : 'Register Vendor'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Edit Material Modal ─── */}
+      {editingMat && (
+        <div className={styles.modalOverlay} onClick={() => setEditingMat(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h2>Edit Material</h2>
+              <button className={styles.closeBtn} onClick={() => setEditingMat(null)}>×</button>
+            </div>
+            <form onSubmit={handleEditMaterial} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className={styles.modalBody}>
+                <div className={styles.fieldGroup}>
+                  <label>Material Category</label>
+                  <select className={styles.input} value={editingMat.category || ''} onChange={e => setEditingMat({...editingMat, category: e.target.value})}>
+                    {allCategories.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Material Code</label>
+                  <input className={styles.input} value={editingMat.material_code || ''} onChange={e => setEditingMat({...editingMat, material_code: e.target.value})} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Material Name *</label>
+                  <input required className={styles.input} value={editingMat.material_name || ''} onChange={e => setEditingMat({...editingMat, material_name: e.target.value})} />
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button type="button" className={styles.btnPrimary} style={{ background: 'white', color: '#0f172a', border: '1px solid #cbd5e1' }} onClick={() => setEditingMat(null)}>Cancel</button>
+                <button type="submit" className={styles.btnPrimary} disabled={saving}>{saving ? 'Saving...' : 'Update Material'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Edit Vendor Modal ─── */}
+      {editingVendor && (
+        <div className={styles.modalOverlay} onClick={() => setEditingVendor(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className={styles.modalHeader}>
+              <h2>Edit Vendor</h2>
+              <button className={styles.closeBtn} onClick={() => setEditingVendor(null)}>×</button>
+            </div>
+            <form onSubmit={handleEditVendor} style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className={styles.modalBody}>
+                <div className={styles.fieldGroup}>
+                  <label>Company Name *</label>
+                  <input required className={styles.input} value={editingVendor.company_name || ''} onChange={e => setEditingVendor({...editingVendor, company_name: e.target.value})} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Vendor Name</label>
+                  <input className={styles.input} value={editingVendor.vendor_name || ''} onChange={e => setEditingVendor({...editingVendor, vendor_name: e.target.value})} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Full Address</label>
+                  <input className={styles.input} value={editingVendor.address || ''} onChange={e => setEditingVendor({...editingVendor, address: e.target.value})} />
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button type="button" className={styles.btnPrimary} style={{ background: 'white', color: '#0f172a', border: '1px solid #cbd5e1' }} onClick={() => setEditingVendor(null)}>Cancel</button>
+                <button type="submit" className={styles.btnPrimary} style={{ background: '#8b5cf6' }} disabled={saving}>{saving ? 'Saving...' : 'Update Vendor'}</button>
               </div>
             </form>
           </div>

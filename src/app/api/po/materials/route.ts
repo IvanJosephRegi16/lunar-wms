@@ -86,6 +86,52 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PUT(req: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (user.role !== 'admin' && user.role !== 'pm') {
+      return NextResponse.json({ error: 'Forbidden: Only Admins or PMs can edit materials/vendors' }, { status: 403 });
+    }
+
+    const db = getDb();
+    const body = await req.json();
+    const { id, type, material_code, material_name, category, vendor_name, company_name, address } = body;
+
+    if (!id || !type) {
+      return NextResponse.json({ error: 'Missing ID or Type parameter' }, { status: 400 });
+    }
+
+    if (type === 'material') {
+      if (!material_name) {
+        return NextResponse.json({ error: 'Material Name is required' }, { status: 400 });
+      }
+      await db.prepare(
+        `UPDATE materials SET material_code = ?, material_name = ?, category = ? WHERE id = ?`
+      ).run((material_code || '').trim().toUpperCase(), material_name.trim(), category || 'Uncategorized', id);
+      return NextResponse.json({ success: true, message: 'Material updated successfully' });
+    } else if (type === 'vendor') {
+      const companyName = (company_name || '').trim();
+      if (!companyName && !vendor_name) {
+        return NextResponse.json({ error: 'Company Name or Vendor Name is required' }, { status: 400 });
+      }
+      const vendorName = (vendor_name || '').trim() || companyName;
+      await db.prepare(
+        `UPDATE vendors SET vendor_name = ?, company_name = ?, address = ? WHERE id = ?`
+      ).run(vendorName, companyName, (address || '').trim(), id);
+      return NextResponse.json({ success: true, message: 'Vendor updated successfully' });
+    } else {
+      return NextResponse.json({ error: 'Invalid type parameter.' }, { status: 400 });
+    }
+  } catch (error: any) {
+    console.error('[API MATERIALS PUT ERROR]', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const user = await getAuthUser();

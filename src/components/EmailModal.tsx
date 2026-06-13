@@ -117,6 +117,7 @@ function BillContent({ po, items, today, vendorDetails }: { po: any; items: any[
 
 export default function EmailModal({ po, items, onClose }: Props) {
   const [to, setTo] = useState('');
+  const [invoiceNumber, setInvoiceNumber] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -178,7 +179,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
       const res = await fetch('/api/po/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to, po, imageBase64 })
+        body: JSON.stringify({ to, po, imageBase64, invoiceNumber })
       });
       const data = await res.json();
       if (data.error) { alert('Email Error: ' + data.error); setSending(false); return; }
@@ -203,7 +204,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
       canvas.toBlob(async (blob) => {
         if (!blob) throw new Error('Failed to generate image blob');
 
-        const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
+        const subject = encodeURIComponent(`Purchase Order ${po?.po_number}${invoiceNumber ? ` - Invoice ${invoiceNumber}` : ''}`);
         const toParam = to.trim() ? `&to=${to}` : '';
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}`;
 
@@ -299,7 +300,27 @@ export default function EmailModal({ po, items, onClose }: Props) {
               fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
               transition: 'border-color 0.2s'
             }}
-            onFocus={e => e.currentTarget.style.borderColor = '#2563eb'}
+            onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+            onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+          />
+        </div>
+
+        {/* Invoice Number Field */}
+        <div style={{ padding: '16px 28px 0' }}>
+          <label style={{ fontSize: '12px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Invoice Number (Accountant Use)</label>
+          <input
+            type="text"
+            placeholder="e.g. INV-2026-001"
+            value={invoiceNumber}
+            onChange={e => setInvoiceNumber(e.target.value)}
+            style={{
+              width: '100%', marginTop: '8px',
+              padding: '12px 16px', borderRadius: '10px',
+              border: '2px solid #e5e7eb', fontSize: '14px',
+              fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
             onBlur={e => e.currentTarget.style.borderColor = '#e5e7eb'}
           />
         </div>

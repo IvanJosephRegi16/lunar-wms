@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized Access' }, { status: 401 });
     }
 
-    const { to, po, items, imageBase64 } = await req.json();
+    const { to, po, items, imageBase64, invoiceNumber } = await req.json();
 
     if (!to || !po) {
       return NextResponse.json({ error: 'Missing required parameters: to or po' }, { status: 400 });
@@ -337,7 +337,7 @@ export async function POST(req: NextRequest) {
       const { data, error } = await resend.emails.send({
         from: resendFrom,
         to: [to],
-        subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
+        subject: `[Lunar's PO] Purchase Order ${po.po_number}${invoiceNumber ? ` - Invoice ${invoiceNumber}` : ''}`,
         html: emailHtml,
         attachments: [
           ...(logoBase64 ? [{ filename: 'lunars-logo.png', content: logoBase64 }] : []),
@@ -365,7 +365,7 @@ export async function POST(req: NextRequest) {
       await transporter.sendMail({
         from: smtpFrom,
         to: to,
-        subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
+        subject: `[Lunar's PO] Purchase Order ${po.po_number}${invoiceNumber ? ` - Invoice ${invoiceNumber}` : ''}`,
         html: emailHtml,
         attachments: [
           ...(logoBase64 ? [{ filename: 'lunars-logo.png', path: logoPath, cid: 'lunarslogo' }] : []),
@@ -394,7 +394,7 @@ export async function POST(req: NextRequest) {
       const info = await transporter.sendMail({
         from: '"Lunar WMS System" <system@lunars.local>',
         to: to,
-        subject: `[Lunar's PO] Purchase Order ${po.po_number} - Invoice / Billing Draft`,
+        subject: `[Lunar's PO] Purchase Order ${po.po_number}${invoiceNumber ? ` - Invoice ${invoiceNumber}` : ''}`,
         html: emailHtml,
       });
 

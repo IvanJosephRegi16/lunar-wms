@@ -5,8 +5,6 @@ import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-const MATERIAL_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro', 'Others'];
-
 // Custom, highly attractive, search-supported premium dropdown component
 function PremiumSearchDropdown({
   value,
@@ -288,12 +286,12 @@ function CreatePOFormContent() {
     { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
   ]);
 
-  // Derived dynamic categories: base + custom from DB + any already in materials list
+  // Derived dynamic categories: custom from DB + any already in materials list
   const dynamicCategories = useMemo(() => {
-    const cats = new Set(MATERIAL_CATEGORIES.filter(c => c !== 'Others'));
+    const cats = new Set<string>();
     customCategories.forEach(c => cats.add(c));
     materialsList.forEach(m => {
-      if (m.category && m.category.trim() !== '' && !m.category.startsWith('Others - ')) {
+      if (m.category && m.category.trim() !== '') {
         cats.add(m.category);
       }
     });

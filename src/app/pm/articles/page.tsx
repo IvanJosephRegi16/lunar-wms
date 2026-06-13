@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import styles from './page.module.css';
 
-const MATERIAL_CATEGORIES = ['Rexins', 'Eva', 'Insoles', 'Buckles', 'Lace/Niwar', 'PVC Tube', 'Thread', 'Velcro', 'Others'];
-
 export default function PMArticlesPage() {
   const searchParams = useSearchParams();
   const view = searchParams.get('view') || 'manage'; 
@@ -23,11 +21,12 @@ export default function PMArticlesPage() {
   const [fDate, setFDate] = useState('');
 
   // Material Library States
-  const [selectedMatCategory, setSelectedMatCategory] = useState(MATERIAL_CATEGORIES[0]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [selectedMatCategory, setSelectedMatCategory] = useState('');
   const [isMatFormOpen, setIsMatFormOpen] = useState(false);
   const [newMatCode, setNewMatCode] = useState('');
   const [newMatName, setNewMatName] = useState('');
-  const [newMatCategory, setNewMatCategory] = useState(MATERIAL_CATEGORIES[0]);
+  const [newMatCategory, setNewMatCategory] = useState('');
 
   // Modals
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -91,13 +90,27 @@ export default function PMArticlesPage() {
 
   const fetchMaterials = async () => {
     try {
-      const res = await fetch('/api/po/materials');
-      if (res.ok) {
-        const data = await res.json();
+      const [matRes, catRes] = await Promise.all([
+        fetch('/api/po/materials'),
+        fetch('/api/po/categories')
+      ]);
+      
+      if (matRes.ok) {
+        const data = await matRes.json();
         setMaterials(data.materials || []);
       }
+      
+      if (catRes.ok) {
+        const catData = await catRes.json();
+        const cats = catData.categories || [];
+        setCategories(cats);
+        if (cats.length > 0) {
+          setSelectedMatCategory(cats[0]);
+          setNewMatCategory(cats[0]);
+        }
+      }
     } catch (err) {
-      console.error('Failed to fetch materials', err);
+      console.error('Failed to fetch materials/categories', err);
     }
   };
 
@@ -320,7 +333,7 @@ export default function PMArticlesPage() {
 
         {/* Category Tabs */}
         <div className={styles.tabsContainer}>
-          {MATERIAL_CATEGORIES.map(cat => (
+          {categories.map(cat => (
             <button 
               key={cat}
               className={`${styles.tabBtn} ${selectedMatCategory === cat ? styles.tabActive : ''}`}
@@ -360,7 +373,7 @@ export default function PMArticlesPage() {
                   <div className={styles.fieldGroup}>
                     <label>Material Category</label>
                     <select className={styles.input} value={newMatCategory} onChange={e => setNewMatCategory(e.target.value)}>
-                      {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                      {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
                   <div className={styles.fieldGroup}>
@@ -567,7 +580,7 @@ export default function PMArticlesPage() {
                               }}
                             >
                               <option value="">Choose Category...</option>
-                              {MATERIAL_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                              {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
                           </div>
                           

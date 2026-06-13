@@ -764,7 +764,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
 
   if (!user) return <>{children}</>;
 
-  const totalAdminActions = pendingCount + pendingAccessCount;
+  const totalAdminActions = pendingAccessCount;
   const showAdminBell = isAdmin && totalAdminActions > 0 && !bellSeen;
 
   const notifIcon = (type: string) =>
@@ -1260,20 +1260,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                     </div>
                     
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '10px' }}>
-                      {pendingCount > 0 && (
-                        <Link 
-                          href="/po/pending" 
-                          onClick={() => { setBellSeen(true); setBellOpen(false); }}
-                          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: '8px', textDecoration: 'none', background: '#fffbeb', transition: 'background-color 0.2s', border: '1px solid #fde68a' }}
-                          className="admin-bell-row"
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '16px' }}>📋</span>
-                            <span style={{ fontSize: '12px', fontWeight: 700, color: '#b45309' }}>{pendingCount} POs Pending Approval</span>
-                          </div>
-                          <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 700 }}>Review →</span>
-                        </Link>
-                      )}
+                      {/* Pending POs removed from bell menu as requested */}
 
                       {pendingAccessCount > 0 && (
                         <Link 
