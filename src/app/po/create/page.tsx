@@ -827,7 +827,7 @@ function CreatePOFormContent() {
                               material_name: ''
                             });
                           }}
-                          options={Array.from(new Set([...MATERIAL_CATEGORIES, ...materialsList.map(m => m.category).filter(c => c)])).map(cat => ({ value: cat, label: 'Category' }))}
+                          options={dynamicCategories.map(cat => ({ value: cat, label: 'Category' }))}
                           placeholder="Select or add..."
                           required
                         />
