@@ -259,7 +259,7 @@ function CreatePOFormContent() {
   const [correctionNotes, setCorrectionNotes] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showNewMaterialModal, setShowNewMaterialModal] = useState(false);
-  const [newMaterialData, setNewMaterialData] = useState({ category: '', material_code: '', material_name: '', date: '' });
+  const [newMaterialData, setNewMaterialData] = useState({ category: '', material_code: '', material_name: '', size_thickness: '', rate: '', date: '' });
   const [savingMaterial, setSavingMaterial] = useState(false);
   const [showNewVendorModal, setShowNewVendorModal] = useState(false);
   const [newVendorName, setNewVendorName] = useState('');
@@ -482,7 +482,9 @@ function CreatePOFormContent() {
           type: 'material',
           material_code: newMaterialData.material_code.toUpperCase() || '',
           material_name: newMaterialData.material_name,
-          category: finalCategory
+          category: finalCategory,
+          size_thickness: newMaterialData.size_thickness,
+          rate: newMaterialData.rate
         })
       });
       const data = await res.json();
@@ -496,7 +498,7 @@ function CreatePOFormContent() {
           category: finalCategory
         }]);
         setShowNewMaterialModal(false);
-        setNewMaterialData({ category: '', material_code: '', material_name: '', date: '' });
+        setNewMaterialData({ category: '', material_code: '', material_name: '', size_thickness: '', rate: '', date: '' });
         setCustomMaterialCategory('');
       }
     } catch (err) {
@@ -1309,6 +1311,14 @@ function CreatePOFormContent() {
               <div className="form-group-lux">
                 <label>Material Name *</label>
                 <input type="text" placeholder="e.g. Standard EVA Sheet" required value={newMaterialData.material_name} onChange={e => setNewMaterialData({...newMaterialData, material_name: e.target.value})} />
+              </div>
+              <div className="form-group-lux">
+                <label>Size/Thickness (Optional)</label>
+                <input type="text" placeholder="e.g. 5mm" value={newMaterialData.size_thickness} onChange={e => setNewMaterialData({...newMaterialData, size_thickness: e.target.value})} />
+              </div>
+              <div className="form-group-lux">
+                <label>Rate (Optional)</label>
+                <input type="number" step="any" placeholder="e.g. 150" value={newMaterialData.rate} onChange={e => setNewMaterialData({...newMaterialData, rate: e.target.value})} />
               </div>
               <button type="submit" disabled={savingMaterial} className="btn-corp btn-primary-corp" style={{ width: '100%', marginTop: '10px', padding: '12px', fontSize: '14px' }}>
                 {savingMaterial ? 'Saving...' : 'Register Material'}

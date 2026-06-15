@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Material Name is required' }, { status: 400 });
       }
 
-      const matCode = (material_code || '').trim().toUpperCase() || `MC-${Math.floor(Math.random() * 10000000)}`;
+      const matCode = (material_code || '').trim().toUpperCase();
       
       // Removed unique check as requested by user to allow duplicates/empty codes
 
