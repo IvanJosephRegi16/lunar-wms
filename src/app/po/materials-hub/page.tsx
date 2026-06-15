@@ -31,6 +31,8 @@ export default function MaterialsHub() {
   const [newMatCode, setNewMatCode] = useState('');
   const [newMatName, setNewMatName] = useState('');
   const [newMatCategory, setNewMatCategory] = useState('');
+  const [newMatSizeThickness, setNewMatSizeThickness] = useState('');
+  const [newMatRate, setNewMatRate] = useState<number | ''>('');
 
   // Edit state
   const [editingMat, setEditingMat] = useState<any>(null);
@@ -119,13 +121,15 @@ export default function MaterialsHub() {
       const res = await fetch('/api/po/materials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'material', material_code: newMatCode, material_name: newMatName, category: newMatCategory })
+        body: JSON.stringify({ type: 'material', material_code: newMatCode, material_name: newMatName, category: newMatCategory, size_thickness: newMatSizeThickness, rate: newMatRate })
       });
       const data = await res.json();
       if (res.ok) {
         setIsMatFormOpen(false);
         setNewMatCode('');
         setNewMatName('');
+        setNewMatSizeThickness('');
+        setNewMatRate('');
         setNewMatCategory(allCategories[0] || '');
         fetchAll();
       } else {
@@ -146,7 +150,7 @@ export default function MaterialsHub() {
       const res = await fetch('/api/po/materials', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'material', id: editingMat.id, material_code: editingMat.material_code, material_name: editingMat.material_name, category: editingMat.category })
+        body: JSON.stringify({ type: 'material', id: editingMat.id, material_code: editingMat.material_code, material_name: editingMat.material_name, category: editingMat.category, size_thickness: editingMat.size_thickness, rate: editingMat.rate })
       });
       const data = await res.json();
       if (res.ok) { setEditingMat(null); fetchAll(); }
@@ -249,10 +253,12 @@ export default function MaterialsHub() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
             <ExportDropdown
               filename={`Materials_Hub_${selectedMatCategory}_${new Date().toISOString().slice(0, 10)}`}
-              headers={['Material Code', 'Material Name', 'Category', 'Date Added']}
+              headers={['Material Code', 'Material Name', 'Size/Thickness', 'Rate', 'Category', 'Date Added']}
               rows={filteredMaterials.map(m => [
                 m.material_code,
                 m.material_name,
+                m.size_thickness || '',
+                m.rate || '',
                 m.category || 'Others',
                 new Date(m.created_at || Date.now()).toLocaleDateString('en-IN')
               ])}
@@ -277,6 +283,10 @@ export default function MaterialsHub() {
               <div key={mat.id} className={styles.materialCard} style={{ position: 'relative', paddingRight: '60px' }}>
                 <div className={styles.matCode}>{mat.material_code}</div>
                 <div className={styles.matName}>{mat.material_name}</div>
+                <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px', marginBottom: '8px' }}>
+                  {mat.size_thickness && <span style={{ marginRight: '8px' }}>📏 {mat.size_thickness}</span>}
+                  {mat.rate ? <span>₹ {mat.rate}</span> : null}
+                </div>
                 <div className={styles.matDate}>Added: {new Date(mat.created_at || Date.now()).toLocaleDateString()}</div>
                 <div style={{ position: 'absolute', top: '12px', right: '12px', display: 'flex', gap: '8px' }}>
                   <button onClick={() => setEditingMat(mat)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '14px' }} title="Edit Material">✏️</button>
@@ -425,6 +435,14 @@ export default function MaterialsHub() {
                   <input required className={styles.input} placeholder="e.g. Black Rexin Premium" value={newMatName} onChange={e => setNewMatName(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
+                  <label>Size/Thickness (Optional)</label>
+                  <input className={styles.input} placeholder="e.g. 5mm" value={newMatSizeThickness} onChange={e => setNewMatSizeThickness(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Rate (Optional)</label>
+                  <input type="number" step="any" className={styles.input} placeholder="e.g. 150" value={newMatRate} onChange={e => setNewMatRate(e.target.value === '' ? '' : Number(e.target.value))} />
+                </div>
+                <div className={styles.fieldGroup}>
                   <label>Creation Date</label>
                   <input disabled className={styles.input} value={new Date().toLocaleDateString()} />
                 </div>
@@ -497,6 +515,14 @@ export default function MaterialsHub() {
                 <div className={styles.fieldGroup}>
                   <label>Material Name *</label>
                   <input required className={styles.input} value={editingMat.material_name || ''} onChange={e => setEditingMat({...editingMat, material_name: e.target.value})} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Size/Thickness</label>
+                  <input className={styles.input} value={editingMat.size_thickness || ''} onChange={e => setEditingMat({...editingMat, size_thickness: e.target.value})} />
+                </div>
+                <div className={styles.fieldGroup}>
+                  <label>Rate</label>
+                  <input type="number" step="any" className={styles.input} value={editingMat.rate || ''} onChange={e => setEditingMat({...editingMat, rate: e.target.value === '' ? '' : Number(e.target.value)})} />
                 </div>
               </div>
               <div className={styles.modalFooter}>

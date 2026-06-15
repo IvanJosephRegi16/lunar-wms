@@ -807,6 +807,8 @@ ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash;
       { table: 'packed_cartons',      column: 'scanned_at',              type: 'TEXT' },
       { table: 'vendors',             column: 'company_name',            type: 'TEXT' },
       { table: 'vendors',             column: 'address',                 type: 'TEXT' },
+      { table: 'materials',           column: 'size_thickness',          type: 'TEXT' },
+      { table: 'materials',           column: 'rate',                    type: 'REAL DEFAULT 0' },
     ];
 
     for (const m of columnMigrations) {

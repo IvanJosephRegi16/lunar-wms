@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
     const body = await req.json();
-    const { type, material_code, material_name, vendor_name, category, company_name, address } = body;
+    const { type, material_code, material_name, vendor_name, category, company_name, address, size_thickness, rate } = body;
 
     if (type === 'material') {
       if (!material_name) {
@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
       // Removed unique check as requested by user to allow duplicates/empty codes
 
       await db.prepare(
-        `INSERT INTO materials (material_code, material_name, category) VALUES (?, ?, ?)`
-      ).run(matCode, material_name.trim(), category || 'Uncategorized');
+        `INSERT INTO materials (material_code, material_name, category, size_thickness, rate) VALUES (?, ?, ?, ?, ?)`
+      ).run(matCode, material_name.trim(), category || 'Uncategorized', (size_thickness || '').trim(), Number(rate) || 0);
 
       return NextResponse.json({ success: true, message: 'Material registered successfully' });
     } else if (type === 'vendor') {
@@ -99,7 +99,7 @@ export async function PUT(req: NextRequest) {
 
     const db = getDb();
     const body = await req.json();
-    const { id, type, material_code, material_name, category, vendor_name, company_name, address } = body;
+    const { id, type, material_code, material_name, category, vendor_name, company_name, address, size_thickness, rate } = body;
 
     if (!id || !type) {
       return NextResponse.json({ error: 'Missing ID or Type parameter' }, { status: 400 });
@@ -110,8 +110,8 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'Material Name is required' }, { status: 400 });
       }
       await db.prepare(
-        `UPDATE materials SET material_code = ?, material_name = ?, category = ? WHERE id = ?`
-      ).run((material_code || '').trim().toUpperCase(), material_name.trim(), category || 'Uncategorized', id);
+        `UPDATE materials SET material_code = ?, material_name = ?, category = ?, size_thickness = ?, rate = ? WHERE id = ?`
+      ).run((material_code || '').trim().toUpperCase(), material_name.trim(), category || 'Uncategorized', (size_thickness || '').trim(), Number(rate) || 0, id);
       return NextResponse.json({ success: true, message: 'Material updated successfully' });
     } else if (type === 'vendor') {
       const companyName = (company_name || '').trim();
