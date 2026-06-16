@@ -151,7 +151,8 @@ export async function POST(req: NextRequest) {
       const dd = dateObj.getDate().toString().padStart(2, '0');
       const dayPrefix = `${yy}${mm}${dd}-`;
 
-      const existingPos = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE ?`).all(dayPrefix + '%') as { po_number: string }[];
+      // Continuous global sequence numbering
+      const existingPos = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE '%-%'`).all() as { po_number: string }[];
       let maxSeq = 0;
       for (const p of existingPos) {
         const parts = p.po_number.split('-');

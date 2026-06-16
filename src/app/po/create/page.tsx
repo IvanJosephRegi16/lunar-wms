@@ -638,6 +638,10 @@ function CreatePOFormContent() {
         return;
       }
 
+      if (data.po_number) {
+        setPoNumber(data.po_number);
+      }
+
       if (status === 'pending_admin_approval') {
         setShowSuccessPopup(true);
       } else {
