@@ -359,8 +359,7 @@ function CreatePOFormContent() {
         setPoDate(todayIST);
         
         if (!editId) {
-          // Leave poNumber blank so the backend generates a sequential DDMMYY-N number
-          setPoNumber('');
+          setPoNumber(historyData.nextPoNumber || '');
 
           // Check for AI Draft prefilling
           const aiCode = searchParams.get('article_code');
@@ -729,11 +728,11 @@ function CreatePOFormContent() {
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
-                  placeholder={`e.g. ${poDate ? new Date(poDate).getFullYear().toString().slice(-2) + (new Date(poDate).getMonth() + 1).toString().padStart(2, '0') + new Date(poDate).getDate().toString().padStart(2, '0') : ''}-0001 (Auto-generated on Save)`}
+                  placeholder={`e.g. ${poDate ? new Date(poDate).getFullYear().toString().slice(-2) + (new Date(poDate).getMonth() + 1).toString().padStart(2, '0') + new Date(poDate).getDate().toString().padStart(2, '0') : ''}-0001 (Auto-generated)`}
                   required
-                  readOnly
                   value={poNumber || ''}
-                  style={{ paddingRight: '36px', background: '#f1f5f9', cursor: 'not-allowed', fontWeight: 800 }}
+                  onChange={(e) => setPoNumber(e.target.value.trim())}
+                  style={{ paddingRight: '36px', background: 'white', fontWeight: 800 }}
                 />
                 <span style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', pointerEvents: 'none' }}>🔑</span>
               </div>

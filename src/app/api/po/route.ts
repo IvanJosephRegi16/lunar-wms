@@ -84,7 +84,28 @@ export async function GET(req: NextRequest) {
       };
     }));
 
-    return NextResponse.json({ pos: mergedPos });
+    // Calculate next PO number globally
+    const existingPos = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE '%-%'`).all() as { po_number: string }[];
+    let maxSeq = 0;
+    for (const p of existingPos) {
+      const parts = p.po_number.split('-');
+      const seqStr = parts[parts.length - 1];
+      if (/^\d+$/.test(seqStr)) {
+        const seq = parseInt(seqStr, 10);
+        if (seq > maxSeq) {
+          maxSeq = seq;
+        }
+      }
+    }
+    const nextSeq = maxSeq + 1;
+    const dateObj = new Date();
+    const yy = dateObj.getFullYear().toString().slice(-2);
+    const mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const dd = dateObj.getDate().toString().padStart(2, '0');
+    const dayPrefix = `${yy}${mm}${dd}-`;
+    const nextPoNumber = dayPrefix + nextSeq.toString().padStart(4, '0');
+
+    return NextResponse.json({ pos: mergedPos, nextPoNumber });
   } catch (error: any) {
     console.error('Error fetching POs:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -139,11 +160,15 @@ export async function POST(req: NextRequest) {
     // Validate unique custom PO number if provided
     let po_number = custom_po_number?.trim();
     if (po_number) {
+      // If the provided PO number is already taken, we will just auto-generate a new one
+      // instead of failing, to prevent race conditions when multiple users open the form.
       const existing = await db.prepare(`SELECT id FROM purchase_orders WHERE po_number = ?`).get(po_number);
       if (existing) {
-        return NextResponse.json({ error: `PO Number '${po_number}' is already taken. Please specify a unique PO Number.` }, { status: 400 });
+        po_number = ''; // Force auto-generation below
       }
-    } else {
+    }
+    
+    if (!po_number) {
       // 1. Auto-generate sequential PO number YYMMDD-XXXX based on the provided PO Date
       const dateObj = po_date ? new Date(po_date) : new Date();
       const yy = dateObj.getFullYear().toString().slice(-2);
