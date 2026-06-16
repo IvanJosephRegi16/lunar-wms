@@ -145,9 +145,9 @@ export async function POST(req: NextRequest) {
     // Verify row level items (Skip strict validation for drafts)
     if (status !== 'draft') {
       for (const [idx, item] of items.entries()) {
-        const { material_name, size_thickness, required_qty } = item;
-        if (!material_name || !size_thickness || required_qty === undefined) {
-          return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name, Size, or Qty)` }, { status: 400 });
+        const { material_name, required_qty } = item;
+        if (!material_name || required_qty === undefined) {
+          return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name or Qty)` }, { status: 400 });
         }
         if (Number(required_qty) <= 0) {
           return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Required Quantity` }, { status: 400 });

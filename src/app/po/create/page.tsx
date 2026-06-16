@@ -585,6 +585,7 @@ function CreatePOFormContent() {
     setSuccess('');
 
     if (!vendor) {
+      alert('⚠️ WARNING: Please fill unfilled column (Vendor) before submitting.');
       setError('Please select a Vendor for this procurement order.');
       return;
     }
@@ -592,16 +593,19 @@ function CreatePOFormContent() {
     // Verify row level items
     if (status !== 'draft') {
       for (const [idx, item] of items.entries()) {
-        if (!item.material_name || !item.size_thickness) {
-          setError(`Row #${idx + 1} has incomplete material fields. Material Name and Size/Thickness are required.`);
+        if (!item.material_name) {
+          alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} is missing Material Name.`);
+          setError(`Row #${idx + 1} has incomplete material fields. Material Name is required.`);
           return;
         }
         if (Number(item.required_qty) <= 0) {
+          alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} must have a positive Required Quantity.`);
           setError(`Row #${idx + 1} must have a positive Required Quantity.`);
           return;
         }
         const unitValue = item.unit === 'Custom' ? item.custom_unit : item.unit;
         if (!unitValue || !unitValue.trim()) {
+          alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} requires a unit selection.`);
           setError(`Row #${idx + 1} requires a unit selection or custom input.`);
           return;
         }
@@ -805,7 +809,7 @@ function CreatePOFormContent() {
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Category *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Name *</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Current Stock & Unit</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Required Qty & Unit *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Order Rate (₹)</th>
@@ -943,7 +947,7 @@ function CreatePOFormContent() {
                         })()}
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <input type="text" placeholder="e.g. 5mm" required value={item.size_thickness} onChange={e => handleItemChange(idx, 'size_thickness', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
+                        <input type="text" placeholder="e.g. 5mm" value={item.size_thickness} onChange={e => handleItemChange(idx, 'size_thickness', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
