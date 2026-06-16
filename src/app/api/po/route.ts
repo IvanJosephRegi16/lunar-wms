@@ -160,15 +160,11 @@ export async function POST(req: NextRequest) {
     // Validate unique custom PO number if provided
     let po_number = custom_po_number?.trim();
     if (po_number) {
-      // If the provided PO number is already taken, we will just auto-generate a new one
-      // instead of failing, to prevent race conditions when multiple users open the form.
       const existing = await db.prepare(`SELECT id FROM purchase_orders WHERE po_number = ?`).get(po_number);
       if (existing) {
-        po_number = ''; // Force auto-generation below
+        return NextResponse.json({ error: `PO Number '${po_number}' is already taken. Please specify a unique PO Number.` }, { status: 400 });
       }
-    }
-    
-    if (!po_number) {
+    } else {
       // 1. Auto-generate sequential PO number YYMMDD-XXXX based on the provided PO Date
       const dateObj = po_date ? new Date(po_date) : new Date();
       const yy = dateObj.getFullYear().toString().slice(-2);
