@@ -34,6 +34,20 @@ export default function POHistory() {
     loadData();
   }, []);
 
+  // Map internal DB status values to human-readable display labels
+  const getStatusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      'draft': 'Draft',
+      'pending_admin_approval': 'Pending Approval',
+      'returned_for_edit': 'Returned for Edit',
+      'rejected': 'Rejected',
+      'accountant_processing': 'Accountant Processing',
+      'supervisor_review': 'Store Review',
+      'completed': 'Completed',
+    };
+    return map[status] || status.replace(/_/g, ' ');
+  };
+
   const getActionIcon = (action: string) => {
     switch (action) {
       case 'create':
@@ -255,8 +269,8 @@ export default function POHistory() {
                           <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>{po.po_number}</span>
                           <span style={{ fontSize: '13px', color: 'var(--text-ghost)', marginLeft: '8px' }}>({po.vendor || 'No Vendor'})</span>
                         </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', background: po.status === 'completed' ? '#dcfce7' : po.status.includes('reject') || po.status.includes('return') ? '#fee2e2' : '#f1f5f9', color: po.status === 'completed' ? '#16a34a' : po.status.includes('reject') || po.status.includes('return') ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>
-                          {po.status.replace(/_/g, ' ')}
+                        <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', background: po.status === 'completed' ? '#dcfce7' : po.status === 'supervisor_review' ? '#eff6ff' : po.status.includes('reject') || po.status.includes('return') ? '#fee2e2' : '#f1f5f9', color: po.status === 'completed' ? '#16a34a' : po.status === 'supervisor_review' ? '#1d4ed8' : po.status.includes('reject') || po.status.includes('return') ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>
+                          {getStatusLabel(po.status)}
                         </span>
                       </div>
 
@@ -318,24 +332,27 @@ export default function POHistory() {
                 <span style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 800, textTransform: 'uppercase' }}>Purchase Order Details</span>
                 <h3 style={{ fontSize: '18px', fontWeight: 850, color: 'var(--primary)', marginTop: '4px' }}>PO: {selectedPo.po_number}</h3>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <button onClick={() => setShowPreview(true)}
                   style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '8px', color: '#475569', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   📄 View Accountant Verified PO
                 </button>
-                {selectedPo.status === 'completed' && (
+                {/* Show export for any PO that has passed the accountant stage */}
+                {['supervisor_review', 'completed'].includes(selectedPo.status) && (
                   <ExportDropdown
-                    filename={`PO_${selectedPo.po_number}_Completed`}
-                    headers={['Material', 'Description', 'Size', 'Order Rate', 'Req Qty', 'Received Qty', 'Pending Qty', 'Amount (Rs)']}
+                    filename={`PO_${selectedPo.po_number}_${getStatusLabel(selectedPo.status).replace(/ /g, '_')}`}
+                    headers={['Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Order Rate (₹)', 'Req Qty', 'Unit', 'Received Qty', 'Pending Qty', 'Amount (₹)']}
                     rows={(selectedPo.items || []).map((item: any) => [
-                      item.material_code,
-                      item.material_name,
-                      item.size_thickness,
-                      item.order_rate,
-                      item.required_qty,
-                      item.received_qty,
+                      item.category || '',
+                      item.material_code || '',
+                      item.material_name || '',
+                      item.size_thickness || '',
+                      Number(item.order_rate || 0).toFixed(2),
+                      item.required_qty || 0,
+                      item.unit || '',
+                      item.received_qty || 0,
                       Math.max(0, (item.required_qty || 0) - (item.received_qty || 0)),
-                      item.amount
+                      Number(item.amount || 0).toFixed(2)
                     ])}
                   />
                 )}
@@ -354,7 +371,7 @@ export default function POHistory() {
               </div>
               <div style={{ flex: '1 1 200px' }}>
                 <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700 }}>CURRENT STATUS</div>
-                <div style={{ fontSize: '12px', fontWeight: 750, marginTop: '2px', textTransform: 'uppercase', color: selectedPo.status === 'completed' ? '#16a34a' : 'var(--primary)' }}>{selectedPo.status?.replace(/_/g, ' ')}</div>
+                <div style={{ fontSize: '12px', fontWeight: 750, marginTop: '2px', textTransform: 'uppercase', color: selectedPo.status === 'completed' ? '#16a34a' : selectedPo.status === 'supervisor_review' ? '#1d4ed8' : 'var(--primary)' }}>{getStatusLabel(selectedPo.status)}</div>
               </div>
             </div>
 
