@@ -258,6 +258,7 @@ function CreatePOFormContent() {
   const [success, setSuccess] = useState('');
   const [correctionNotes, setCorrectionNotes] = useState('');
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showWarningPopup, setShowWarningPopup] = useState('');
   const [showNewMaterialModal, setShowNewMaterialModal] = useState(false);
   const [newMaterialData, setNewMaterialData] = useState({ category: '', material_code: '', material_name: '', size_thickness: '', rate: '', date: '' });
   const [savingMaterial, setSavingMaterial] = useState(false);
@@ -585,8 +586,7 @@ function CreatePOFormContent() {
     setSuccess('');
 
     if (!vendor) {
-      alert('⚠️ WARNING: Please fill unfilled column (Vendor) before submitting.');
-      setError('Please select a Vendor for this procurement order.');
+      setShowWarningPopup('Please select a Vendor for this procurement order before submitting.');
       return;
     }
 
@@ -594,14 +594,12 @@ function CreatePOFormContent() {
     if (status !== 'draft') {
       for (const [idx, item] of items.entries()) {
         if (Number(item.required_qty) <= 0) {
-          alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} must have a positive Required Quantity.`);
-          setError(`Row #${idx + 1} must have a positive Required Quantity.`);
+          setShowWarningPopup(`Row #${idx + 1} must have a positive Required Quantity.`);
           return;
         }
         const unitValue = item.unit === 'Custom' ? item.custom_unit : item.unit;
         if (!unitValue || !unitValue.trim()) {
-          alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} requires a unit selection.`);
-          setError(`Row #${idx + 1} requires a unit selection or custom input.`);
+          setShowWarningPopup(`Row #${idx + 1} requires a unit selection or custom input.`);
           return;
         }
       }
@@ -1269,6 +1267,73 @@ function CreatePOFormContent() {
               }}
             >
               Okay, Go to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showWarningPopup && (
+        <div style={{
+          position: 'fixed',
+          top: '0', left: '0', right: '0', bottom: '0',
+          background: 'rgba(15, 23, 42, 0.7)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+        }}>
+          <div className="card-clean fade-up" style={{
+            width: '100%',
+            maxWidth: '460px',
+            padding: '36px',
+            textAlign: 'center',
+            borderTop: '5px solid #ef4444',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              borderRadius: '50%',
+              background: '#fee2e2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '40px',
+              boxShadow: '0 4px 10px rgba(239, 68, 68, 0.2)',
+              animation: 'pulse-slow 2s infinite'
+            }}>
+              ⚠️
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <h3 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)' }}>
+                Action Required
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, lineHeight: 1.5 }}>
+                {showWarningPopup}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowWarningPopup('')}
+              className="btn-corp btn-primary-corp"
+              style={{
+                width: '100%',
+                background: '#ef4444',
+                borderColor: '#ef4444',
+                color: 'white',
+                fontWeight: 800,
+                fontSize: '14px',
+                padding: '12px',
+                marginTop: '10px'
+              }}
+            >
+              Got it
             </button>
           </div>
         </div>

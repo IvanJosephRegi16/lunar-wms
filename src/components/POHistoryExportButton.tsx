@@ -7,9 +7,10 @@ import * as ExcelJS from 'exceljs';
 
 interface POHistoryExportButtonProps {
   po: any; // full PO object including po.items[]
+  userRole?: string;
 }
 
-export default function POHistoryExportButton({ po }: POHistoryExportButtonProps) {
+export default function POHistoryExportButton({ po, userRole }: POHistoryExportButtonProps) {
   const [isOpen, setIsOpen]       = useState(false);
   const [loading, setLoading]     = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -38,23 +39,39 @@ export default function POHistoryExportButton({ po }: POHistoryExportButtonProps
   // ── CSV ────────────────────────────────────────────────────────────────────
   const handleCSV = () => {
     const items = getUniqueItems();
-    const headers = ['#', 'Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Unit', 'Req Qty', 'Received Qty', 'Pending Qty', 'Order Rate (INR)', 'Amount (INR)'];
+    const isPM = userRole === 'pm';
+
+    const baseHeaders = ['#', 'Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Unit', 'Req Qty'];
+    const qtyHeaders = isPM ? [] : ['Received Qty', 'Pending Qty'];
+    const financialHeaders = ['Order Rate (INR)', 'Amount (INR)'];
+    
+    const headers = [...baseHeaders, ...qtyHeaders, ...financialHeaders];
+
     const rows = items.map((item: any, idx: number) => {
       const req  = Number(item.required_qty || 0);
       const recd = Number(item.received_qty || 0);
-      return [
+      
+      const baseRow = [
         idx + 1,
         item.category       || '',
         item.material_code  || '',
         item.material_name  || '',
         item.size_thickness || '',
         item.unit           || '',
-        req,
-        recd,
-        Math.max(0, req - recd),
-        Number(item.order_rate || 0).toFixed(2),
-        Number(item.amount     || 0).toFixed(2),
+        req
       ];
+      
+      const qtyRow = isPM ? [] : [
+        recd,
+        Math.max(0, req - recd)
+      ];
+      
+      const financialRow = [
+        Number(item.order_rate || 0).toFixed(2),
+        Number(item.amount     || 0).toFixed(2)
+      ];
+
+      return [...baseRow, ...qtyRow, ...financialRow];
     });
     downloadCSV(`PO_${po.po_number}_Report_${new Date().toISOString().slice(0,10)}.csv`, headers, rows);
     setIsOpen(false);
@@ -106,7 +123,9 @@ export default function POHistoryExportButton({ po }: POHistoryExportButtonProps
 
       // ── Materials Sheet ──────────────────────────────────────────────────
       const ws = wb.addWorksheet('Material Details');
-      const colDefs = [
+      const isPM = userRole === 'pm';
+      
+      const baseColDefs = [
         { header: '#',                key: 'idx',       width: 6  },
         { header: 'Category',         key: 'cat',       width: 20 },
         { header: 'Material Code',    key: 'code',      width: 18 },
@@ -114,12 +133,19 @@ export default function POHistoryExportButton({ po }: POHistoryExportButtonProps
         { header: 'Size / Thickness', key: 'size',      width: 18 },
         { header: 'Unit',             key: 'unit',      width: 10 },
         { header: 'Req Qty',          key: 'req',       width: 12 },
+      ];
+      
+      const qtyColDefs = isPM ? [] : [
         { header: 'Received Qty',     key: 'recd',      width: 14 },
         { header: 'Pending Qty',      key: 'pend',      width: 14 },
+      ];
+      
+      const financialColDefs = [
         { header: 'Order Rate (INR)', key: 'rate',      width: 18 },
         { header: 'Amount (INR)',     key: 'amount',    width: 18 },
       ];
-      ws.columns = colDefs;
+      
+      ws.columns = [...baseColDefs, ...qtyColDefs, ...financialColDefs];
 
       const hdr = ws.getRow(1);
       hdr.height = 22;
@@ -149,7 +175,7 @@ export default function POHistoryExportButton({ po }: POHistoryExportButtonProps
           row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } };
         }
         // Highlight pending in red
-        if (pend > 0) {
+        if (!isPM && pend > 0) {
           row.getCell('pend').font = { color: { argb: 'FFDC2626' }, bold: true, size: 9 };
         }
         // Bold amount
@@ -158,13 +184,20 @@ export default function POHistoryExportButton({ po }: POHistoryExportButtonProps
 
       // Totals row
       ws.addRow({});
-      const totals = ws.addRow({
+      
+      const totalsData: any = {
         idx: '', cat: '', code: '', name: '', size: '', unit: 'GRAND TOTAL',
         req: items.reduce((a: number, x: any) => a + Number(x.required_qty || 0), 0),
-        recd: '', pend: '',
         rate: '',
         amount: `INR ${Number(po.grand_total || 0).toFixed(2)}`,
-      });
+      };
+      
+      if (!isPM) {
+        totalsData.recd = '';
+        totalsData.pend = '';
+      }
+      
+      const totals = ws.addRow(totalsData);
       totals.font = { bold: true, size: 9 };
       totals.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } };
       totals.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 9 };
@@ -189,7 +222,7 @@ export default function POHistoryExportButton({ po }: POHistoryExportButtonProps
   const handlePDF = () => {
     setLoading('pdf');
     try {
-      exportPOHistoryPDF(po);
+      exportPOHistoryPDF(po, userRole);
     } finally {
       setLoading(null);
       setIsOpen(false);

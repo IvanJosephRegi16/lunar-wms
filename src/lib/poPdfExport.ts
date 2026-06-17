@@ -100,7 +100,7 @@ function kpiCard(
 }
 
 // ─── MAIN EXPORT FUNCTION ────────────────────────────────────────────────────
-export function exportPOHistoryPDF(po: any) {
+export function exportPOHistoryPDF(po: any, userRole?: string) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();   // 297
   const H = doc.internal.pageSize.getHeight();  // 210
@@ -245,27 +245,42 @@ export function exportPOHistoryPDF(po: any) {
     return true;
   });
 
+  const isPM = userRole === 'pm';
+
   const tableHeaders = [
-    ['#', 'Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Unit', 'Req Qty', 'Recd Qty', 'Pending', 'Rate (₹)', 'Amount (₹)']
+    [
+      '#', 'Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Unit', 'Req Qty',
+      ...(isPM ? [] : ['Recd Qty', 'Pending']),
+      'Rate (₹)', 'Amount (₹)'
+    ]
   ];
 
   const tableRows = uniqueItems.map((item, idx) => {
     const req  = Number(item.required_qty  || 0);
     const recd = Number(item.received_qty  || 0);
     const pend = Math.max(0, req - recd);
-    return [
+    
+    const baseRow = [
       String(idx + 1),
       item.category        || '—',
       item.material_code   || '—',
       item.material_name   || '—',
       item.size_thickness  || '—',
       item.unit            || '—',
-      qty(req),
-      qty(recd),
-      qty(pend),
-      Number(item.order_rate || 0).toFixed(2),
-      Number(item.amount     || 0).toFixed(2),
+      qty(req)
     ];
+    
+    const qtyRow = isPM ? [] : [
+      qty(recd),
+      qty(pend)
+    ];
+    
+    const financialRow = [
+      Number(item.order_rate || 0).toFixed(2),
+      Number(item.amount     || 0).toFixed(2)
+    ];
+    
+    return [...baseRow, ...qtyRow, ...financialRow];
   });
 
   autoTable(doc, {
@@ -292,23 +307,32 @@ export function exportPOHistoryPDF(po: any) {
     alternateRowStyles: {
       fillColor: [248, 250, 252],
     },
-    columnStyles: {
-      0:  { halign: 'center', cellWidth: 8 },
-      1:  { cellWidth: 24 },
-      2:  { cellWidth: 22 },
-      3:  { cellWidth: 'auto' },
-      4:  { cellWidth: 24 },
-      5:  { halign: 'center', cellWidth: 14 },
-      6:  { halign: 'right',  cellWidth: 16 },
-      7:  { halign: 'right',  cellWidth: 16 },
-      8:  { halign: 'right',  cellWidth: 16 },
-      9:  { halign: 'right',  cellWidth: 20 },
-      10: { halign: 'right',  cellWidth: 24, fontStyle: 'bold' },
-    },
+    columnStyles: (() => {
+      const colStyles: any = {
+        0:  { halign: 'center', cellWidth: 8 },
+        1:  { cellWidth: 24 },
+        2:  { cellWidth: 22 },
+        3:  { cellWidth: 'auto' },
+        4:  { cellWidth: 24 },
+        5:  { halign: 'center', cellWidth: 14 },
+        6:  { halign: 'right',  cellWidth: 16 },
+      };
+      
+      let nextIdx = 7;
+      if (!isPM) {
+        colStyles[nextIdx++] = { halign: 'right', cellWidth: 16 }; // Recd Qty
+        colStyles[nextIdx++] = { halign: 'right', cellWidth: 16 }; // Pending
+      }
+      colStyles[nextIdx++] = { halign: 'right', cellWidth: 20 }; // Rate
+      colStyles[nextIdx] = { halign: 'right', cellWidth: 24, fontStyle: 'bold' }; // Amount
+      
+      return colStyles;
+    })(),
     didDrawCell: (data: any) => {
       // Colour the Pending Qty column red if > 0
-      if (data.section === 'body' && data.column.index === 8) {
-        const raw = tableRows[data.row.index]?.[8];
+      const pendColIdx = isPM ? -1 : 8;
+      if (!isPM && data.section === 'body' && data.column.index === pendColIdx) {
+        const raw = tableRows[data.row.index]?.[pendColIdx];
         if (raw && parseFloat(raw) > 0) {
           doc.setTextColor(...RED_SOFT);
           doc.setFontSize(7.5);

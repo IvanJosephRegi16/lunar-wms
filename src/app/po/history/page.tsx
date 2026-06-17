@@ -339,7 +339,7 @@ export default function POHistory() {
                 </button>
                 {/* Show premium export for any PO that has passed accountant stage */}
                 {['supervisor_review', 'completed'].includes(selectedPo.status) && (
-                  <POHistoryExportButton po={selectedPo} />
+                  <POHistoryExportButton po={selectedPo} userRole={userRole} />
                 )}
                 <button onClick={() => setSelectedPo(null)} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: 'var(--text-ghost)', lineHeight: '1' }}>×</button>
               </div>
