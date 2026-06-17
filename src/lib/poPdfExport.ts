@@ -9,21 +9,33 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 // ─── Brand Palette ───────────────────────────────────────────────────────────
-const NAVY       = [15,  23,  42]  as [number, number, number]; // #0f172a
-const NAVY_MID   = [30,  58,  95]  as [number, number, number]; // #1e3a5f
-const BLUE_ACC   = [37,  99,  235] as [number, number, number]; // #2563eb
-const GOLD       = [245, 158, 11]  as [number, number, number]; // #f59e0b
-const GREEN      = [22,  163, 74]  as [number, number, number]; // #16a34a
+const RED_MAIN   = [185, 28,  28]  as [number, number, number]; // #b91c1c (Viking Red)
 const RED_SOFT   = [220, 38,  38]  as [number, number, number]; // #dc2626
 const WHITE      = [255, 255, 255] as [number, number, number];
 const GRAY_LIGHT = [241, 245, 249] as [number, number, number]; // #f1f5f9
 const GRAY_MID   = [100, 116, 139] as [number, number, number]; // #64748b
 const GRAY_DARK  = [30,  41,  59]  as [number, number, number]; // #1e293b
+const GOLD       = [245, 158, 11]  as [number, number, number]; // #f59e0b
+const GREEN      = [22,  163, 74]  as [number, number, number]; // #16a34a
+
+const fetchImageAsBase64 = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(blob);
+    });
+  } catch (e) {
+    return '';
+  }
+};
 
 // ─── Status colour lookup ─────────────────────────────────────────────────────
 const statusColor = (status: string): [number, number, number] => {
   if (status === 'completed')              return GREEN;
-  if (status === 'supervisor_review')      return BLUE_ACC;
+  if (status === 'supervisor_review')      return GRAY_MID;
   if (status === 'accountant_processing')  return GOLD;
   if (status?.includes('reject'))          return RED_SOFT;
   if (status?.includes('return'))          return RED_SOFT;
@@ -100,7 +112,7 @@ function kpiCard(
 }
 
 // ─── MAIN EXPORT FUNCTION ────────────────────────────────────────────────────
-export function exportPOHistoryPDF(po: any, userRole?: string) {
+export async function exportPOHistoryPDF(po: any, userRole?: string) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const W = doc.internal.pageSize.getWidth();   // 297
   const H = doc.internal.pageSize.getHeight();  // 210
@@ -109,25 +121,42 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
 
   // ── PAGE 1: COVER / SUMMARY ──────────────────────────────────────────────
 
-  // Full-width navy header banner
-  setFill(doc, NAVY);
+  // Full-width red header banner
+  setFill(doc, RED_MAIN);
   doc.rect(0, 0, W, 42, 'F');
 
-  // Navy-mid diagonal accent strip
-  setFill(doc, NAVY_MID);
+  // Red-soft diagonal accent strip (Pattern)
+  setFill(doc, RED_SOFT);
   doc.triangle(0, 0, 80, 0, 0, 42, 'F');
+  
+  // Extra pattern shapes for beauty
+  setFill(doc, [200, 30, 30]);
+  doc.triangle(0, 42, 50, 42, 0, 20, 'F');
+  
+  doc.setGState(new (doc as any).GState({opacity: 0.1}));
+  setFill(doc, WHITE);
+  doc.circle(W - 40, 0, 30, 'F');
+  doc.circle(W - 10, -10, 40, 'F');
+  doc.setGState(new (doc as any).GState({opacity: 1.0}));
 
   // Gold decorative line at bottom of banner
   setFill(doc, GOLD);
   doc.rect(0, 42, W, 1.5, 'F');
 
+  // Add Logo
+  const logoBase64 = await fetchImageAsBase64('/lunars-logo.png');
+  if (logoBase64) {
+    doc.addImage(logoBase64, 'PNG', 14, 6, 26, 26);
+  }
+
   // Company name
   setFont(doc, WHITE, 20, 'bold');
-  doc.text('VIKING RUBBERS', 14, 18);
+  doc.text('VIKING RUBBERS PVT. LTD.', 45, 18);
 
-  // Tagline
-  setFont(doc, [180, 200, 230], 8, 'normal');
-  doc.text('Enterprise Procurement Management System', 14, 25);
+  // Address
+  setFont(doc, [255, 200, 200], 8, 'normal');
+  doc.text('37/8, Nethajipuram, Velanthavalam Road, K.G.Chavadi, Coimbatore - 641 105.', 45, 26);
+  doc.text('Phone: 0422 2656271/331 | Fax: 0422-2656271 | E-Mail: vikingcbe@lunars.com', 45, 31);
 
   // Document title (right side)
   setFont(doc, WHITE, 14, 'bold');
@@ -149,55 +178,20 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
   const cardY = 50;
   const cardH = 26;
   const gap   = 5;
-  const colW  = (W - 28 - gap * 5) / 6;
-
-  const grandTotal  = Number(po.grand_total  || 0);
-  const netAmount   = Number(po.net_amount   || 0);
-  const grossAmount = Number(po.gross_amount || 0);
-  const discount    = Number(po.discount_percent || 0);
-  const transport   = Number(po.transport_charge || 0);
+  const colW  = 60; // wider cards
 
   const kpis = [
-    { label: 'Vendor / Supplier',    value: po.vendor || '—',                           accent: BLUE_ACC },
-    { label: 'PO Date',              value: po.po_date || po.created_at?.slice(0,10) || '—', accent: NAVY_MID },
-    { label: 'Grand Total',          value: rupee(grandTotal),                            accent: GREEN    },
-    { label: 'Net Amount',           value: rupee(netAmount),                             accent: GOLD     },
-    { label: 'Payment Status',       value: (po.payment_status || 'unpaid').toUpperCase(), accent: po.payment_status === 'paid' ? GREEN : RED_SOFT },
-    { label: 'Total Line Items',     value: `${items.length} Items`,                      accent: BLUE_ACC },
+    { label: 'Vendor / Supplier',    value: po.vendor || '—',                           accent: RED_MAIN },
+    { label: 'PO Date',              value: po.po_date || po.created_at?.slice(0,10) || '—', accent: GRAY_MID },
+    { label: 'Total Line Items',     value: `${items.length} Items`,                      accent: RED_MAIN },
   ];
 
   kpis.forEach((kpi, i) => {
     kpiCard(doc, 14 + i * (colW + gap), cardY, colW, cardH, kpi.label, kpi.value, kpi.accent);
   });
 
-  // ── FINANCIALS SUMMARY BAR ───────────────────────────────────────────────
-  const finY = cardY + cardH + 8;
-  setFill(doc, GRAY_LIGHT);
-  setDraw(doc, [226, 232, 240]);
-  doc.roundedRect(14, finY, W - 28, 14, 2, 2, 'FD');
-
-  const finItems = [
-    { label: 'Gross Amount',      value: rupee(grossAmount) },
-    { label: `Discount (${discount}%)`, value: `- ${rupee(grossAmount * discount / 100)}` },
-    { label: 'Transport Charge',  value: rupee(transport) },
-    { label: 'Grand Total',       value: rupee(grandTotal) },
-  ];
-
-  const finColW = (W - 28) / finItems.length;
-  finItems.forEach((f, i) => {
-    const fx = 14 + i * finColW + finColW / 2;
-    setFont(doc, GRAY_MID, 6.5, 'bold');
-    doc.text(f.label, fx, finY + 5, { align: 'center' });
-    setFont(doc, GRAY_DARK, 8, 'bold');
-    doc.text(f.value, fx, finY + 11, { align: 'center' });
-    if (i < finItems.length - 1) {
-      setDraw(doc, [203, 213, 225]);
-      doc.line(14 + (i + 1) * finColW, finY + 2, 14 + (i + 1) * finColW, finY + 12);
-    }
-  });
-
   // ── TERMS SECTION ─────────────────────────────────────────────────────────
-  let curY = finY + 22;
+  let curY = cardY + cardH + 10;
 
   const hasTerms = po.terms_delivery || po.terms_payment || po.terms_pan_gst;
   if (hasTerms) {
@@ -226,9 +220,9 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
   }
 
   // ── MATERIALS TABLE HEADING ───────────────────────────────────────────────
-  setFont(doc, NAVY, 9, 'bold');
+  setFont(doc, RED_MAIN, 9, 'bold');
   doc.text('MATERIAL DETAILS', 14, curY);
-  setFill(doc, BLUE_ACC);
+  setFill(doc, RED_SOFT);
   doc.rect(14, curY + 1.5, 38, 0.8, 'F');
   curY += 7;
 
@@ -249,9 +243,9 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
 
   const tableHeaders = [
     [
-      '#', 'Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Unit', 'Req Qty',
+      '#', 'Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Current Stock', 'Unit', 'Req Qty',
       ...(isPM ? [] : ['Recd Qty', 'Pending']),
-      'Rate (₹)', 'Amount (₹)'
+      'Rate (INR)'
     ]
   ];
 
@@ -260,12 +254,18 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
     const recd = Number(item.received_qty  || 0);
     const pend = Math.max(0, req - recd);
     
+    let cStock = '—';
+    if (item.current_stock !== undefined && item.current_stock !== null && item.current_stock !== '') {
+      cStock = qty(item.current_stock, item.current_stock_unit === 'Custom' ? item.custom_current_stock_unit : item.current_stock_unit);
+    }
+
     const baseRow = [
       String(idx + 1),
       item.category        || '—',
       item.material_code   || '—',
       item.material_name   || '—',
       item.size_thickness  || '—',
+      cStock,
       item.unit            || '—',
       qty(req)
     ];
@@ -276,8 +276,7 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
     ];
     
     const financialRow = [
-      Number(item.order_rate || 0).toFixed(2),
-      Number(item.amount     || 0).toFixed(2)
+      Number(item.order_rate || 0).toFixed(2)
     ];
     
     return [...baseRow, ...qtyRow, ...financialRow];
@@ -297,7 +296,7 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
       lineWidth: 0.3,
     },
     headStyles: {
-      fillColor: NAVY,
+      fillColor: RED_MAIN,
       textColor: WHITE,
       fontSize: 7,
       fontStyle: 'bold',
@@ -310,27 +309,27 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
     columnStyles: (() => {
       const colStyles: any = {
         0:  { halign: 'center', cellWidth: 8 },
-        1:  { cellWidth: 24 },
-        2:  { cellWidth: 22 },
+        1:  { cellWidth: 26 },
+        2:  { cellWidth: 26 },
         3:  { cellWidth: 'auto' },
-        4:  { cellWidth: 24 },
-        5:  { halign: 'center', cellWidth: 14 },
-        6:  { halign: 'right',  cellWidth: 16 },
+        4:  { cellWidth: 28 }, // Size / Thickness
+        5:  { halign: 'right', cellWidth: 24 }, // Current Stock
+        6:  { halign: 'center', cellWidth: 16 }, // Unit
+        7:  { halign: 'right',  cellWidth: 18 }, // Req Qty
       };
       
-      let nextIdx = 7;
+      let nextIdx = 8;
       if (!isPM) {
-        colStyles[nextIdx++] = { halign: 'right', cellWidth: 16 }; // Recd Qty
-        colStyles[nextIdx++] = { halign: 'right', cellWidth: 16 }; // Pending
+        colStyles[nextIdx++] = { halign: 'right', cellWidth: 18 }; // Recd Qty
+        colStyles[nextIdx++] = { halign: 'right', cellWidth: 18 }; // Pending
       }
-      colStyles[nextIdx++] = { halign: 'right', cellWidth: 20 }; // Rate
-      colStyles[nextIdx] = { halign: 'right', cellWidth: 24, fontStyle: 'bold' }; // Amount
+      colStyles[nextIdx++] = { halign: 'right', cellWidth: 24, fontStyle: 'bold' }; // Rate
       
       return colStyles;
     })(),
     didDrawCell: (data: any) => {
       // Colour the Pending Qty column red if > 0
-      const pendColIdx = isPM ? -1 : 8;
+      const pendColIdx = isPM ? -1 : 9;
       if (!isPM && data.section === 'body' && data.column.index === pendColIdx) {
         const raw = tableRows[data.row.index]?.[pendColIdx];
         if (raw && parseFloat(raw) > 0) {
@@ -348,7 +347,7 @@ export function exportPOHistoryPDF(po: any, userRole?: string) {
   for (let pg = 1; pg <= pageCount; pg++) {
     doc.setPage(pg);
     // footer divider
-    setFill(doc, NAVY);
+    setFill(doc, RED_MAIN);
     doc.rect(0, H - 12, W, 12, 'F');
     setFont(doc, [148, 163, 184], 6.5, 'normal');
     doc.text('VIKING RUBBERS | Procurement Management System | CONFIDENTIAL', 14, H - 5.5);

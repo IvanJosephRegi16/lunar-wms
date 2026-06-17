@@ -219,10 +219,10 @@ export default function POHistoryExportButton({ po, userRole }: POHistoryExportB
   };
 
   // ── PDF ────────────────────────────────────────────────────────────────────
-  const handlePDF = () => {
+  const handlePDF = async () => {
     setLoading('pdf');
     try {
-      exportPOHistoryPDF(po, userRole);
+      await exportPOHistoryPDF(po, userRole);
     } finally {
       setLoading(null);
       setIsOpen(false);
