@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import POResetExportPanel from '@/components/POResetExportPanel';
+import ExportDropdown from '@/components/ExportDropdown';
+import POPreviewModal from '@/components/POPreviewModal';
 
-export default function SupervisorVerification() {
+export default function StoreVerification() {
   const [pos, setPos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPO, setSelectedPO] = useState<any>(null);
@@ -12,6 +14,7 @@ export default function SupervisorVerification() {
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [receivedQty, setReceivedQty] = useState<Record<number, string>>({});
   const [userRole, setUserRole] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -125,17 +128,25 @@ export default function SupervisorVerification() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
         <div className="loading-dot" />
-        <span style={{ color: 'var(--text-ghost)', fontWeight: 600, fontSize: '13px' }}>Loading Supervisor Review Queue...</span>
+        <span style={{ color: 'var(--text-ghost)', fontWeight: 600, fontSize: '13px' }}>Loading Store Review Queue...</span>
       </div>
     );
   }
 
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      {showPreview && selectedPO && (
+        <POPreviewModal
+          po={selectedPO}
+          items={selectedPO.items}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
+      
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0 }}>🔍 Supervisor Material Verification</h2>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0 }}>🔍 Store Material Verification</h2>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Verify all materials received against the Purchase Order before final completion.
           </p>
@@ -143,7 +154,7 @@ export default function SupervisorVerification() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <POResetExportPanel
             userRole={userRole}
-            exportFilename={`Supervisor_POs_${new Date().toISOString().slice(0,10)}`}
+            exportFilename={`Store_POs_${new Date().toISOString().slice(0,10)}`}
             exportHeaders={['PO Number', 'Vendor', 'Items Count', 'Grand Total (Rs)', 'Payment Status', 'Created By']}
             exportRows={pos.map((po: any) => [
               po.po_number,
@@ -257,15 +268,39 @@ export default function SupervisorVerification() {
               <div style={{ fontSize: '26px', fontWeight: 900, fontFamily: 'monospace', marginTop: '4px' }}>{selectedPO.po_number}</div>
               <div style={{ fontSize: '12px', marginTop: '6px', color: 'rgba(255,255,255,0.7)' }}>Vendor: <strong>{selectedPO.vendor}</strong></div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.6)' }}>Grand Total</div>
-              <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: 'monospace', marginTop: '4px', color: '#a5b4fc' }}>₹{Number(selectedPO.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-              <div style={{ marginTop: '8px' }}>
-                <span style={{
-                  padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase',
-                  background: selectedPO.payment_status === 'paid' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.2)',
-                  color: selectedPO.payment_status === 'paid' ? '#4ade80' : '#fbbf24'
-                }}>{selectedPO.payment_status || 'unpaid'}</span>
+            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => setShowPreview(true)}
+                  style={{ background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)', padding: '6px 12px', borderRadius: '8px', color: 'white', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📄 View Accountant Verified PO
+                </button>
+                <ExportDropdown
+                  filename={`PO_${selectedPO.po_number}_Verification`}
+                  headers={['Category', 'Material Code', 'Material Name', 'Size/Thickness', 'Req. Stock', 'Prev. Received', 'Pending Stock', 'Rate', 'Amount']}
+                  rows={(selectedPO.items || []).map((item: any) => [
+                    item.category || '',
+                    item.material_code,
+                    item.material_name,
+                    item.size_thickness,
+                    item.required_qty,
+                    item.received_qty || 0,
+                    Math.max(0, item.required_qty - (item.received_qty || 0)),
+                    item.order_rate,
+                    item.amount
+                  ])}
+                  variant="dark"
+                />
+              </div>
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.6)' }}>Grand Total</div>
+                <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: 'monospace', marginTop: '4px', color: '#a5b4fc' }}>₹{Number(selectedPO.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                <div style={{ marginTop: '8px' }}>
+                  <span style={{
+                    padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase',
+                    background: selectedPO.payment_status === 'paid' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.2)',
+                    color: selectedPO.payment_status === 'paid' ? '#4ade80' : '#fbbf24'
+                  }}>{selectedPO.payment_status || 'unpaid'}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -365,7 +400,7 @@ export default function SupervisorVerification() {
           }}>
             <div>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                Supervisor Remarks
+                Store Remarks
               </label>
               <textarea value={remarks} onChange={e => setRemarks(e.target.value)}
                 placeholder="Enter any observations, discrepancies, or notes..."

@@ -25,9 +25,8 @@ export async function GET(req: NextRequest) {
     const result = [];
     for (const po of pos) {
       const items = await db.prepare(`
-        SELECT poi.*, m.category as material_category
+        SELECT poi.*, poi.category as material_category
         FROM purchase_order_items poi
-        LEFT JOIN materials m ON poi.material_code = m.material_code
         WHERE poi.po_id = ?
       `).all(po.id) as any[];
       result.push({ ...po, items });

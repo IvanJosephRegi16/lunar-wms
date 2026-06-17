@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { downloadCSV } from '@/lib/exportCSV';
-import POResetExportPanel from '@/components/POResetExportPanel';
 import ExportDropdown from '@/components/ExportDropdown';
+import POPreviewModal from '@/components/POPreviewModal';
 
 export default function POHistory() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -14,6 +14,7 @@ export default function POHistory() {
   const [activeTab, setActiveTab] = useState<'tracker' | 'ledger'>('tracker');
   const [userRole, setUserRole] = useState('');
   const [selectedPo, setSelectedPo] = useState<any>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   const loadData = () => {
     setLoading(true);
@@ -228,7 +229,7 @@ export default function POHistory() {
                     { id: 'draft', label: 'Draft', icon: '📝' },
                     { id: 'pending_admin_approval', label: 'Admin Approval', icon: '🔑' },
                     { id: 'accountant_processing', label: 'Accountant', icon: '💸' },
-                    { id: 'supervisor_review', label: 'Supervisor Review', icon: '🔍' },
+                    { id: 'supervisor_review', label: 'Store Review', icon: '🔍' },
                     { id: 'completed', label: 'Completed', icon: '✅' }
                   ];
 
@@ -317,6 +318,10 @@ export default function POHistory() {
                 <h3 style={{ fontSize: '18px', fontWeight: 850, color: 'var(--primary)', marginTop: '4px' }}>PO: {selectedPo.po_number}</h3>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <button onClick={() => setShowPreview(true)}
+                  style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '8px', color: '#475569', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  📄 View Accountant Verified PO
+                </button>
                 {selectedPo.status === 'completed' && (
                   <ExportDropdown
                     filename={`PO_${selectedPo.po_number}_Completed`}
@@ -408,6 +413,14 @@ export default function POHistory() {
             </div>
           </div>
         </div>
+      )}
+
+      {showPreview && selectedPo && (
+        <POPreviewModal
+          po={selectedPo}
+          items={selectedPo.items}
+          onClose={() => setShowPreview(false)}
+        />
       )}
 
     </div>

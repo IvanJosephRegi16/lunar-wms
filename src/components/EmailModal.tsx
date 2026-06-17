@@ -18,7 +18,7 @@ interface TermsState {
   vendorPlace: string;
 }
 
-function BillContent({ po, items, today, terms }: { po: any; items: any[]; today: string; terms: TermsState }) {
+export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]; today: string; terms: TermsState }) => {
   const labelStyle: React.CSSProperties = {
     fontSize: '10px', fontWeight: 800, color: '#6b7280',
     textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '2px'
