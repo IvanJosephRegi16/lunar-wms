@@ -217,9 +217,32 @@ export default function EmailModal({ po, items, onClose }: Props) {
     return canvas;
   };
 
+  const savePOEdits = async () => {
+    try {
+      await fetch(`/api/po/${po.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          vendor: terms.vendorName || po.vendor,
+          items: editableItems,
+          po_number: po.po_number,
+          terms_delivery: terms.deliveryDirection,
+          terms_payment: terms.payment,
+          terms_pan_gst: terms.panGst,
+          terms_validity: terms.validity,
+          terms_other: terms.otherDirections,
+          vendor_place: terms.vendorPlace
+        })
+      });
+    } catch (e) {
+      console.error('Failed to auto-save PO edits', e);
+    }
+  };
+
   const handleSend = async () => {
     if (!to.trim()) { alert('Please enter recipient email'); return; }
     setSending(true);
+    await savePOEdits();
     try {
       const canvas = await captureFullBill();
       const imageBase64 = canvas.toDataURL('image/png');
@@ -240,6 +263,8 @@ export default function EmailModal({ po, items, onClose }: Props) {
   };
 
   const openGmail = async () => {
+    setSending(true);
+    await savePOEdits();
     try {
       const canvas = await captureFullBill();
       canvas.toBlob(async (blob) => {
@@ -261,6 +286,8 @@ export default function EmailModal({ po, items, onClose }: Props) {
       }, 'image/png');
     } catch (err) {
       alert('Failed to generate image or open Gmail.');
+    } finally {
+      setSending(false);
     }
   };
 

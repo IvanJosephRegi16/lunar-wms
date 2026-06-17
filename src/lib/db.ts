@@ -273,7 +273,13 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   created_by INTEGER NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ,
-  po_date TEXT
+  po_date TEXT,
+  terms_delivery TEXT,
+  terms_payment TEXT,
+  terms_pan_gst TEXT,
+  terms_validity TEXT,
+  terms_other TEXT,
+  vendor_place TEXT
 );
 
 CREATE TABLE IF NOT EXISTS purchase_order_items (
@@ -302,6 +308,14 @@ CREATE TABLE IF NOT EXISTS po_approval_history (
   timestamp TIMESTAMPTZ DEFAULT NOW(),
   ist_timestamp TEXT
 );
+
+-- Safely add new columns to purchase_orders if they don't exist
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS terms_delivery TEXT;
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS terms_payment TEXT;
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS terms_pan_gst TEXT;
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS terms_validity TEXT;
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS terms_other TEXT;
+ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS vendor_place TEXT;
 
 CREATE TABLE IF NOT EXISTS po_activity_logs (
   id SERIAL PRIMARY KEY,

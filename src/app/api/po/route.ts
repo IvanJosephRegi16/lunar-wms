@@ -130,7 +130,13 @@ export async function POST(req: NextRequest) {
       status = 'draft',
       items = [],
       po_number: custom_po_number,
-      po_date
+      po_date,
+      terms_delivery,
+      terms_payment,
+      terms_pan_gst,
+      terms_validity,
+      terms_other,
+      vendor_place
     } = body;
 
     // Operational validations
@@ -212,15 +218,40 @@ export async function POST(req: NextRequest) {
       // Insert PO Header
       const poRes = await db.prepare(`
         INSERT INTO purchase_orders (
-          po_number, vendor, status, remarks, gross_amount, discount_percent, net_amount, created_by, po_date
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+          po_number, vendor, status, remarks, gross_amount, discount_percent, net_amount, created_by, po_date,
+          terms_delivery, terms_payment, terms_pan_gst, terms_validity, terms_other, vendor_place
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
-        po_number, vendor, status, remarks, gross_amount, discount_percent_val, net_amount, user.id, po_date || null
+        po_number, vendor, status, remarks, gross_amount, discount_percent_val, net_amount, user.id, po_date || null,
+        terms_delivery || null, terms_payment || null, terms_pan_gst || null, terms_validity || null, terms_other || null, vendor_place || null
       );
       const poId = poRes.lastInsertRowid;
 
+      // Auto-upsert Vendor
+      if (vendor) {
+        const existingVendor = await db.prepare('SELECT id FROM vendors WHERE UPPER(vendor_name) = UPPER(?)').get(vendor);
+        if (!existingVendor) {
+          await db.prepare('INSERT INTO vendors (vendor_name, company_name) VALUES (?, ?)').run(vendor, vendor);
+        }
+      }
+
       // Insert dynamic PO Raw Material items
       for (const item of computedItems) {
+        // Auto-upsert Material
+        if (item.material_name) {
+          const matCode = (item.material_code || '').trim().toUpperCase();
+          const category = item.category || 'Uncategorized';
+          const sizeThickness = (item.size_thickness || '').trim();
+          const rate = Number(item.order_rate) || 0;
+          
+          const existingMat = await db.prepare('SELECT id FROM materials WHERE UPPER(material_name) = UPPER(?)').get(item.material_name);
+          if (!existingMat) {
+            await db.prepare(
+              'INSERT INTO materials (material_code, material_name, category, size_thickness, rate) VALUES (?, ?, ?, ?, ?)'
+            ).run(matCode, item.material_name.trim(), category, sizeThickness, rate);
+          }
+        }
+
         await db.prepare(`
           INSERT INTO purchase_order_items (
             po_id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks
