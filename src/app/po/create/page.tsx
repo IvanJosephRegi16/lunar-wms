@@ -593,11 +593,6 @@ function CreatePOFormContent() {
     // Verify row level items
     if (status !== 'draft') {
       for (const [idx, item] of items.entries()) {
-        if (!item.material_name) {
-          alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} is missing Material Name.`);
-          setError(`Row #${idx + 1} has incomplete material fields. Material Name is required.`);
-          return;
-        }
         if (Number(item.required_qty) <= 0) {
           alert(`⚠️ WARNING: Please fill unfilled column. Row #${idx + 1} must have a positive Required Quantity.`);
           setError(`Row #${idx + 1} must have a positive Required Quantity.`);
@@ -808,7 +803,7 @@ function CreatePOFormContent() {
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '40px' }}>#</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Category <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code/Name <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Description *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Description <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Current Stock & Unit</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Required Qty & Unit *</th>
@@ -940,7 +935,6 @@ function CreatePOFormContent() {
                                 })
                                 .map(m => ({ value: m.material_name, label: m.material_code }))}
                               placeholder={isRegistered ? "Populated from registry..." : "Search or type name..."}
-                              required
                             />
                           );
                         })()}
@@ -1314,8 +1308,8 @@ function CreatePOFormContent() {
                 <input type="text" placeholder="e.g. EVA-001" value={newMaterialData.material_code} onChange={e => setNewMaterialData({...newMaterialData, material_code: e.target.value})} />
               </div>
               <div className="form-group-lux">
-                <label>Material Description *</label>
-                <input type="text" placeholder="e.g. Standard EVA Sheet" required value={newMaterialData.material_name} onChange={e => setNewMaterialData({...newMaterialData, material_name: e.target.value})} />
+                <label>Material Description (Optional)</label>
+                <input type="text" placeholder="e.g. Standard EVA Sheet" value={newMaterialData.material_name} onChange={e => setNewMaterialData({...newMaterialData, material_name: e.target.value})} />
               </div>
               <div className="form-group-lux">
                 <label>Size/Thickness (Optional)</label>
