@@ -129,13 +129,20 @@ function BillContent({ po, items, today, terms }: { po: any; items: any[]; today
               ['Payment', terms.payment || '—'],
               ['Our PAN & GST No.', terms.panGst],
               ['Validity of Order', terms.validity],
-              ['Other Directions', terms.otherDirections],
             ].map(([label, value], i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
                 <td style={{ padding: '7px 12px 7px 0', fontWeight: 800, color: '#374151', width: '180px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{label}</td>
                 <td style={{ padding: '7px 0', color: '#111827', fontWeight: 500, lineHeight: '1.6' }}>: {value}</td>
               </tr>
             ))}
+            <tr>
+              <td style={{ padding: '7px 12px 7px 0', fontWeight: 800, color: '#374151', width: '180px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>Other Directions</td>
+              <td style={{ padding: '7px 0', color: '#111827', fontWeight: 500, lineHeight: '1.8' }}>
+                {terms.otherDirections.split('\n').map((line, li) => (
+                  <div key={li}>{li === 0 ? ': ' : ''}{line}</div>
+                ))}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -168,6 +175,15 @@ export default function EmailModal({ po, items, onClose }: Props) {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
+
+  // Editable items — accountant can modify before sending
+  const [editableItems, setEditableItems] = useState<any[]>(() =>
+    items.map(it => ({ ...it }))
+  );
+
+  const updateItem = (idx: number, field: string, val: string) => {
+    setEditableItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: val } : it));
+  };
 
   const defaultTerms: TermsState = {
     deliveryDirection: 'Delivery through APS',
@@ -269,9 +285,9 @@ export default function EmailModal({ po, items, onClose }: Props) {
       backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center',
       justifyContent: 'center', zIndex: 9999, padding: '16px'
     }}>
-      {/* Hidden capture target */}
+      {/* Hidden capture target — uses editableItems */}
       <div ref={captureRef} style={{ position: 'fixed', top: '-9999px', left: '-9999px', width: '1200px', zIndex: -1, pointerEvents: 'none' }}>
-        <BillContent po={po} items={items} today={today} terms={terms} />
+        <BillContent po={po} items={editableItems} today={today} terms={terms} />
       </div>
 
       {/* Modal */}
@@ -299,6 +315,51 @@ export default function EmailModal({ po, items, onClose }: Props) {
           <div>
             <label style={labelStyle}>Recipient Email <span style={{ color: '#9ca3af', textTransform: 'none', fontWeight: 500 }}>(Optional for Gmail)</span></label>
             <input type="email" placeholder="vendor@example.com" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} onFocus={focusBorder} onBlur={blurBorder} />
+          </div>
+
+          {/* Editable Materials Table */}
+          <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: '12px', padding: '20px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 900, color: '#166534', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1.5px solid #bbf7d0', paddingBottom: '10px' }}>
+              🧾 Material Details <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, textTransform: 'none' }}>(editable — changes reflect in PO image)</span>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', minWidth: '800px' }}>
+                <thead>
+                  <tr style={{ background: '#1e3a5f' }}>
+                    {['#', 'Material Code', 'Material Name', 'Category', 'Size / Thickness', 'Qty', 'Unit', 'Rate (₹)'].map((h, i) => (
+                      <th key={i} style={{ padding: '9px 10px', color: 'white', fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', textAlign: 'left', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {editableItems.map((item, idx) => (
+                    <tr key={idx} style={{ background: idx % 2 === 0 ? 'white' : '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+                      <td style={{ padding: '6px 10px', color: '#9ca3af', fontWeight: 700, fontSize: '11px' }}>{idx + 1}</td>
+                      {[
+                        { field: 'material_code', val: item.material_code || '' },
+                        { field: 'material_name', val: item.material_name || '' },
+                        { field: 'category', val: item.category || '' },
+                        { field: 'size_thickness', val: item.size_thickness || '' },
+                        { field: 'required_qty', val: String(item.required_qty ?? '') },
+                        { field: 'unit', val: item.unit || '' },
+                        { field: 'order_rate', val: String(item.order_rate ?? '') },
+                      ].map(({ field, val }) => (
+                        <td key={field} style={{ padding: '4px 6px' }}>
+                          <input
+                            type={field === 'required_qty' || field === 'order_rate' ? 'number' : 'text'}
+                            value={val}
+                            onChange={e => updateItem(idx, field, e.target.value)}
+                            style={{ width: '100%', padding: '5px 8px', border: '1.5px solid #d1fae5', borderRadius: '5px', fontSize: '12px', fontFamily: 'inherit', background: 'white', outline: 'none', minWidth: field === 'material_name' ? '140px' : '70px' }}
+                            onFocus={e => e.currentTarget.style.borderColor = '#10b981'}
+                            onBlur={e => e.currentTarget.style.borderColor = '#d1fae5'}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* Editable Terms Section */}
@@ -352,7 +413,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
             <div style={{ background: '#1e3a5f', padding: '8px 16px', fontSize: '11px', fontWeight: 700, color: 'white' }}>📄 PO Preview</div>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
               <div style={{ minWidth: '900px' }}>
-                <BillContent po={po} items={items} today={today} terms={terms} />
+                <BillContent po={po} items={editableItems} today={today} terms={terms} />
               </div>
             </div>
             <div style={{ background: '#f0f9ff', padding: '8px 16px', borderTop: '1px solid #bae6fd', fontSize: '11px', color: '#0369a1', fontWeight: 600 }}>
