@@ -114,8 +114,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       if (po.status !== 'draft' && po.status !== 'returned_for_edit') {
         return NextResponse.json({ error: 'This PO is locked and cannot be edited by PM roles.' }, { status: 403 });
       }
-    } else if (user.role !== 'admin') {
-      // Accountants and Workers cannot edit basic details
+    } else if (user.role !== 'admin' && user.role !== 'accountant') {
+      // Workers cannot edit basic details
       return NextResponse.json({ error: 'Unauthorized to modify basic PO details' }, { status: 403 });
     }
 
