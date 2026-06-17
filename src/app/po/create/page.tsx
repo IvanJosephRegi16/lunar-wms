@@ -806,9 +806,9 @@ function CreatePOFormContent() {
               <thead>
                 <tr style={{ background: '#f8fafc', borderBottom: '2px solid var(--border)' }}>
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '40px' }}>#</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Category *</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Name *</th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '150px' }}>Category <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Code/Name <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
+                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '180px' }}>Material Description *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Size / Thickness <span style={{ fontSize: '10px', fontWeight: 500 }}>(Optional)</span></th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Current Stock & Unit</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Required Qty & Unit *</th>
@@ -838,7 +838,6 @@ function CreatePOFormContent() {
                           }}
                           options={dynamicCategories.map(cat => ({ value: cat, label: 'Category' }))}
                           placeholder="Select or add..."
-                          required
                         />
                         {(item.category || '').startsWith('Rexins') && (
                           <div style={{ marginTop: '8px', display: 'flex', gap: '8px', fontSize: '11px', fontWeight: 600, color: 'var(--text-main)', background: '#eff6ff', padding: '6px', borderRadius: '6px', border: '1px solid #bfdbfe' }}>
@@ -1294,12 +1293,11 @@ function CreatePOFormContent() {
                 <input type="text" value={poDate} readOnly style={{ background: '#f1f5f9', cursor: 'not-allowed' }} />
               </div>
               <div className="form-group-lux">
-                <label>Category *</label>
+                <label>Category (Optional)</label>
                 <select
                   value={newMaterialData.category}
                   onChange={e => setNewMaterialData({...newMaterialData, category: e.target.value})}
                   style={{ padding: '10px 14px', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '14px', fontWeight: 600, background: 'white' }}
-                  required
                 >
                   <option value="">-- Select Category --</option>
                   {dynamicCategories.map((cat: string) => <option key={cat} value={cat}>{cat}</option>)}
@@ -1312,11 +1310,11 @@ function CreatePOFormContent() {
                 </div>
               )}
               <div className="form-group-lux">
-                <label>Material Code <span style={{ textTransform: 'none', fontWeight: 500 }}>(Optional)</span></label>
+                <label>Material Code/Name <span style={{ textTransform: 'none', fontWeight: 500 }}>(Optional)</span></label>
                 <input type="text" placeholder="e.g. EVA-001" value={newMaterialData.material_code} onChange={e => setNewMaterialData({...newMaterialData, material_code: e.target.value})} />
               </div>
               <div className="form-group-lux">
-                <label>Material Name *</label>
+                <label>Material Description *</label>
                 <input type="text" placeholder="e.g. Standard EVA Sheet" required value={newMaterialData.material_name} onChange={e => setNewMaterialData({...newMaterialData, material_name: e.target.value})} />
               </div>
               <div className="form-group-lux">
