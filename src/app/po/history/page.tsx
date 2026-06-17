@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { downloadCSV } from '@/lib/exportCSV';
 import POResetExportPanel from '@/components/POResetExportPanel';
-import ExportDropdown from '@/components/ExportDropdown';
 import POPreviewModal from '@/components/POPreviewModal';
+import POHistoryExportButton from '@/components/POHistoryExportButton';
 
 export default function POHistory() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -337,24 +337,9 @@ export default function POHistory() {
                   style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '8px 12px', borderRadius: '8px', color: '#475569', fontSize: '12px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   📄 View Accountant Verified PO
                 </button>
-                {/* Show export for any PO that has passed the accountant stage */}
+                {/* Show premium export for any PO that has passed accountant stage */}
                 {['supervisor_review', 'completed'].includes(selectedPo.status) && (
-                  <ExportDropdown
-                    filename={`PO_${selectedPo.po_number}_${getStatusLabel(selectedPo.status).replace(/ /g, '_')}`}
-                    headers={['Category', 'Material Code', 'Material Name', 'Size / Thickness', 'Order Rate (₹)', 'Req Qty', 'Unit', 'Received Qty', 'Pending Qty', 'Amount (₹)']}
-                    rows={(selectedPo.items || []).map((item: any) => [
-                      item.category || '',
-                      item.material_code || '',
-                      item.material_name || '',
-                      item.size_thickness || '',
-                      Number(item.order_rate || 0).toFixed(2),
-                      item.required_qty || 0,
-                      item.unit || '',
-                      item.received_qty || 0,
-                      Math.max(0, (item.required_qty || 0) - (item.received_qty || 0)),
-                      Number(item.amount || 0).toFixed(2)
-                    ])}
-                  />
+                  <POHistoryExportButton po={selectedPo} />
                 )}
                 <button onClick={() => setSelectedPo(null)} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: 'var(--text-ghost)', lineHeight: '1' }}>×</button>
               </div>
