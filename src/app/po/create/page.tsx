@@ -862,21 +862,6 @@ function CreatePOFormContent() {
                             if (selected) {
                               updates.material_name = selected.material_name;
                               updates.category = selected.category || item.category || 'Others';
-                              if (selected.size_thickness) updates.size_thickness = selected.size_thickness;
-                              if (selected.rate) updates.order_rate = selected.rate;
-                            }
-
-                            // Auto-fill MM Logic
-                            const mmMatch = val.match(/(\d+(?:\.\d+)?)\s*[mM][mM]/);
-                            if (mmMatch && !updates.size_thickness) {
-                              updates.size_thickness = mmMatch[0].toUpperCase();
-                            }
-
-                            // Auto-fill Rate Logic (digits at the very end of string)
-                            const cleanVal = val.trim();
-                            const priceMatch = cleanVal.match(/(\d+(?:\.\d+)?)$/);
-                            if (priceMatch && !isNaN(parseFloat(priceMatch[1])) && !updates.order_rate) {
-                              updates.order_rate = parseFloat(priceMatch[1]);
                             }
 
                             handleItemChange(idx, updates);
@@ -905,21 +890,6 @@ function CreatePOFormContent() {
                                 if (selected) {
                                   updates.material_code = selected.material_code;
                                   updates.category = selected.category || item.category || 'Others';
-                                  if (selected.size_thickness) updates.size_thickness = selected.size_thickness;
-                                  if (selected.rate) updates.order_rate = selected.rate;
-                                }
-
-                                // Auto-fill MM Logic
-                                const mmMatch = val.match(/(\d+(?:\.\d+)?)\s*[mM][mM]/);
-                                if (mmMatch && !updates.size_thickness) {
-                                  updates.size_thickness = mmMatch[0].toUpperCase();
-                                }
-                                
-                                // Auto-fill Rate Logic (digits at the very end of string)
-                                const cleanVal = val.trim();
-                                const priceMatch = cleanVal.match(/(\d+(?:\.\d+)?)$/);
-                                if (priceMatch && !isNaN(parseFloat(priceMatch[1])) && !updates.order_rate) {
-                                  updates.order_rate = parseFloat(priceMatch[1]);
                                 }
 
                                 handleItemChange(idx, updates);
