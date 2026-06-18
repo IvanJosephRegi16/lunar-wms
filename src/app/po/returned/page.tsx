@@ -86,7 +86,13 @@ export default function ReturnedPOs() {
           {pos.map(po => {
             const itemCount = Array.isArray(po.items) ? po.items.length : 0;
             return (
-              <div key={po.id} className="card-clean tr-hover" style={{ display: 'flex', flexDirection: 'column', gap: '18px', borderLeft: '4px solid #3b82f6', position: 'relative' }}>
+              <div key={po.id} className="card-clean tr-hover" style={{ display: 'flex', flexDirection: 'column', gap: '18px', borderLeft: '4px solid #ef4444', position: 'relative' }}>
+                
+                {/* Badge */}
+                <div style={{ position: 'absolute', top: 0, right: 0, background: '#fef2f2', color: '#b91c1c', padding: '6px 14px', borderBottomLeftRadius: '10px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  ↩ Returned for Edit
+                </div>
+
                 {/* Header detail */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
                   <div>
@@ -103,32 +109,51 @@ export default function ReturnedPOs() {
                   </div>
                   <div>
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Net Amount</span>
-                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', fontFamily: 'monospace' }}>₹{po.net_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', fontFamily: 'monospace' }}>₹{(po.net_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button onClick={() => setSelectedPo(po)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 12px' }}>
                       👁️ View Sheet
                     </button>
                     {(isPM || isAdmin) && (
-                      <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}>
-                        ✏️ Edit & Resubmit
+                      <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#2563eb', borderColor: '#2563eb', color: 'white' }}>
+                        ✏️ Edit &amp; Resubmit
                       </Link>
                     )}
                   </div>
                 </div>
 
-                {/* Suggestions / remarks */}
-                <div style={{ background: '#f0f7ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 800, color: '#1d4ed8', marginBottom: '4px' }}>
-                    <span>💡 Suggestion / Instruction from Admin:</span>
+                {/* ── HIGHLIGHTED Admin Return Note ── */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #fff0f0 0%, #fff5f5 100%)',
+                  border: '2px solid #fca5a5',
+                  borderLeft: '5px solid #ef4444',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  boxShadow: '0 4px 12px rgba(239,68,68,0.08)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 900, color: '#b91c1c', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <span style={{ fontSize: '18px' }}>⚠️</span>
+                    Admin Correction Notice — Action Required
                   </div>
-                  <p style={{ fontSize: '13px', color: '#1e40af', lineHeight: '1.4', fontWeight: 600, margin: '0' }}>
-                    "{po.correction_notes || 'Please review inputs and resubmit.'}"
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#7f1d1d',
+                    lineHeight: '1.6',
+                    fontWeight: 700,
+                    margin: '0',
+                    background: '#fef2f2',
+                    padding: '12px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid #fecaca',
+                    fontStyle: 'italic'
+                  }}>
+                    "{po.correction_notes || 'Please review all inputs carefully and resubmit.'}"
                   </p>
                 </div>
 
                 <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 600 }}>
-                  Created by: {po.creator_name || 'PM User'} • Last Updated: {po.updated_at || po.created_at || '-'}
+                  Created by: {po.creator_name || 'PM User'} &nbsp;•&nbsp; Last Updated: {po.updated_at || po.created_at || '-'}
                 </div>
               </div>
             );
@@ -136,75 +161,106 @@ export default function ReturnedPOs() {
         </div>
       )}
 
-      {/* Materials Sheet Details Modal */}
+      {/* ── VIEW SHEET MODAL ── */}
       {selectedPo && (
-        <div style={{
-          position: 'fixed',
-          top: '0', left: '0', right: '0', bottom: '0',
-          background: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div className="card-clean fade-up" style={{ width: '100%', maxWidth: '800px', maxHeight: '85vh', padding: '32px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div
+          onClick={() => setSelectedPo(null)}
+          style={{
+            position: 'fixed',
+            top: '0', left: '0', right: '0', bottom: '0',
+            background: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(6px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+        >
+          <div
+            className="card-clean fade-up"
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: '960px', maxHeight: '90vh', padding: '32px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px', borderTop: '4px solid #ef4444' }}
+          >
+            {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
               <div>
-                <span style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 800, textTransform: 'uppercase' }}>Sheet Preview</span>
-                <h3 style={{ fontSize: '18px', fontWeight: 850, color: 'var(--primary)', marginTop: '4px' }}>PO: {selectedPo.po_number}</h3>
+                <span style={{ fontSize: '10px', color: '#ef4444', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em' }}>↩ Returned PO — Sheet Preview</span>
+                <h3 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--primary)', marginTop: '4px' }}>PO: {selectedPo.po_number}</h3>
               </div>
-              <button onClick={() => setSelectedPo(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-ghost)' }}>×</button>
+              <button onClick={() => setSelectedPo(null)} style={{ background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: 'var(--text-ghost)', lineHeight: 1 }}>×</button>
             </div>
 
-            <div className="grid grid-2" style={{ gap: '24px', background: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700 }}>VENDOR / SUPPLIER</div>
-                <div style={{ fontSize: '14px', fontWeight: 750, marginTop: '2px' }}>{selectedPo.vendor}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700 }}>PO DATE</div>
-                <div style={{ fontSize: '14px', fontWeight: 750, marginTop: '2px' }}>{selectedPo.po_date || '-'}</div>
-              </div>
+            {/* Summary info bar */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', background: '#f8fafc', padding: '16px 20px', borderRadius: '10px', border: '1px solid var(--border)' }}>
+              {[
+                { label: 'Vendor / Supplier', value: selectedPo.vendor || '—' },
+                { label: 'PO Date', value: selectedPo.po_date || '—' },
+                { label: 'Items Count', value: `${(selectedPo.items || []).length} line items` },
+              ].map(f => (
+                <div key={f.label} style={{ flex: '1 1 160px' }}>
+                  <div style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>{f.label}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 750, marginTop: '3px' }}>{f.value}</div>
+                </div>
+              ))}
             </div>
 
-            <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            {/* Return note inside modal too */}
+            {selectedPo.correction_notes && (
+              <div style={{ background: '#fef2f2', border: '2px solid #fca5a5', borderLeft: '5px solid #ef4444', borderRadius: '10px', padding: '14px 18px' }}>
+                <div style={{ fontSize: '10px', fontWeight: 900, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>⚠️ Admin Correction Note</div>
+                <div style={{ fontSize: '13px', color: '#7f1d1d', fontWeight: 700, fontStyle: 'italic', lineHeight: 1.6 }}>"{selectedPo.correction_notes}"</div>
+              </div>
+            )}
+
+            {/* Materials table */}
+            <div style={{ border: '1px solid var(--border)', borderRadius: '10px', overflowX: 'auto' }}>
+              <table style={{ width: '100%', minWidth: '820px', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
-                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Material Code</th>
-                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Description</th>
-                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Size / Thk</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Stock</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Required Qty</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Rate</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
+                  <tr style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)' }}>
+                    {['#', 'Category', 'Material Code', 'Material Description', 'Size / Thk', 'Current Stock', 'Req Qty', 'Unit', 'Rate (₹)', 'Amount (₹)'].map(h => (
+                      <th key={h} style={{ textAlign: h === '#' || h === 'Req Qty' || h === 'Rate (₹)' || h === 'Amount (₹)' || h === 'Current Stock' ? 'right' : 'left', padding: '10px 12px', color: 'white', fontWeight: 800, fontSize: '11px', whiteSpace: 'nowrap' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {(selectedPo.items || []).map((item: any, i: number) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code}</td>
-                      <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name}</td>
-                      <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>{item.current_stock?.toLocaleString()} {item.current_stock_unit || 'Pair'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{item.required_qty?.toLocaleString()} {item.unit || 'Pair'}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{item.order_rate?.toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{item.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    </tr>
-                  ))}
+                  {(selectedPo.items || []).length === 0 ? (
+                    <tr><td colSpan={10} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-ghost)' }}>No items found</td></tr>
+                  ) : (
+                    (selectedPo.items || []).map((item: any, i: number) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', color: 'var(--text-ghost)', fontWeight: 700 }}>{i + 1}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-muted)' }}>{item.category || '—'}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: 'var(--primary)' }}>{item.material_code || '—'}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name || '—'}</td>
+                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness || '—'}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{(item.current_stock ?? 0).toLocaleString()} {item.current_stock_unit || ''}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace', color: 'var(--primary)' }}>{(item.required_qty ?? 0).toLocaleString()}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-ghost)', fontSize: '11px' }}>{item.unit || '—'}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#16a34a' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Gross: <strong>₹{selectedPo.gross_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></div>
-              <div style={{ fontSize: '13px', color: '#ef4444' }}>Discount: <strong>-{selectedPo.discount_percent}%</strong></div>
-              <div style={{ fontSize: '15px', color: 'var(--primary)', fontWeight: 800 }}>Net Total: <strong>₹{selectedPo.net_amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></div>
+            {/* Totals */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Gross: <strong>₹{(selectedPo.gross_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></div>
+              {(selectedPo.discount_percent ?? 0) > 0 && (
+                <div style={{ fontSize: '13px', color: '#ef4444' }}>Discount: <strong>-{selectedPo.discount_percent}%</strong></div>
+              )}
+              <div style={{ fontSize: '16px', color: 'var(--primary)', fontWeight: 900 }}>Net Total: <strong>₹{(selectedPo.net_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-              <button className="btn-corp" onClick={() => setSelectedPo(null)}>Close sheet</button>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button className="btn-corp" onClick={() => setSelectedPo(null)}>Close</button>
+              {(isPM || isAdmin) && (
+                <Link href={`/po/create?id=${selectedPo.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', background: '#2563eb', borderColor: '#2563eb', color: 'white' }}>
+                  ✏️ Edit &amp; Resubmit
+                </Link>
+              )}
             </div>
           </div>
         </div>
