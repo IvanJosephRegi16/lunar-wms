@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { exportPOHistoryPDF } from '@/lib/poPdfExport';
 
 interface Props {
   po: any;
@@ -20,13 +21,13 @@ interface TermsState {
 
 export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]; today: string; terms: TermsState }) => {
   const labelStyle: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 800, color: '#6b7280',
-    textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '2px'
+    fontSize: '13px', fontWeight: 800, color: '#6b7280',
+    textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '4px'
   };
-  const valueStyle: React.CSSProperties = { fontWeight: 700, fontSize: '13px', color: '#111827' };
+  const valueStyle: React.CSSProperties = { fontWeight: 700, fontSize: '16px', color: '#111827' };
 
   return (
-    <div style={{ background: 'white', fontFamily: "'Arial', sans-serif", width: '100%' }}>
+    <div style={{ background: 'white', fontFamily: "'Arial', sans-serif", width: '850px', margin: '0 auto' }}>
 
       {/* === COMPANY HEADER === */}
       <div style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 60%, #0ea5e9 100%)', padding: '0' }}>
@@ -45,9 +46,9 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ background: '#1e3a5f', color: 'white', fontWeight: 900, fontSize: '14px', padding: '6px 18px', borderRadius: '6px', letterSpacing: '0.08em' }}>PURCHASE ORDER</div>
-            <div style={{ fontSize: '22px', fontWeight: 900, color: '#1d4ed8', marginTop: '6px', fontFamily: 'monospace' }}>{po?.po_number}</div>
-            <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>Date: {po?.po_date || today}</div>
+            <div style={{ background: '#1e3a5f', color: 'white', fontWeight: 900, fontSize: '18px', padding: '8px 24px', borderRadius: '8px', letterSpacing: '0.08em' }}>PURCHASE ORDER</div>
+            <div style={{ fontSize: '26px', fontWeight: 900, color: '#1d4ed8', marginTop: '8px', fontFamily: 'monospace' }}>{po?.po_number}</div>
+            <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>Date: {po?.po_date || today}</div>
           </div>
         </div>
       </div>
@@ -56,7 +57,7 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
       <div style={{ padding: '16px 36px', background: '#f8fafc', borderBottom: '1.5px solid #e5e7eb', display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
         <div style={{ flex: '1 1 260px' }}>
           <div style={labelStyle}>To / Vendor</div>
-          <div style={{ fontWeight: 800, fontSize: '15px', color: '#111827' }}>{po?.vendor || '—'}</div>
+          <div style={{ fontWeight: 800, fontSize: '18px', color: '#111827' }}>{terms.vendorName || po?.vendor || '—'}</div>
         </div>
         <div style={{ flex: '1 1 160px' }}>
           <div style={labelStyle}>PO Date</div>
@@ -73,11 +74,12 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', tableLayout: 'auto' }}>
           <thead>
             <tr style={{ background: '#1e3a5f' }}>
-              {['#', 'Material Code', 'Material Name', 'Category / Type', 'Size / Thickness', 'Req. Qty', 'Unit', 'Rate (₹)'].map((h, i) => (
+              {['#', 'Material Code', 'Material Name', 'Category', 'Size / Thk', 'Req. Qty', 'Unit', 'Rate (₹)'].map((h, i) => (
                 <th key={i} style={{
-                  padding: '11px 12px', color: 'white', fontWeight: 700,
+                  padding: '14px 12px', color: 'white', fontWeight: 700,
                   textAlign: i >= 5 ? 'right' : 'left',
-                  fontSize: '10px', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap'
+                  fontSize: '12px', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  width: h === 'Size / Thk' ? '80px' : 'auto'
                 }}>{h}</th>
               ))}
             </tr>
@@ -91,25 +93,25 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
               const categoryLabel = isRexin ? 'Rexins' : (item.category || '—');
               return (
                 <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc', borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '10px 12px', color: '#9ca3af', fontWeight: 600 }}>{i + 1}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: 800, color: '#1d4ed8', fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'nowrap' }}>{item.material_code || '—'}</td>
-                  <td style={{ padding: '10px 12px', fontWeight: 700, color: '#111827' }}>{item.material_name || '—'}</td>
-                  <td style={{ padding: '10px 12px', whiteSpace: 'nowrap' }}>
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: '#374151' }}>{categoryLabel}</span>
+                  <td style={{ padding: '14px 12px', color: '#9ca3af', fontWeight: 600, fontSize: '14px' }}>{i + 1}</td>
+                  <td style={{ padding: '14px 12px', fontWeight: 800, color: '#1d4ed8', fontFamily: 'monospace', fontSize: '14px', whiteSpace: 'nowrap' }}>{item.material_code || '—'}</td>
+                  <td style={{ padding: '14px 12px', fontWeight: 700, color: '#111827', fontSize: '14px' }}>{item.material_name || '—'}</td>
+                  <td style={{ padding: '14px 12px', whiteSpace: 'nowrap', fontSize: '14px' }}>
+                    <span style={{ fontWeight: 700, color: '#374151' }}>{categoryLabel}</span>
                     {rexinSubType && (
                       <span style={{
                         display: 'inline-block', marginLeft: '6px',
                         background: rexinSubType === 'Insoles' ? '#dbeafe' : '#fef3c7',
                         color: rexinSubType === 'Insoles' ? '#1d4ed8' : '#92400e',
                         border: `1px solid ${rexinSubType === 'Insoles' ? '#93c5fd' : '#fbbf24'}`,
-                        borderRadius: '4px', padding: '1px 7px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase'
+                        borderRadius: '4px', padding: '2px 8px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase'
                       }}>{rexinSubType}</span>
                     )}
                   </td>
-                  <td style={{ padding: '10px 12px', color: '#374151', whiteSpace: 'nowrap' }}>{item.size_thickness || '—'}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#111827', whiteSpace: 'nowrap' }}>{qty.toLocaleString()}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', color: '#6b7280', whiteSpace: 'nowrap' }}>{item.unit || 'Pair'}</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace', color: '#1d4ed8', whiteSpace: 'nowrap' }}>{rate > 0 ? `₹${rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
+                  <td style={{ padding: '14px 12px', color: '#374151', whiteSpace: 'nowrap', fontSize: '14px' }}>{item.size_thickness || '—'}</td>
+                  <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace', color: '#111827', whiteSpace: 'nowrap', fontSize: '15px' }}>{qty.toLocaleString()}</td>
+                  <td style={{ padding: '14px 12px', textAlign: 'right', color: '#6b7280', whiteSpace: 'nowrap', fontSize: '14px' }}>{item.unit || 'Pair'}</td>
+                  <td style={{ padding: '14px 12px', textAlign: 'right', fontWeight: 700, fontFamily: 'monospace', color: '#1d4ed8', whiteSpace: 'nowrap', fontSize: '15px' }}>{rate > 0 ? `₹${rate.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` : '—'}</td>
                 </tr>
               );
             })}
@@ -118,11 +120,11 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
       </div>
 
       {/* === TERMS & CONDITIONS === */}
-      <div style={{ padding: '20px 36px', borderTop: '2px solid #1e3a5f', background: '#f8fafc' }}>
-        <div style={{ fontSize: '11px', fontWeight: 900, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px', borderBottom: '1px solid #d1d5db', paddingBottom: '6px' }}>
+      <div style={{ padding: '24px 36px', borderTop: '3px solid #1e3a5f', background: '#f8fafc' }}>
+        <div style={{ fontSize: '14px', fontWeight: 900, color: '#1e3a5f', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '16px', borderBottom: '2px solid #d1d5db', paddingBottom: '8px' }}>
           Terms & Conditions
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
           <tbody>
             {[
               ['Delivery Direction', terms.deliveryDirection],
@@ -131,13 +133,13 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
               ['Validity of Order', terms.validity],
             ].map(([label, value], i) => (
               <tr key={i} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                <td style={{ padding: '7px 12px 7px 0', fontWeight: 800, color: '#374151', width: '180px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{label}</td>
-                <td style={{ padding: '7px 0', color: '#111827', fontWeight: 500, lineHeight: '1.6' }}>: {value}</td>
+                <td style={{ padding: '10px 16px 10px 0', fontWeight: 800, color: '#374151', width: '220px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>{label}</td>
+                <td style={{ padding: '10px 0', color: '#111827', fontWeight: 600, lineHeight: '1.6' }}>: {value}</td>
               </tr>
             ))}
             <tr>
-              <td style={{ padding: '7px 12px 7px 0', fontWeight: 800, color: '#374151', width: '180px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>Other Directions</td>
-              <td style={{ padding: '7px 0', color: '#111827', fontWeight: 500, lineHeight: '1.8' }}>
+              <td style={{ padding: '10px 16px 10px 0', fontWeight: 800, color: '#374151', width: '220px', verticalAlign: 'top', whiteSpace: 'nowrap' }}>Other Directions</td>
+              <td style={{ padding: '10px 0', color: '#111827', fontWeight: 600, lineHeight: '1.8' }}>
                 {terms.otherDirections.split('\n').map((line, li) => (
                   <div key={li}>{li === 0 ? ': ' : ''}{line}</div>
                 ))}
@@ -148,23 +150,23 @@ export const BillContent = ({ po, items, today, terms }: { po: any; items: any[]
       </div>
 
       {/* === VENDOR SIGNATURE SECTION === */}
-      <div style={{ padding: '20px 36px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1.5px solid #e5e7eb', background: 'white' }}>
+      <div style={{ padding: '32px 36px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '2px solid #e5e7eb', background: 'white' }}>
         <div>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>Vendor Acknowledgment</div>
-          <div style={{ fontWeight: 700, fontSize: '14px', color: '#111827' }}>{terms.vendorName || '____________________________'}</div>
-          <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{terms.vendorPlace || '____________________________'}</div>
-          <div style={{ marginTop: '24px', borderTop: '1.5px solid #374151', paddingTop: '6px', fontSize: '10px', color: '#6b7280', width: '200px' }}>Vendor Signature & Stamp</div>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>Vendor Acknowledgment</div>
+          <div style={{ fontWeight: 800, fontSize: '18px', color: '#111827' }}>{terms.vendorName || '____________________________'}</div>
+          <div style={{ fontSize: '15px', color: '#6b7280', marginTop: '4px' }}>{terms.vendorPlace || '____________________________'}</div>
+          <div style={{ marginTop: '36px', borderTop: '2px solid #374151', paddingTop: '8px', fontSize: '13px', color: '#6b7280', width: '250px' }}>Vendor Signature & Stamp</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '6px' }}>For Viking Rubbers Pvt. Ltd.</div>
-          <div style={{ marginTop: '40px', borderTop: '1.5px solid #374151', paddingTop: '6px', fontSize: '10px', color: '#6b7280', width: '200px', textAlign: 'right' }}>Authorized Signatory</div>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px' }}>For Viking Rubbers Pvt. Ltd.</div>
+          <div style={{ marginTop: '64px', borderTop: '2px solid #374151', paddingTop: '8px', fontSize: '13px', color: '#6b7280', width: '250px', textAlign: 'right', marginLeft: 'auto' }}>Authorized Signatory</div>
         </div>
       </div>
 
       {/* === FOOTER === */}
-      <div style={{ background: '#1e3a5f', padding: '12px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '10px' }}>Generated by Viking Rubbers Procurement System</div>
-        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px' }}>{po?.po_number} • {today}</div>
+      <div style={{ background: '#1e3a5f', padding: '16px 36px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px' }}>Generated by Viking Rubbers Procurement System</div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '12px' }}>{po?.po_number} • {today}</div>
       </div>
     </div>
   );
@@ -207,7 +209,7 @@ export default function EmailModal({ po, items, onClose }: Props) {
     const html2canvas = (await import('html2canvas')).default;
     if (!captureRef.current) throw new Error('Capture ref not ready');
     const canvas = await html2canvas(captureRef.current, {
-      scale: 2, useCORS: true, backgroundColor: '#ffffff',
+      scale: 4, useCORS: true, backgroundColor: '#ffffff',
       scrollX: 0, scrollY: 0,
       windowWidth: captureRef.current.scrollWidth,
       windowHeight: captureRef.current.scrollHeight,
@@ -272,19 +274,26 @@ export default function EmailModal({ po, items, onClose }: Props) {
         const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
         const toParam = to.trim() ? `&to=${to}` : '';
         const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}`;
-        try {
-          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-          alert('✅ Full PO Image Copied to Clipboard!\n\nGmail is opening... Just press Ctrl+V to paste the complete image into the email body.');
-          window.open(gmailUrl, '_blank');
-        } catch {
-          const link = document.createElement('a');
-          link.download = `PO_${po?.po_number}.png`;
-          link.href = canvas.toDataURL('image/png');
-          link.click();
-          window.open(gmailUrl, '_blank');
-        }
-      }, 'image/png');
-    } catch (err) {
+          try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+            alert('✅ Full PO Image Copied to Clipboard!\n\nGmail is opening... Just press Ctrl+V to paste the complete image into the email body.\n\nA PDF version will also download automatically for your records.');
+            window.open(gmailUrl, '_blank');
+          } catch {
+            const link = document.createElement('a');
+            link.download = `PO_${po?.po_number}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            window.open(gmailUrl, '_blank');
+          }
+          
+          try {
+            exportPOHistoryPDF({ ...po, vendor: terms.vendorName, vendor_place: terms.vendorPlace, items: editableItems }, 'accountant');
+          } catch (pdfErr) {
+            console.error('PDF Export failed', pdfErr);
+          }
+          
+        }, 'image/png');
+      } catch (err) {
       alert('Failed to generate image or open Gmail.');
     } finally {
       setSending(false);
@@ -338,10 +347,16 @@ export default function EmailModal({ po, items, onClose }: Props) {
 
         <div style={{ padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-          {/* Recipient */}
-          <div>
-            <label style={labelStyle}>Recipient Email <span style={{ color: '#9ca3af', textTransform: 'none', fontWeight: 500 }}>(Optional for Gmail)</span></label>
-            <input type="email" placeholder="vendor@example.com" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} onFocus={focusBorder} onBlur={blurBorder} />
+          {/* Recipient and Vendor Details (Moved up for better visibility) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div>
+              <label style={labelStyle}>Recipient Email <span style={{ color: '#9ca3af', textTransform: 'none', fontWeight: 500 }}>(Optional for Gmail)</span></label>
+              <input type="email" placeholder="vendor@example.com" value={to} onChange={e => setTo(e.target.value)} style={inputStyle} onFocus={focusBorder} onBlur={blurBorder} />
+            </div>
+            <div>
+              <label style={labelStyle}>Vendor / Supplier Name <span style={{ color: '#10b981', textTransform: 'none', fontWeight: 500 }}>(Editable)</span></label>
+              <input type="text" placeholder="e.g. ABC Suppliers Pvt. Ltd." value={terms.vendorName} onChange={e => updateTerm('vendorName', e.target.value)} style={{...inputStyle, borderColor: '#10b981', background: '#f0fdf4'}} onFocus={focusBorder} onBlur={blurBorder} />
+            </div>
           </div>
 
           {/* Editable Materials Table */}
@@ -418,16 +433,12 @@ export default function EmailModal({ po, items, onClose }: Props) {
             </div>
           </div>
 
-          {/* Vendor Signature */}
+          {/* Vendor Signature (Vendor place moved to terms grid) */}
           <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: '12px', padding: '20px' }}>
             <div style={{ fontSize: '13px', fontWeight: 900, color: '#1e3a5f', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1.5px solid #bfdbfe', paddingBottom: '10px' }}>
-              🏢 Vendor Acknowledgment Details <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, textTransform: 'none' }}>(for signature section)</span>
+              🏢 Vendor Place / Address <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 500, textTransform: 'none' }}>(for signature section)</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-              <div>
-                <label style={labelStyle}>Vendor Name</label>
-                <input type="text" placeholder="e.g. ABC Suppliers Pvt. Ltd." value={terms.vendorName} onChange={e => updateTerm('vendorName', e.target.value)} style={inputStyle} onFocus={focusBorder} onBlur={blurBorder} />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
               <div>
                 <label style={labelStyle}>Vendor Place / Address</label>
                 <input type="text" placeholder="e.g. Coimbatore, Tamil Nadu" value={terms.vendorPlace} onChange={e => updateTerm('vendorPlace', e.target.value)} style={inputStyle} onFocus={focusBorder} onBlur={blurBorder} />
