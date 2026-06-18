@@ -224,6 +224,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             await db.prepare(
               'INSERT INTO materials (material_code, material_name, category, size_thickness, rate) VALUES (?, ?, ?, ?, ?)'
             ).run(matCode, item.material_name.trim(), category, sizeThickness, rate);
+          } else {
+            // Automatically save latest category, size, and rate to registry
+            await db.prepare(
+              'UPDATE materials SET category = ?, size_thickness = ?, rate = ?, material_code = ? WHERE id = ?'
+            ).run(category, sizeThickness, rate, matCode, existingMat.id);
           }
         }
 

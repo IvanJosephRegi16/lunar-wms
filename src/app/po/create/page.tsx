@@ -862,6 +862,8 @@ function CreatePOFormContent() {
                             if (selected) {
                               updates.material_name = selected.material_name;
                               updates.category = selected.category || item.category || 'Others';
+                              if (selected.size_thickness) updates.size_thickness = selected.size_thickness;
+                              if (selected.rate) updates.order_rate = selected.rate;
                             }
 
                             handleItemChange(idx, updates);
@@ -890,6 +892,8 @@ function CreatePOFormContent() {
                                 if (selected) {
                                   updates.material_code = selected.material_code;
                                   updates.category = selected.category || item.category || 'Others';
+                                  if (selected.size_thickness) updates.size_thickness = selected.size_thickness;
+                                  if (selected.rate) updates.order_rate = selected.rate;
                                 }
 
                                 handleItemChange(idx, updates);
