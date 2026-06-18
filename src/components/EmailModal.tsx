@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { exportPOHistoryPDF } from '@/lib/poPdfExport';
 
 interface Props {
   po: any;
@@ -285,13 +284,18 @@ export default function EmailModal({ po, items, onClose }: Props) {
             link.click();
             window.open(gmailUrl, '_blank');
           }
-          
           try {
-            exportPOHistoryPDF({ ...po, vendor: terms.vendorName, vendor_place: terms.vendorPlace, items: editableItems }, 'accountant');
+            const { jsPDF } = await import('jspdf');
+            const pdf = new jsPDF({
+              orientation: 'portrait',
+              unit: 'px',
+              format: [canvas.width / 4, canvas.height / 4]
+            });
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / 4, canvas.height / 4);
+            pdf.save(`PO_${po?.po_number}.pdf`);
           } catch (pdfErr) {
             console.error('PDF Export failed', pdfErr);
           }
-          
         }, 'image/png');
       } catch (err) {
       alert('Failed to generate image or open Gmail.');
