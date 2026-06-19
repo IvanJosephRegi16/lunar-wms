@@ -294,7 +294,9 @@ export default function EmailModal({ po, items, onClose }: Props) {
               format: [canvas.width / 4, canvas.height / 4]
             });
             pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / 4, canvas.height / 4);
-            pdf.save(`PO_${po?.po_number}.pdf`);
+            const vendorSlug = (terms.vendorName || po?.vendor || 'Vendor').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+            const dateSlug = new Date().toISOString().slice(0, 10);
+            pdf.save(`PO_${po?.po_number}_${vendorSlug}_${dateSlug}.pdf`);
           } catch (pdfErr) {
             console.error('PDF Export failed', pdfErr);
           }
