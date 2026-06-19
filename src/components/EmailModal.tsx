@@ -270,9 +270,11 @@ export default function EmailModal({ po, items, onClose }: Props) {
       const canvas = await captureFullBill();
       canvas.toBlob(async (blob) => {
         if (!blob) throw new Error('Failed to generate image blob');
-        const subject = encodeURIComponent(`Purchase Order ${po?.po_number}`);
+        const subject = encodeURIComponent(`Purchase Order ${po?.po_number} - Viking Rubbers Pvt. Ltd.`);
+        const bodyText = `Dear ${terms.vendorName || 'Vendor'},\n\nPlease find attached the Purchase Order ${po?.po_number} from Viking Rubbers Pvt. Ltd. for your reference and processing.\n\nKindly acknowledge receipt and confirm the delivery schedule as per the terms mentioned in the PO.\n\nIf you have any questions, please feel free to reach out.\n\nBest Regards,\nAccounts Department\nViking Rubbers Pvt. Ltd.\n\n[Please Paste the PO Image Here or Attach the downloaded PDF]`;
+        const bodyParam = encodeURIComponent(bodyText);
         const toParam = to.trim() ? `&to=${to}` : '';
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}`;
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}&body=${bodyParam}`;
           try {
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
             alert('✅ Full PO Image Copied to Clipboard!\n\nGmail is opening... Just press Ctrl+V to paste the complete image into the email body.\n\nA PDF version will also download automatically for your records.');
