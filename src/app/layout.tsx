@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import type { Viewport } from 'next';
 import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import AppLayoutWrapper from './AppLayoutWrapper';
@@ -6,8 +7,6 @@ import FloatingBackground from '@/components/FloatingBackground';
 import fs from 'fs';
 import path from 'path';
 import './globals.css';
-
-import type { Viewport } from 'next';
 
 export const metadata: Metadata = {
   title: "Lunar's Viking",
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "Lunar's Viking",
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
   },
   icons: {
     icon: [
@@ -30,16 +29,11 @@ export const metadata: Metadata = {
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  formatDetection: {
-    telephone: false,
-  },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   themeColor: '#0a0a0a',
 };
 
@@ -80,10 +74,8 @@ export default async function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('SW registered: ', registration.scope);
-                  }, function(err) {
-                    console.log('SW registration failed: ', err);
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    console.log('SW registered:', reg.scope);
                   });
                 });
               }
