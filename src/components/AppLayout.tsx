@@ -836,6 +836,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
         <nav style={{ flex: 1 }}>
           <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', marginLeft: '16px' }}>Overview</div>
           <NavLink href="/" icon="📊" label="Dashboard" exact permissionKey="dashboard" />
+          <NavLink href="/leaves" icon="🏖️" label="Leave Applications" />
           
           {(isAdmin || isPM) && (
             <>

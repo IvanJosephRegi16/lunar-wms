@@ -98,12 +98,14 @@ export default function SplashScreen() {
           width: ball.size, height: ball.size,
           borderRadius: '50%',
           overflow: 'hidden',
+          backgroundColor: '#ffffff',
           animation: `floatBall ${ball.duration} ${ball.delay} ease-in-out infinite, pulseBall ${ball.duration} ${ball.delay} ease-in-out infinite`,
           border: '2px solid rgba(220,38,38,0.4)',
           boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
           opacity: 0.75,
+          padding: 4,
         }}>
-          <img src="/lunars-logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src="/lunars-logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
       ))}
 
@@ -133,10 +135,12 @@ export default function SplashScreen() {
           width: 160, height: 160,
           borderRadius: '50%',
           overflow: 'hidden',
+          backgroundColor: '#ffffff',
           border: '3px solid rgba(220,38,38,0.8)',
           boxShadow: '0 0 0 6px rgba(220,38,38,0.15), 0 24px 80px rgba(0,0,0,0.8)',
+          padding: 12,
         }}>
-          <img src="/lunars-logo.png" alt="Lunar's Viking" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src="/lunars-logo.png" alt="Lunar's Viking" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
       </div>
 

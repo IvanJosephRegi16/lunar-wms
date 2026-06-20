@@ -288,7 +288,6 @@ export default function StoreVerification() {
                     item.order_rate,
                     item.amount
                   ])}
-                  variant="dark"
                 />
               </div>
               <div>

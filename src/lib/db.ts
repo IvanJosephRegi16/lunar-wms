@@ -795,6 +795,33 @@ ON CONFLICT (username) DO NOTHING;
       );
     `);
 
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS leave_applications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        department TEXT,
+        leave_type TEXT,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        total_days REAL NOT NULL,
+        reason TEXT,
+        supervisor_id INTEGER REFERENCES users(id),
+        status TEXT DEFAULT 'pending_supervisor' CHECK(status IN (
+          'pending_supervisor', 
+          'returned_by_supervisor', 
+          'rejected_by_supervisor', 
+          'pending_admin', 
+          'returned_by_admin', 
+          'rejected_by_admin', 
+          'approved'
+        )),
+        supervisor_remarks TEXT,
+        admin_remarks TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
+
     // ── Column-level migrations (safe ADD COLUMN IF NOT EXISTS) ───────────
     const columnMigrations = [
       { table: 'purchase_orders',     column: 'is_deleted',              type: 'INTEGER DEFAULT 0' },
