@@ -7,9 +7,28 @@ import fs from 'fs';
 import path from 'path';
 import './globals.css';
 
+import type { Viewport } from 'next';
+
 export const metadata: Metadata = {
-  title: "LUNAR'S VIKING",
+  title: "Lunar's Viking",
   description: 'Enterprise internal warehouse management software',
+  applicationName: "Lunar's Viking",
+  appleWebApp: {
+    capable: true,
+    title: "Lunar's Viking",
+    statusBarStyle: 'black-translucent',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#0a0a0a',
 };
 
 export default async function RootLayout({
