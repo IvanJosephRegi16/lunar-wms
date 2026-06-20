@@ -133,115 +133,123 @@ export default function LeaveApplicationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f] text-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-gray-400 font-medium tracking-widest uppercase text-sm">Loading Application...</span>
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px' }}>
+        <div className="loading-dot" />
+        <span style={{ color: 'var(--text-ghost)', fontWeight: 600, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading Module...</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white p-4 md:p-8 font-sans relative overflow-x-hidden">
-      {/* Premium Background Effects */}
-      <div className="fixed inset-0 pointer-events-none opacity-20">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-red-900 blur-[150px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-900 blur-[180px]"></div>
+    <div className="fade-up" style={{ 
+      display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', 
+      paddingBottom: '40px', fontFamily: '"Inter", "Segoe UI", sans-serif'
+    }}>
+      
+      {/* ── HEADER ── */}
+      <div style={{ 
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px',
+        background: 'linear-gradient(145deg, #ffffff, #f8fafc)', padding: '24px 32px', borderRadius: '24px',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.03), inset 0 2px 0 rgba(255,255,255,0.8)', border: '1px solid rgba(0,0,0,0.05)'
+      }}>
+        <div>
+          <h1 style={{ fontSize: '32px', fontWeight: 900, margin: 0, color: '#0f172a', letterSpacing: '-0.5px' }}>Leave Management</h1>
+          <p style={{ fontSize: '14px', color: '#64748b', marginTop: '4px', fontWeight: 500 }}>Streamlined Time-Off Requests & Approvals</p>
+        </div>
+        <button 
+          onClick={() => { setShowForm(!showForm); setErrorMsg(''); }}
+          style={{ 
+            background: showForm ? '#f1f5f9' : 'linear-gradient(135deg, #e11d48, #be123c)',
+            color: showForm ? '#475569' : '#ffffff',
+            border: showForm ? '1px solid #cbd5e1' : 'none',
+            padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
+            cursor: 'pointer', boxShadow: showForm ? 'none' : '0 8px 20px rgba(225,29,72,0.3)',
+            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            display: 'flex', alignItems: 'center', gap: '8px'
+          }}
+          onMouseEnter={e => !showForm && (e.currentTarget.style.transform = 'translateY(-2px)')}
+          onMouseLeave={e => !showForm && (e.currentTarget.style.transform = 'none')}
+        >
+          {showForm ? '✕ Close Form' : '➕ Create Application'}
+        </button>
       </div>
 
-      <div className="max-w-7xl mx-auto space-y-10 relative z-10">
-        
-        {/* Dynamic Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/[0.02] p-8 rounded-3xl border border-white/5 backdrop-blur-xl shadow-2xl">
-          <div>
-            <h1 className="text-4xl font-extrabold bg-gradient-to-br from-white via-gray-200 to-gray-500 bg-clip-text text-transparent mb-2">Leave Management</h1>
-            <p className="text-gray-400 text-sm font-medium tracking-wide">Streamlined Time-Off Requests & Approvals</p>
-          </div>
-          <button 
-            onClick={() => { setShowForm(!showForm); setErrorMsg(''); }}
-            className={`px-8 py-4 font-bold rounded-xl transition-all duration-300 shadow-xl uppercase tracking-wider text-sm flex items-center gap-3 ${
-              showForm 
-                ? 'bg-white/10 text-white hover:bg-white/20 border border-white/20' 
-                : 'bg-gradient-to-r from-red-600 to-red-800 text-white hover:scale-105 hover:shadow-[0_0_30px_rgba(220,38,38,0.4)] border border-red-500/50'
-            }`}
-          >
-            {showForm ? '✕ Close Form' : '➕ Create Application'}
-          </button>
+      {errorMsg && (
+        <div style={{ background: '#fef2f2', borderLeft: '4px solid #ef4444', color: '#b91c1c', padding: '16px', borderRadius: '12px', fontWeight: 600 }}>
+          ⚠️ {errorMsg}
         </div>
+      )}
 
-        {errorMsg && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl flex items-center gap-3 font-medium">
-            <span>⚠️</span> {errorMsg}
-          </div>
-        )}
-
-        {/* The Application Form (Premium Design) */}
-        <div className={`transition-all duration-500 ease-in-out origin-top ${showForm ? 'opacity-100 scale-y-100 mb-10' : 'opacity-0 scale-y-0 h-0 hidden'}`}>
-          <div className="bg-[#111116] border border-white/10 rounded-3xl p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden">
-            
-            {/* Form Background Texture */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
-            
-            {/* Form Header (Corporate Identity) */}
-            <div className="flex flex-col md:flex-row justify-between items-center border-b border-white/10 pb-8 mb-8 relative z-10">
-              <div className="flex items-center gap-6">
-                <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center p-3 shadow-lg ring-4 ring-white/5">
-                  <img src="/lunars-logo.png" alt="Lunar's Viking" className="w-full h-full object-contain" />
+      {/* ── THE APPLICATION FORM ── */}
+      {showForm && (
+        <div style={{ 
+          background: '#ffffff', borderRadius: '24px', padding: '0', 
+          boxShadow: '0 20px 40px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.05)', 
+          border: '1px solid #e2e8f0', overflow: 'hidden', position: 'relative'
+        }}>
+          {/* Top Edge Accent */}
+          <div style={{ height: '6px', width: '100%', background: 'linear-gradient(90deg, #e11d48, #f43f5e, #fbbf24)' }} />
+          
+          <div style={{ padding: '40px 48px' }}>
+            {/* Corporate Header Section */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #f1f5f9', paddingBottom: '32px', marginBottom: '32px', flexWrap: 'wrap', gap: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={{ width: '90px', height: '90px', borderRadius: '50%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.06)', border: '1px solid #f1f5f9' }}>
+                  <img src="/lunars-logo.png" alt="Lunar's Viking" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 </div>
                 <div>
-                  <h2 className="text-3xl font-black text-white tracking-[0.2em] uppercase">Lunar's Viking</h2>
-                  <p className="text-red-500 text-xs font-bold tracking-[0.3em] mt-2">OFFICIAL LEAVE APPLICATION</p>
+                  <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', letterSpacing: '0.05em', textTransform: 'uppercase', margin: 0 }}>Lunar's Viking</h2>
+                  <p style={{ color: '#e11d48', fontSize: '11px', fontWeight: 800, letterSpacing: '0.2em', marginTop: '6px', textTransform: 'uppercase' }}>Official Leave Application</p>
                 </div>
               </div>
-              <div className="text-right mt-6 md:mt-0 bg-white/5 p-4 rounded-xl border border-white/10">
-                <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Current Date</p>
-                <p className="text-lg font-medium text-white">{format(new Date(), 'dd MMM yyyy')}</p>
-                <div className="mt-3 pt-3 border-t border-white/10">
-                  <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Approved This Month</p>
-                  <p className="text-2xl font-black text-red-500">{calculateLeavesThisMonth()} <span className="text-sm font-medium text-red-400">Days</span></p>
+              <div style={{ background: '#f8fafc', padding: '16px 24px', borderRadius: '16px', border: '1px dashed #cbd5e1', textAlign: 'right' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Current Date</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{format(new Date(), 'dd MMM yyyy')}</div>
+                <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Approved This Month</div>
+                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#e11d48', marginTop: '2px' }}>{calculateLeavesThisMonth()} <span style={{ fontSize: '12px', fontWeight: 700, color: '#f43f5e' }}>Days</span></div>
                 </div>
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
               
-              {/* Applicant Profile Bar */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gradient-to-r from-white/5 to-transparent p-6 rounded-2xl border-l-4 border-red-600">
+              {/* Applicant Info Banner */}
+              <div style={{ 
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px',
+                background: '#f8fafc', padding: '24px', borderRadius: '16px', borderLeft: '4px solid #3b82f6'
+              }}>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-2">Applicant Name</label>
-                  <div className="text-xl font-bold text-white">{user?.full_name}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Applicant Name</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{user?.full_name}</div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-2">Contact Number</label>
-                  <div className="text-xl font-bold text-gray-200">{user?.phone || 'Not Provided'}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Contact Number</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: '#334155' }}>{user?.phone || 'Not Provided'}</div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase text-gray-500 tracking-widest mb-2">System Role</label>
-                  <div className="text-xl font-bold text-red-400 capitalize">{user?.role}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>System Role</div>
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#2563eb', textTransform: 'capitalize' }}>{user?.role}</div>
                 </div>
               </div>
 
-              {/* Form Inputs Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider ml-1">Department</label>
-                  <input 
-                    required
-                    type="text" 
-                    value={formData.department}
-                    onChange={e => setFormData({...formData, department: e.target.value})}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white font-medium focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all"
+              {/* Form Inputs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Department</label>
+                  <input required type="text" value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})}
                     placeholder="e.g. Production, HR, Sales"
+                    style={{ padding: '16px', border: '1.5px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#cbd5e1'}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider ml-1">Leave Category</label>
-                  <select 
-                    required
-                    value={formData.leave_type}
-                    onChange={e => setFormData({...formData, leave_type: e.target.value})}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white font-medium focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all appearance-none cursor-pointer"
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leave Category</label>
+                  <select required value={formData.leave_type} onChange={e => setFormData({...formData, leave_type: e.target.value})}
+                    style={{ padding: '16px', border: '1.5px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', backgroundColor: '#fff', cursor: 'pointer' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#cbd5e1'}
                   >
                     <option>Annual Leave</option>
                     <option>Sick Leave</option>
@@ -252,56 +260,47 @@ export default function LeaveApplicationsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider ml-1">From Date</label>
-                  <input 
-                    required
-                    type="date" 
-                    value={formData.start_date}
-                    onChange={e => setFormData({...formData, start_date: e.target.value})}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white font-medium focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all [color-scheme:dark]"
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>From Date</label>
+                  <input required type="date" value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})}
+                    style={{ padding: '16px', border: '1.5px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#cbd5e1'}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider ml-1">To Date</label>
-                  <input 
-                    required
-                    type="date" 
-                    value={formData.end_date}
-                    onChange={e => setFormData({...formData, end_date: e.target.value})}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white font-medium focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all [color-scheme:dark]"
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>To Date</label>
+                  <input required type="date" value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})}
+                    style={{ padding: '16px', border: '1.5px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: 600, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                    onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.currentTarget.style.borderColor = '#cbd5e1'}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider ml-1">Total Duration</label>
-                  <div className="w-full bg-black/20 border border-white/5 rounded-xl px-5 py-4 text-white flex items-center justify-center gap-2">
-                    <span className="text-3xl font-black text-red-500">{totalDays > 0 ? totalDays : '-'}</span>
-                    <span className="text-sm font-bold text-gray-500 uppercase tracking-widest mt-1">Days</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Duration</label>
+                  <div style={{ padding: '14px 16px', border: '1.5px solid #e2e8f0', background: '#f8fafc', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a' }}>{totalDays > 0 ? totalDays : '-'}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: '4px' }}>Days</span>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider ml-1">Detailed Reason</label>
-                <textarea 
-                  required
-                  rows={4}
-                  value={formData.reason}
-                  onChange={e => setFormData({...formData, reason: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white font-medium focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none transition-all resize-none"
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Detailed Reason</label>
+                <textarea required rows={4} value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})}
                   placeholder="Please provide clear justification for your leave request..."
+                  style={{ padding: '16px', border: '1.5px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: 500, outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
+                  onFocus={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                  onBlur={e => e.currentTarget.style.borderColor = '#cbd5e1'}
                 />
               </div>
 
               {user?.role === 'worker' && (
-                <div className="space-y-2 p-6 bg-blue-900/10 border border-blue-500/20 rounded-2xl">
-                  <label className="block text-xs font-bold uppercase text-blue-400 tracking-wider ml-1 mb-3">Required: Select Approving Supervisor</label>
-                  <select 
-                    required
-                    value={formData.supervisor_id}
-                    onChange={e => setFormData({...formData, supervisor_id: e.target.value})}
-                    className="w-full bg-black/50 border border-blue-500/30 rounded-xl px-5 py-4 text-white font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all appearance-none cursor-pointer"
+                <div style={{ background: '#eff6ff', border: '1.5px dashed #bfdbfe', borderRadius: '16px', padding: '24px' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Required: Select Approving Supervisor</label>
+                  <select required value={formData.supervisor_id} onChange={e => setFormData({...formData, supervisor_id: e.target.value})}
+                    style={{ padding: '16px', border: '1.5px solid #93c5fd', borderRadius: '12px', fontSize: '14px', fontWeight: 700, color: '#1e3a8a', outline: 'none', transition: 'border-color 0.2s', width: '100%', boxSizing: 'border-box', backgroundColor: '#ffffff', cursor: 'pointer' }}
                   >
                     <option value="">-- Click to Assign Supervisor --</option>
                     {supervisors.map(s => (
@@ -311,104 +310,113 @@ export default function LeaveApplicationsPage() {
                 </div>
               )}
 
-              {/* Submit Footer */}
-              <div className="pt-8 border-t border-white/10 flex justify-end">
+              <div style={{ paddingTop: '24px', borderTop: '2px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
                 <button 
                   type="submit" 
                   disabled={submitting || totalDays <= 0}
-                  className="w-full md:w-auto px-12 py-5 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 disabled:from-gray-700 disabled:to-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-black rounded-xl transition-all duration-300 shadow-[0_10px_40px_rgba(220,38,38,0.3)] hover:shadow-[0_15px_50px_rgba(220,38,38,0.5)] disabled:shadow-none uppercase tracking-[0.2em] text-sm flex justify-center items-center gap-3"
+                  style={{ 
+                    background: (submitting || totalDays <= 0) ? '#cbd5e1' : 'linear-gradient(135deg, #0f172a, #334155)',
+                    color: '#ffffff', border: 'none', padding: '16px 40px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
+                    cursor: (submitting || totalDays <= 0) ? 'not-allowed' : 'pointer', textTransform: 'uppercase', letterSpacing: '0.1em',
+                    boxShadow: (submitting || totalDays <= 0) ? 'none' : '0 10px 25px rgba(15,23,42,0.2)',
+                    transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                  onMouseEnter={e => !(submitting || totalDays <= 0) && (e.currentTarget.style.transform = 'translateY(-2px)')}
+                  onMouseLeave={e => !(submitting || totalDays <= 0) && (e.currentTarget.style.transform = 'none')}
                 >
-                  {submitting ? (
-                    <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Processing...</>
-                  ) : (
-                    'Submit Application'
-                  )}
+                  {submitting ? 'Processing...' : 'Submit Application'}
                 </button>
               </div>
             </form>
           </div>
         </div>
+      )}
 
-        {/* History / Applications List */}
-        <div className="space-y-6 relative z-10">
-          <div className="flex items-center gap-4 mb-8">
-            <h2 className="text-2xl font-black uppercase tracking-widest text-white">Application Ledger</h2>
-            <div className="flex-1 h-[1px] bg-gradient-to-r from-white/20 to-transparent"></div>
+      {/* ── HISTORY / LEDGER ── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h2 style={{ fontSize: '20px', fontWeight: 900, color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.1em', margin: 0 }}>Application Ledger</h2>
+          <div style={{ flex: 1, height: '2px', background: 'linear-gradient(90deg, #e2e8f0, transparent)' }} />
+        </div>
+
+        {leaves.length === 0 ? (
+          <div style={{ background: '#ffffff', borderRadius: '24px', padding: '64px 24px', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>📂</div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: '#475569' }}>No Leave Records Found</div>
+            <div style={{ fontSize: '14px', color: '#94a3b8', marginTop: '8px' }}>Applications you submit or receive for approval will appear here.</div>
           </div>
-          
-          <div className="grid grid-cols-1 gap-6">
-            {leaves.length === 0 ? (
-              <div className="text-center py-20 bg-white/[0.02] rounded-3xl border border-white/5">
-                <div className="text-6xl mb-4 opacity-50">📂</div>
-                <h3 className="text-xl font-bold text-gray-300">No Leave Records Found</h3>
-                <p className="text-gray-500 mt-2 text-sm">Applications you submit or receive for approval will appear here.</p>
-              </div>
-            ) : leaves.map((leave) => (
-              <div key={leave.id} className="bg-[#111116] border border-white/5 rounded-3xl p-6 md:p-8 hover:border-white/20 transition-all duration-300 shadow-xl group">
-                <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {leaves.map((leave) => (
+              <div key={leave.id} style={{ 
+                background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0',
+                padding: '24px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+                display: 'flex', flexDirection: 'column', gap: '20px'
+              }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   
-                  {/* Ledger Info Block */}
-                  <div className="flex-1 flex flex-col md:flex-row gap-6 md:gap-10">
-                    {/* Date Block */}
-                    <div className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-2xl min-w-[120px] border border-white/10 group-hover:border-white/20 transition-colors">
-                      <span className="text-3xl font-black text-white">{leave.total_days}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-1">Days</span>
+                  {/* Left block: Days + Info */}
+                  <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', flex: 1 }}>
+                    <div style={{ 
+                      width: '80px', height: '80px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '16px',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+                    }}>
+                      <span style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', lineHeight: 1 }}>{leave.total_days}</span>
+                      <span style={{ fontSize: '10px', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: '4px' }}>Days</span>
                     </div>
 
-                    {/* Details Block */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3 flex-wrap">
-                        <h3 className="text-xl font-bold text-white">{leave.emp_name}</h3>
-                        <span className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-bold text-gray-300 uppercase tracking-wider">{leave.role}</span>
-                        <span className="px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-400 rounded-full text-[10px] font-bold uppercase tracking-wider">{leave.leave_type}</span>
+                    <div style={{ flex: 1, minWidth: '250px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{leave.emp_name}</span>
+                        <span style={{ padding: '4px 10px', background: '#f1f5f9', borderRadius: '20px', fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{leave.role}</span>
+                        <span style={{ padding: '4px 10px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{leave.leave_type}</span>
                       </div>
                       
-                      <div className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '12px' }}>
                         <span>🗓 {format(new Date(leave.start_date), 'dd MMM yyyy')}</span>
-                        <span className="text-gray-600">→</span>
+                        <span>→</span>
                         <span>{format(new Date(leave.end_date), 'dd MMM yyyy')}</span>
                       </div>
-                      
-                      <div className="bg-black/40 p-4 rounded-xl border border-white/5 text-gray-300 text-sm leading-relaxed italic">
+
+                      <div style={{ background: '#f8fafc', borderLeft: '3px solid #cbd5e1', padding: '12px 16px', borderRadius: '0 8px 8px 0', fontSize: '13px', color: '#475569', fontStyle: 'italic', lineHeight: 1.5 }}>
                         "{leave.reason}"
                       </div>
-                      
+
                       {leave.supervisor_name && (
-                        <p className="text-xs font-medium text-blue-400 mt-4 flex items-center gap-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        <div style={{ marginTop: '12px', fontSize: '12px', fontWeight: 600, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3b82f6' }} />
                           Routing via Supervisor: {leave.supervisor_name}
-                        </p>
+                        </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Actions & Status Block */}
-                  <div className="w-full xl:w-auto flex flex-col items-start xl:items-end gap-5 pl-0 xl:pl-8 xl:border-l border-white/10">
+                  {/* Right block: Status & Actions */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '16px', minWidth: '180px' }}>
                     <StatusBadge status={leave.status} />
-                    
+
                     {canActionLeave(user, leave) && (
-                      <div className="w-full flex gap-3 mt-2">
-                        <button onClick={() => handleAction(leave.id, 'approve')} className="flex-1 xl:flex-none px-6 py-3 bg-green-500/10 border border-green-500/30 text-green-400 hover:bg-green-500 hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all">Approve</button>
-                        <button onClick={() => handleAction(leave.id, 'return')} className="flex-1 xl:flex-none px-6 py-3 bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500 hover:text-black rounded-xl font-bold text-xs uppercase tracking-wider transition-all">Return</button>
-                        <button onClick={() => handleAction(leave.id, 'reject')} className="flex-1 xl:flex-none px-6 py-3 bg-red-500/10 border border-red-500/30 text-red-400 hover:bg-red-500 hover:text-white rounded-xl font-bold text-xs uppercase tracking-wider transition-all">Reject</button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                        <button onClick={() => handleAction(leave.id, 'approve')} style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={e => e.currentTarget.style.background = '#f0fdf4'}>✓ Approve</button>
+                        <button onClick={() => handleAction(leave.id, 'return')} style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#fef3c7'} onMouseLeave={e => e.currentTarget.style.background = '#fffbeb'}>↺ Return</button>
+                        <button onClick={() => handleAction(leave.id, 'reject')} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}>✕ Reject</button>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Remarks Display */}
                 {(leave.supervisor_remarks || leave.admin_remarks) && (
-                  <div className="mt-6 pt-6 border-t border-white/5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     {leave.supervisor_remarks && (
-                      <div className="bg-yellow-500/5 border border-yellow-500/10 p-4 rounded-xl">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-yellow-500 mb-1">Supervisor Remarks</p>
-                        <p className="text-sm text-gray-300">{leave.supervisor_remarks}</p>
+                      <div style={{ background: '#fffbeb', padding: '12px 16px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Supervisor Remarks</div>
+                        <div style={{ fontSize: '13px', color: '#92400e' }}>{leave.supervisor_remarks}</div>
                       </div>
                     )}
                     {leave.admin_remarks && (
-                      <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-xl">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-red-500 mb-1">Admin Remarks</p>
-                        <p className="text-sm text-gray-300">{leave.admin_remarks}</p>
+                      <div style={{ background: '#fef2f2', padding: '12px 16px', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Admin Remarks</div>
+                        <div style={{ fontSize: '13px', color: '#991b1b' }}>{leave.admin_remarks}</div>
                       </div>
                     )}
                   </div>
@@ -416,9 +424,9 @@ export default function LeaveApplicationsPage() {
               </div>
             ))}
           </div>
-        </div>
-
+        )}
       </div>
+
     </div>
   );
 }
@@ -432,22 +440,25 @@ function canActionLeave(user: any, leave: any) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const configs: Record<string, { color: string, label: string, glow: string }> = {
-    'pending_supervisor': { color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10', glow: 'shadow-[0_0_15px_rgba(234,179,8,0.2)]', label: 'Pending Supervisor' },
-    'pending_admin': { color: 'text-blue-400 border-blue-500/30 bg-blue-500/10', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.2)]', label: 'Pending Admin' },
-    'approved': { color: 'text-green-400 border-green-500/30 bg-green-500/10', glow: 'shadow-[0_0_20px_rgba(34,197,94,0.3)]', label: 'Approved' },
-    'rejected_by_supervisor': { color: 'text-red-500 border-red-500/30 bg-red-500/10', glow: '', label: 'Rejected (Supervisor)' },
-    'rejected_by_admin': { color: 'text-red-500 border-red-500/30 bg-red-500/10', glow: '', label: 'Rejected (Admin)' },
-    'returned_by_supervisor': { color: 'text-orange-400 border-orange-500/30 bg-orange-500/10', glow: '', label: 'Returned (Supervisor)' },
-    'returned_by_admin': { color: 'text-orange-400 border-orange-500/30 bg-orange-500/10', glow: '', label: 'Returned (Admin)' },
+  const configs: Record<string, { bg: string, color: string, border: string, label: string }> = {
+    'pending_supervisor': { bg: '#fef9c3', color: '#a16207', border: '#fef08a', label: 'Pending Supervisor' },
+    'pending_admin': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', label: 'Pending Admin' },
+    'approved': { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', label: 'Approved' },
+    'rejected_by_supervisor': { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: 'Rejected (Supervisor)' },
+    'rejected_by_admin': { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: 'Rejected (Admin)' },
+    'returned_by_supervisor': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', label: 'Returned (Supervisor)' },
+    'returned_by_admin': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', label: 'Returned (Admin)' },
   };
 
-  const config = configs[status] || { color: 'text-gray-400 border-gray-500/30 bg-gray-500/10', glow: '', label: status };
+  const config = configs[status] || { bg: '#f1f5f9', color: '#475569', border: '#cbd5e1', label: status };
 
   return (
-    <div className={`px-4 py-2 rounded-xl border ${config.color} ${config.glow} flex items-center gap-2`}>
-      <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: 'currentColor' }}></span>
-      <span className="text-[11px] font-black uppercase tracking-widest">{config.label}</span>
+    <div style={{ 
+      background: config.bg, color: config.color, border: `1px solid ${config.border}`,
+      padding: '8px 16px', borderRadius: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px'
+    }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: config.color, display: 'inline-block' }} />
+      <span style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{config.label}</span>
     </div>
   );
 }
