@@ -13,10 +13,15 @@ export const metadata: Metadata = {
   title: "Lunar's Viking",
   description: 'Enterprise internal warehouse management software',
   applicationName: "Lunar's Viking",
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     title: "Lunar's Viking",
     statusBarStyle: 'black-translucent',
+  },
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
   },
   formatDetection: {
     telephone: false,
