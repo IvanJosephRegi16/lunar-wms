@@ -30,7 +30,7 @@ export default function LeaveApplicationsPage() {
 
   const fetchData = async () => {
     try {
-      const sessionRes = await fetch('/api/auth/session');
+      const sessionRes = await fetch('/api/auth/me');
       if (!sessionRes.ok) throw new Error('Not logged in');
       const session = await sessionRes.json();
       setUser(session.user);
