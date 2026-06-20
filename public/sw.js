@@ -44,34 +44,63 @@ self.addEventListener('activate', (event) => {
 
 // FETCH: network-first, fallback to cache
 self.addEventListener('fetch', (event) => {
-  // Only handle GET requests
   if (event.request.method !== 'GET') return;
-
-  // Skip cross-origin requests
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache successful responses
         if (response.status === 200) {
           const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          caches.open(CACHE_NAME).then((cache) => { cache.put(event.request, responseClone); });
         }
         return response;
       })
       .catch(() => {
-        // Fallback to cache if offline
         return caches.match(event.request).then((cached) => {
           if (cached) return cached;
-          // For navigation requests, return root page
-          if (event.request.mode === 'navigate') {
-            return caches.match('/');
-          }
+          if (event.request.mode === 'navigate') return caches.match('/');
         });
       })
   );
 });
+
+// PUSH: receive a push notification from the server
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push received');
+  let data = { title: "Lunar's Viking", body: 'You have a new notification', icon: '/android-chrome-192x192.png' };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch (e) { /* use defaults */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: data.icon || '/android-chrome-192x192.png',
+      badge: '/android-chrome-192x192.png',
+      vibrate: [100, 50, 100],
+      tag: 'lunars-notification',
+      renotify: true,
+      data: { url: data.url || '/' },
+    })
+  );
+});
+
+// NOTIFICATION CLICK: open the app when notification is tapped
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked');
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      const url = event.notification.data?.url || '/';
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
+

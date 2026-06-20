@@ -5,6 +5,8 @@ import { verifyToken } from '@/lib/auth';
 import AppLayoutWrapper from './AppLayoutWrapper';
 import FloatingBackground from '@/components/FloatingBackground';
 import InstallPWABanner from '@/components/InstallPWABanner';
+import SplashScreen from '@/components/SplashScreen';
+import PushNotificationSetup from '@/components/PushNotificationSetup';
 import fs from 'fs';
 import path from 'path';
 import './globals.css';
@@ -83,10 +85,12 @@ export default async function RootLayout({
             `,
           }}
         />
+        <SplashScreen />
         <FloatingBackground />
         <AppLayoutWrapper user={user}>
           {children}
         </AppLayoutWrapper>
+        {user && <PushNotificationSetup />}
         <InstallPWABanner />
       </body>
     </html>
