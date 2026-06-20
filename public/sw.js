@@ -1,46 +1,77 @@
-const CACHE_NAME = 'lunars-viking-v1';
+const CACHE_NAME = 'lunars-viking-v2';
 
-// Pre-cache critical assets including all icons
-const urlsToCache = [
+const PRECACHE_URLS = [
   '/',
   '/site.webmanifest',
-  '/favicon-16x16.png',
-  '/favicon-32x32.png',
-  '/apple-touch-icon.png',
   '/android-chrome-192x192.png',
   '/android-chrome-512x512.png',
+  '/apple-touch-icon.png',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png',
 ];
 
+// INSTALL: pre-cache critical assets
 self.addEventListener('install', (event) => {
-  console.log('[SW] Install');
+  console.log('[SW] Installing v2...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching icons and manifest');
-      return cache.addAll(urlsToCache);
+      console.log('[SW] Pre-caching assets');
+      return cache.addAll(PRECACHE_URLS);
+    }).then(() => {
+      console.log('[SW] Install complete');
     })
   );
   self.skipWaiting();
 });
 
+// ACTIVATE: remove old caches, take control immediately
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activate');
+  console.log('[SW] Activating v2...');
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keyList) => {
       return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
+        keyList
+          .filter((key) => key !== CACHE_NAME)
+          .map((key) => {
+            console.log('[SW] Removing old cache:', key);
+            return caches.delete(key);
+          })
       );
     })
   );
   self.clients.claim();
 });
 
+// FETCH: network-first, fallback to cache
 self.addEventListener('fetch', (event) => {
-  // Network-first strategy: always try the network, fall back to cache
+  // Only handle GET requests
+  if (event.request.method !== 'GET') return;
+
+  // Skip cross-origin requests
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fallback to cache if offline
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
+          // For navigation requests, return root page
+          if (event.request.mode === 'navigate') {
+            return caches.match('/');
+          }
+        });
+      })
   );
 });
