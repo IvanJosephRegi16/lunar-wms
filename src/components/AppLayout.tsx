@@ -459,6 +459,8 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
 
     try {
       const payload: any = {};
+      const isPasswordChange = activeModal === 'settings' && !!newPassword;
+
       if (activeModal === 'change_name') {
         payload.full_name = newName;
       } else {
@@ -474,11 +476,16 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       });
 
       if (res.ok) {
-        setModalSuccess('Updated successfully!');
+        const successMsg = isPasswordChange
+          ? '🔐 Password updated successfully! Please use your new password next time you log in.'
+          : '✅ Profile updated successfully!';
+        setModalSuccess(successMsg);
+        setNewPassword('');
+        setConfirmPassword('');
         setTimeout(() => {
           setActiveModal(null);
           window.location.reload();
-        }, 1000);
+        }, 2000);
       } else {
         const data = await res.json().catch(() => ({}));
         setModalError(data.error || 'Failed to update profile settings.');
@@ -489,6 +496,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       setModalLoading(false);
     }
   };
+
 
   // Fetch PO counts and Sidebar Access Requests for Admin, PM, and Accountant roles
   useEffect(() => {
