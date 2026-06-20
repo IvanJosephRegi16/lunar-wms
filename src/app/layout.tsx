@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { verifyToken } from '@/lib/auth';
 import AppLayoutWrapper from './AppLayoutWrapper';
 import FloatingBackground from '@/components/FloatingBackground';
+import InstallPWABanner from '@/components/InstallPWABanner';
 import fs from 'fs';
 import path from 'path';
 import './globals.css';
@@ -86,6 +87,7 @@ export default async function RootLayout({
         <AppLayoutWrapper user={user}>
           {children}
         </AppLayoutWrapper>
+        <InstallPWABanner />
       </body>
     </html>
   );
