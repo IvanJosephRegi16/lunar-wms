@@ -36,6 +36,16 @@ export async function POST(req: NextRequest) {
   }
 
   if (action === 'update_user') {
+    // ── PASSWORD: always update in a dedicated statement first ──────────────
+    if (body.password && body.password.trim().length > 0) {
+      const pw = body.password.trim();
+      console.log(`[ADMIN UPDATE_USER] Updating password for user id=${body.user_id}`);
+      const newHash = bcrypt.hashSync(pw, 10);
+      await db.prepare('UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?').run(newHash, pw, body.user_id);
+      console.log(`[ADMIN UPDATE_USER] Password updated for user id=${body.user_id}`);
+    }
+
+    // ── OTHER FIELDS ────────────────────────────────────────────────────────
     const updates: string[] = [];
     const vals: any[] = [];
     if (body.username) { updates.push('username=?'); vals.push(body.username); }
@@ -43,15 +53,12 @@ export async function POST(req: NextRequest) {
     if (body.role) { updates.push('role=?'); vals.push(body.role); }
     if (body.phone !== undefined) { updates.push('phone=?'); vals.push(body.phone || null); }
     if (body.is_active !== undefined) { updates.push('is_active=?'); vals.push(body.is_active ? 1 : 0); }
-    if (body.password) { 
-      updates.push('password_hash=?'); 
-      vals.push(bcrypt.hashSync(body.password, 10)); 
-      updates.push('plain_password=?'); 
-      vals.push(body.password); 
+    if (updates.length > 0) {
+      vals.push(body.user_id);
+      await db.prepare(`UPDATE users SET ${updates.join(',')} WHERE id=?`).run(...vals);
     }
-    vals.push(body.user_id);
-    await db.prepare(`UPDATE users SET ${updates.join(',')} WHERE id=?`).run(...vals);
-    await logAudit({ userId: user.id, username: user.username, action: 'UPDATE_USER', module: 'admin', description: `Updated user: ${body.user_id}` });
+
+    await logAudit({ userId: user.id, username: user.username, action: 'UPDATE_USER', module: 'admin', description: `Updated user id=${body.user_id}${body.password ? ' (password changed)' : ''}` });
     return NextResponse.json({ success: true });
   }
 

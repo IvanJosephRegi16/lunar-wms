@@ -50,6 +50,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── PASSWORD UPDATE: handle separately first to ensure it always saves ──
+    if (password && password.trim().length > 0) {
+      console.log(`[PROFILE UPDATE] User ${authUser.username} (id=${authUser.id}) is changing password.`);
+      const hash = bcrypt.hashSync(password.trim(), 10);
+      const pwResult = await db.prepare(
+        'UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?'
+      ).run(hash, password.trim(), authUser.id) as any;
+      console.log(`[PROFILE UPDATE] Password hash updated. Changes: ${pwResult?.changes ?? 'unknown'}`);
+    }
+
+    // ── OTHER FIELDS UPDATE ──────────────────────────────────────────────────
     const updates: string[] = [];
     const vals: any[] = [];
 
@@ -66,26 +77,15 @@ export async function POST(req: NextRequest) {
     updates.push('phone=?');
     vals.push(phone || null);
 
-    if (password) {
-      const hash = bcrypt.hashSync(password, 10);
-      updates.push('password_hash=?');
-      vals.push(hash);
-      
-      updates.push('plain_password=?');
-      vals.push(password);
-    }
-
     if (avatar_url !== undefined) {
       updates.push('avatar_url=?');
       vals.push(avatar_url || null);
     }
 
-    if (updates.length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    if (updates.length > 0) {
+      vals.push(authUser.id);
+      await db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...vals);
     }
-
-    vals.push(authUser.id);
-    await db.prepare(`UPDATE users SET ${updates.join(', ')} WHERE id = ?`).run(...vals);
 
     // Fetch updated user to sign a new token
     const updatedUser = await db.prepare('SELECT id, username, full_name, role FROM users WHERE id = ?').get(authUser.id) as any;
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       username: authUser.username,
       action: 'UPDATE_PROFILE',
       module: 'auth',
-      description: 'Updated personal profile and credentials settings'
+      description: password ? 'Password changed via Account Settings' : 'Updated personal profile settings'
     });
 
     const response = NextResponse.json({
@@ -120,6 +120,7 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (err: any) {
+    console.error('[PROFILE UPDATE ERROR]', err.message, err.stack);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
