@@ -956,6 +956,46 @@ ON CONFLICT (username) DO NOTHING;
 ensureDatabaseSchema().catch(console.error);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// One-time password migration: forces admin password to 'admin124536'
+// Uses a system_settings flag so this ONLY runs once and never again.
+// ─────────────────────────────────────────────────────────────────────────────
+async function runOneTimePasswordMigration() {
+  const bcrypt = (await import('bcryptjs')).default;
+  const client = await pgPool.connect();
+  try {
+    // Check if already done
+    const { rows: [flag] } = await client.query(
+      `SELECT value FROM system_settings WHERE key = 'pw_migration_admin124536_done'`
+    );
+    if (flag?.value === '1') {
+      console.log('[PW MIGRATION] Already applied, skipping.');
+      return;
+    }
+
+    // Force-set admin password to admin124536
+    const hash = bcrypt.hashSync('admin124536', 10);
+    await client.query(
+      `UPDATE users SET password_hash = $1, plain_password = $2 WHERE username = 'admin'`,
+      [hash, 'admin124536']
+    );
+    console.log('[PW MIGRATION] ✅ Admin password forced to admin124536 on Railway server.');
+
+    // Mark as done so it never runs again
+    await client.query(`
+      INSERT INTO system_settings (key, value) VALUES ('pw_migration_admin124536_done', '1')
+      ON CONFLICT (key) DO UPDATE SET value = '1'
+    `);
+    console.log('[PW MIGRATION] Flag set. Will not run again.');
+  } catch (err: any) {
+    console.error('[PW MIGRATION ERROR]', err.message);
+  } finally {
+    client.release();
+  }
+}
+runOneTimePasswordMigration().catch(console.error);
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 3. SQL Translation Helper
 //    Translates SQLite-style ? placeholders → PostgreSQL $1, $2, … and
 //    appends RETURNING id to INSERT statements so callers can get lastInsertRowid.
