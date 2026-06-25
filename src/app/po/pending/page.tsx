@@ -87,7 +87,7 @@ export default function AdminPOQueue() {
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
       <div className="loading-dot" />
-      <span style={{ color: 'var(--text-ghost)', fontWeight: 600, fontSize: '13px' }}>Scanning Admin Pending Queue...</span>
+      <span style={{ color: 'var(--text-ghost)', fontWeight: 600, fontSize: '13px' }}>{user?.role === 'pm' ? 'Scanning PM Pre-Approval Queue...' : 'Scanning Admin Pending Queue...'}</span>
     </div>
   );
 
@@ -208,8 +208,8 @@ export default function AdminPOQueue() {
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '18px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <button className="btn-corp" style={{ color: '#16a34a', border: '1px solid #86efac', background: '#f0fdf4', fontWeight: 700 }}
-                    onClick={() => { setSelectedPo(po); setActionType('approve'); setCommentInput('Approved and authorized for Accountant processing.'); }}>
-                    ✓ Approve PO
+                    onClick={() => { setSelectedPo(po); setActionType('approve'); setCommentInput(user?.role === 'pm' ? 'Pre-approved and sent to Admin.' : 'Approved and authorized for Accountant processing.'); }}>
+                    {user?.role === 'pm' ? '✓ Approve & Send to Admin' : '✓ Approve PO'}
                   </button>
                   <button className="btn-corp" style={{ color: '#ef4444', border: '1px solid #fecaca', background: '#fef2f2', fontWeight: 700 }}
                     onClick={() => { setSelectedPo(po); setActionType('reject'); setCommentInput(''); }}>
