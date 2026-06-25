@@ -398,6 +398,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
   // Admin bypass: always allowed. Non-admin on AI page: always blocked.
   // Non-admin on /admin page: always blocked. Otherwise: respect menuVisibility.
   const isAllowed = isAdmin
+    || (isPM && permissionKey === 'po_pending')
     || (!permissionKey)
     || (!isAiPage && permissionKey !== 'users_management' && menuVisibility[permissionKey] !== false);
 
