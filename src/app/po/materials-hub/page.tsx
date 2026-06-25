@@ -115,7 +115,6 @@ export default function MaterialsHub() {
 
   const handleCreateMaterial = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMatName) return alert('Material Name is required');
     setSaving(true);
     try {
       const res = await fetch('/api/po/materials', {
@@ -427,12 +426,12 @@ export default function MaterialsHub() {
                   </select>
                 </div>
                 <div className={styles.fieldGroup}>
-                  <label>Material Code (Optional)</label>
-                  <input className={styles.input} placeholder="e.g. RXN-001" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />
+                  <label>Material Code / Material Name (Optional)</label>
+                  <input className={styles.input} placeholder="e.g. RXN-001 or Black Rexin Premium" value={newMatCode} onChange={e => setNewMatCode(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
-                  <label>Material Name *</label>
-                  <input required className={styles.input} placeholder="e.g. Black Rexin Premium" value={newMatName} onChange={e => setNewMatName(e.target.value)} />
+                  <label>Material Description (Optional)</label>
+                  <input className={styles.input} placeholder="e.g. 1.2mm Black Rexin" value={newMatName} onChange={e => setNewMatName(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
                   <label>Size/Thickness (Optional)</label>
@@ -509,12 +508,12 @@ export default function MaterialsHub() {
                   </select>
                 </div>
                 <div className={styles.fieldGroup}>
-                  <label>Material Code</label>
+                  <label>Material Code / Material Name (Optional)</label>
                   <input className={styles.input} value={editingMat.material_code || ''} onChange={e => setEditingMat({...editingMat, material_code: e.target.value})} />
                 </div>
                 <div className={styles.fieldGroup}>
-                  <label>Material Name *</label>
-                  <input required className={styles.input} value={editingMat.material_name || ''} onChange={e => setEditingMat({...editingMat, material_name: e.target.value})} />
+                  <label>Material Description (Optional)</label>
+                  <input className={styles.input} value={editingMat.material_name || ''} onChange={e => setEditingMat({...editingMat, material_name: e.target.value})} />
                 </div>
                 <div className={styles.fieldGroup}>
                   <label>Size/Thickness</label>

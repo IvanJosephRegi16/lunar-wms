@@ -45,17 +45,13 @@ export async function POST(req: NextRequest) {
     const { type, material_code, material_name, vendor_name, category, company_name, address, size_thickness, rate } = body;
 
     if (type === 'material') {
-      if (!material_name) {
-        return NextResponse.json({ error: 'Material Name is required' }, { status: 400 });
-      }
-
       const matCode = (material_code || '').trim().toUpperCase();
       
       // Removed unique check as requested by user to allow duplicates/empty codes
 
       await db.prepare(
         `INSERT INTO materials (material_code, material_name, category, size_thickness, rate) VALUES (?, ?, ?, ?, ?)`
-      ).run(matCode, material_name.trim(), category || 'Uncategorized', (size_thickness || '').trim(), Number(rate) || 0);
+      ).run(matCode, (material_name || '').trim(), category || 'Uncategorized', (size_thickness || '').trim(), Number(rate) || 0);
 
       return NextResponse.json({ success: true, message: 'Material registered successfully' });
     } else if (type === 'vendor') {
@@ -106,12 +102,9 @@ export async function PUT(req: NextRequest) {
     }
 
     if (type === 'material') {
-      if (!material_name) {
-        return NextResponse.json({ error: 'Material Name is required' }, { status: 400 });
-      }
       await db.prepare(
         `UPDATE materials SET material_code = ?, material_name = ?, category = ?, size_thickness = ?, rate = ? WHERE id = ?`
-      ).run((material_code || '').trim().toUpperCase(), material_name.trim(), category || 'Uncategorized', (size_thickness || '').trim(), Number(rate) || 0, id);
+      ).run((material_code || '').trim().toUpperCase(), (material_name || '').trim(), category || 'Uncategorized', (size_thickness || '').trim(), Number(rate) || 0, id);
       return NextResponse.json({ success: true, message: 'Material updated successfully' });
     } else if (type === 'vendor') {
       const companyName = (company_name || '').trim();
