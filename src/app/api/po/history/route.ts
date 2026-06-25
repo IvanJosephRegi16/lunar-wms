@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       LIMIT 200
     `).all() as any[];
 
-    // Fetch POs for tracking view — exclude drafts (only show submitted POs)
+    // Fetch POs for tracking view with full details
     const rawPos = await db.prepare(`
       SELECT po.*,
              u.full_name as creator_name,
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
              COALESCE(SUBSTR(u.full_name, 1, INSTR(u.full_name || ' ', ' ') - 1), u.full_name) as creator_first_name
       FROM purchase_orders po
       LEFT JOIN users u ON po.created_by = u.id
-      WHERE po.status != 'draft' AND po.is_deleted = 0
+      WHERE po.is_deleted = 0
       ORDER BY po.id DESC
     `).all() as any[];
 
