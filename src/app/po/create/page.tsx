@@ -581,7 +581,7 @@ function CreatePOFormContent() {
   const discountVal = Math.min(Math.max(Number(discountPercent) || 0, 0), 100);
   const netAmount = grossAmount * (1 - discountVal / 100);
 
-  const handleAction = async (status: 'draft' | 'pending_admin_approval') => {
+  const handleAction = async (status: 'draft' | 'pending_pm_approval') => {
     setError('');
     setSuccess('');
 
@@ -638,7 +638,7 @@ function CreatePOFormContent() {
         setPoNumber(data.po_number);
       }
 
-      if (status === 'pending_admin_approval') {
+      if (status === 'pending_pm_approval') {
         setShowSuccessPopup(true);
       } else {
         setSuccess('Procurement PO Draft saved successfully!');
@@ -1064,8 +1064,8 @@ function CreatePOFormContent() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button className="btn-corp btn-primary-corp" disabled={submitting} onClick={() => handleAction('pending_admin_approval')} style={{ background: 'var(--primary)', color: 'white', fontWeight: 700, width: '100%' }}>
-                {submitting ? 'Processing...' : 'Submit for Admin Review'}
+              <button className="btn-corp btn-primary-corp" disabled={submitting} onClick={() => handleAction('pending_pm_approval')} style={{ background: 'var(--primary)', color: 'white', fontWeight: 700, width: '100%' }}>
+                {submitting ? 'Processing...' : 'Submit for PM Pre-Approval'}
               </button>
               
               <button className="btn-corp" disabled={submitting} onClick={() => handleAction('draft')} style={{ width: '100%' }}>
@@ -1156,8 +1156,8 @@ function CreatePOFormContent() {
                           padding: '3px 8px',
                           borderRadius: '6px',
                           fontWeight: 800,
-                          background: it.status === 'completed' ? '#dcfce7' : it.status === 'pending_admin_approval' ? '#fef9c3' : '#eff6ff',
-                          color: it.status === 'completed' ? '#15803d' : it.status === 'pending_admin_approval' ? '#854d0e' : '#1e40af'
+                          background: it.status === 'completed' ? '#dcfce7' : (it.status === 'pending_admin_approval' || it.status === 'pending_pm_approval') ? '#fef9c3' : '#eff6ff',
+                          color: it.status === 'completed' ? '#15803d' : (it.status === 'pending_admin_approval' || it.status === 'pending_pm_approval') ? '#854d0e' : '#1e40af'
                         }}>
                           {it.status?.toUpperCase()?.replace(/_/g, ' ')}
                         </span>

@@ -22,12 +22,16 @@ export default function AdminPOQueue() {
       const meRes = await fetch('/api/auth/me');
       const meData = await meRes.json();
       if (meData.error) { setError('Access Denied: Please log in.'); setLoading(false); return; }
-      const isAllowed = meData.user.role === 'admin' || meData.menuVisibility?.po_pending !== false;
+      const isAllowed = meData.user.role === 'admin' || meData.user.role === 'pm' || meData.menuVisibility?.po_pending !== false;
       if (!isAllowed) { setError('Access Denied: Insufficient role authorization.'); setLoading(false); return; }
       setUser(meData.user);
       const poRes = await fetch('/api/po');
       const poData = await poRes.json();
-      setPos((poData.pos || []).filter((p: any) => p.status === 'pending_admin_approval'));
+      if (meData.user.role === 'pm') {
+        setPos((poData.pos || []).filter((p: any) => p.status === 'pending_pm_approval'));
+      } else {
+        setPos((poData.pos || []).filter((p: any) => p.status === 'pending_admin_approval'));
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load pending queue');
     } finally {
@@ -108,8 +112,10 @@ export default function AdminPOQueue() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800 }}>Admin Pending Approval Queue</h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>Review, authorize, reject, or return submitted purchase orders to the PM stage.</p>
+          <h2 style={{ fontSize: '22px', fontWeight: 800 }}>{user?.role === 'pm' ? 'PM Pre-Approval Queue' : 'Admin Pending Approval Queue'}</h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            {user?.role === 'pm' ? 'Review and pre-approve purchase orders to forward them to the Admin.' : 'Review, authorize, reject, or return submitted purchase orders to the PM stage.'}
+          </p>
         </div>
         <span style={{ fontSize: '12px', background: '#fffbeb', color: '#b45309', padding: '6px 12px', borderRadius: '8px', fontWeight: 700, border: '1px solid #fde68a' }}>{pos.length} Pending</span>
       </div>
@@ -227,15 +233,15 @@ export default function AdminPOQueue() {
             <div style={{ fontSize: '32px', marginBottom: '12px' }}>{actionType === 'approve' ? '✅' : actionType === 'reject' ? '❌' : '🔄'}</div>
             <h3 style={{ fontSize: '18px', fontWeight: 900, textTransform: 'capitalize', marginBottom: '6px' }}>Confirm {actionType} — {selectedPo.po_number}</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.6 }}>
-              {actionType === 'approve' && 'Approving this PO will move it to the Accountant processing queue. This action notifies the PM and all Accountants.'}
+              {actionType === 'approve' && (user?.role === 'pm' ? 'Approving this PO will move it to the Admin processing queue.' : 'Approving this PO will move it to the Accountant processing queue. This action notifies the PM and all Accountants.')}
               {actionType === 'reject' && 'Rejecting this PO permanently terminates the workflow. The PM will be notified with your reason.'}
-              {actionType === 'return' && 'Returning this PO sends it back to the PM for corrections. Your notes below will be highlighted to the PM as a mandatory correction notice.'}
+              {actionType === 'return' && (user?.role === 'pm' ? 'Returning this PO sends it back to the creator for corrections.' : 'Returning this PO sends it back to the PM for corrections. Your notes below will be highlighted to the PM as a mandatory correction notice.')}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '24px' }}>
               <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-ghost)', textTransform: 'uppercase' }}>
                 {actionType === 'approve' ? 'Comments (Optional)' : `Reason for ${actionType} *`}
               </label>
-              <textarea rows={4} placeholder={actionType === 'return' ? 'Write clear correction instructions for the PM...' : 'Type reason or notes...'} value={commentInput} onChange={e => setCommentInput(e.target.value)} style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', fontWeight: 500, outline: 'none', resize: 'none', width: '100%', boxSizing: 'border-box' }} />
+              <textarea rows={4} placeholder={actionType === 'return' ? 'Write clear correction instructions...' : 'Type reason or notes...'} value={commentInput} onChange={e => setCommentInput(e.target.value)} style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontFamily: 'inherit', fontWeight: 500, outline: 'none', resize: 'none', width: '100%', boxSizing: 'border-box' }} />
             </div>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               <button className="btn-corp" disabled={actionLoading} onClick={() => { setSelectedPo(null); setActionType(null); }}>Cancel</button>
@@ -256,7 +262,7 @@ export default function AdminPOQueue() {
               <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>Purchase Order Approved</div>
               <h2 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px' }}>Thanks for Approving!</h2>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                PO <strong style={{ color: '#10b981' }}>{showApproveSuccess.po_number}</strong> has been approved and successfully forwarded to <strong>Vimal</strong> (Accountant) for processing.
+                PO <strong style={{ color: '#10b981' }}>{showApproveSuccess.po_number}</strong> has been {user?.role === 'pm' ? 'pre-approved and sent to Admin' : 'approved and successfully forwarded to Accountant'} for processing.
               </p>
             </div>
             <div style={{ width: '100%', height: '4px', background: '#e2e8f0', borderRadius: '999px', overflow: 'hidden', marginTop: '8px' }}>
@@ -276,7 +282,7 @@ export default function AdminPOQueue() {
               <div style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>PO Returned for Correction</div>
               <h2 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)', marginBottom: '8px' }}>Return Notice Sent</h2>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '16px' }}>
-                PO <strong style={{ color: '#3b82f6' }}>{showReturnSuccess.po?.po_number}</strong> has been returned to the PM with your correction notes. They will see your message highlighted prominently.
+                PO <strong style={{ color: '#3b82f6' }}>{showReturnSuccess.po?.po_number}</strong> has been returned with your correction notes. They will see your message highlighted prominently.
               </p>
               <div style={{ background: 'linear-gradient(135deg, #fff0f0, #fff5f5)', border: '2px solid #fca5a5', borderLeft: '5px solid #ef4444', borderRadius: '10px', padding: '14px 18px', textAlign: 'left' }}>
                 <div style={{ fontSize: '10px', color: '#b91c1c', fontWeight: 900, textTransform: 'uppercase', marginBottom: '6px' }}>⚠️ Your Correction Note</div>

@@ -249,7 +249,7 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   id SERIAL PRIMARY KEY,
   po_number TEXT UNIQUE NOT NULL,
   vendor TEXT NOT NULL,
-  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed')),
+  status TEXT DEFAULT 'draft' CHECK(status IN ('draft', 'pending_pm_approval', 'pending_admin_approval', 'returned_by_pm', 'returned_by_admin', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed')),
   rejection_reason TEXT,
   correction_notes TEXT,
   approved_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -865,7 +865,7 @@ ON CONFLICT (username) DO NOTHING;
     // ── Constraint migrations (fix CHECK constraints for new status values) ──
     try {
       await client.query(`ALTER TABLE purchase_orders DROP CONSTRAINT IF EXISTS purchase_orders_status_check`);
-      await client.query(`ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_status_check CHECK(status IN ('draft', 'pending_admin_approval', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed'))`);
+      await client.query(`ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_status_check CHECK(status IN ('draft', 'pending_pm_approval', 'pending_admin_approval', 'returned_by_pm', 'returned_by_admin', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed'))`);
       console.log('[MIGRATION] purchase_orders status constraint updated with supervisor_review');
       
       await client.query(`ALTER TABLE po_approval_history DROP CONSTRAINT IF EXISTS po_approval_history_action_check`);

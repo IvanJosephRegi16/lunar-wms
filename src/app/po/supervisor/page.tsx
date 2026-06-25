@@ -13,6 +13,7 @@ export default function StoreVerification() {
   const [remarks, setRemarks] = useState('');
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [receivedQty, setReceivedQty] = useState<Record<number, string>>({});
+  const [receivedRate, setReceivedRate] = useState<Record<number, string>>({});
   const [userRole, setUserRole] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 
@@ -48,9 +49,11 @@ export default function StoreVerification() {
         const prevReceived = Number(item.received_qty || 0);
         const pending = Math.max(0, item.required_qty - prevReceived);
         const nowReceiving = receivedQty[i] !== undefined ? Number(receivedQty[i]) : pending;
+        const finalRate = receivedRate[i] !== undefined ? Number(receivedRate[i]) : Number(item.order_rate || 0);
         return {
           id: item.id,
-          received_qty: prevReceived + nowReceiving
+          received_qty: prevReceived + nowReceiving,
+          order_rate: finalRate
         };
       });
 
@@ -64,6 +67,7 @@ export default function StoreVerification() {
       setSelectedPO(null);
       setCheckedItems({});
       setReceivedQty({});
+      setReceivedRate({});
       setRemarks('');
       loadData();
     } catch (err: any) {
@@ -81,9 +85,11 @@ export default function StoreVerification() {
         const prevReceived = Number(item.received_qty || 0);
         const pending = Math.max(0, item.required_qty - prevReceived);
         const nowReceiving = receivedQty[i] !== undefined ? Number(receivedQty[i]) : pending;
+        const finalRate = receivedRate[i] !== undefined ? Number(receivedRate[i]) : Number(item.order_rate || 0);
         return {
           id: item.id,
-          received_qty: prevReceived + nowReceiving
+          received_qty: prevReceived + nowReceiving,
+          order_rate: finalRate
         };
       });
 
@@ -228,10 +234,13 @@ export default function StoreVerification() {
                         setRemarks(''); 
                         // Initialize receivedQty map
                         const initQty: Record<number, string> = {};
+                        const initRate: Record<number, string> = {};
                         (po.items || []).forEach((item: any, i: number) => {
                            initQty[i] = item.received_qty > 0 ? item.received_qty.toString() : item.required_qty.toString();
+                           initRate[i] = (item.order_rate || 0).toString();
                         });
                         setReceivedQty(initQty);
+                        setReceivedRate(initRate);
                       }}
                         style={{
                           background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', border: 'none',
@@ -383,7 +392,16 @@ export default function StoreVerification() {
                       </td>
                       <td style={{ padding: '12px', fontWeight: 700, fontSize: '12px', color: '#64748b' }}>{item.unit || 'Pair'}</td>
                       <td style={{ padding: '12px', fontWeight: 600, fontSize: '12px' }}>{item.vendor || selectedPO.vendor}</td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <input 
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={receivedRate[i] !== undefined ? receivedRate[i] : (item.order_rate || 0)}
+                          onChange={(e) => setReceivedRate(prev => ({ ...prev, [i]: e.target.value }))}
+                          style={{ width: '90px', padding: '6px', textAlign: 'center', borderRadius: '6px', border: '1.5px solid #f97316', fontWeight: 700, fontFamily: 'monospace', color: '#ea580c', outline: 'none' }}
+                        />
+                      </td>
                       <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800 }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                   ))}

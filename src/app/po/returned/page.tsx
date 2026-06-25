@@ -27,8 +27,24 @@ export default function ReturnedPOs() {
       const poRes = await fetch('/api/po');
       const poData = await poRes.json();
       
-      // Filter for returned POs
-      const returnedList = (poData.pos || []).filter((p: any) => p.status === 'returned_for_edit');
+      // Filter returned POs based on role:
+      // PM: sees returned_by_admin (Admin sent back to PM)
+      // Supervisor/Creator: sees returned_by_pm (PM sent back to creator)
+      // Admin: sees all returned
+      const allPos = poData.pos || [];
+      let returnedList: any[];
+      if (meData.user.role === 'admin') {
+        returnedList = allPos.filter((p: any) =>
+          p.status === 'returned_by_admin' || p.status === 'returned_by_pm' || p.status === 'returned_for_edit'
+        );
+      } else if (meData.user.role === 'pm') {
+        returnedList = allPos.filter((p: any) => p.status === 'returned_by_admin');
+      } else {
+        // supervisor / creator — only their own POs returned by PM
+        returnedList = allPos.filter((p: any) =>
+          p.status === 'returned_by_pm' || p.status === 'returned_for_edit'
+        );
+      }
       setPos(returnedList);
     } catch (err: any) {
       setError(err.message || 'Failed to load returned PO list');
@@ -62,13 +78,22 @@ export default function ReturnedPOs() {
 
   const isPM = user?.role === 'pm';
   const isAdmin = user?.role === 'admin';
+  const isSupervisor = user?.role === 'supervisor';
+  
+  const getReturnLabel = (status: string) => {
+    if (status === 'returned_by_admin') return { label: '↩ Returned by Admin', color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd' };
+    if (status === 'returned_by_pm') return { label: '↩ Returned by PM', color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' };
+    return { label: '↩ Returned for Edit', color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' };
+  };
 
   return (
     <div className="fade-up" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
-        <h2 style={{ fontSize: '22px', fontWeight: 800 }}>Returned for Correction Queue</h2>
+        <h2 style={{ fontSize: '22px', fontWeight: 800 }}>Returned POs — Correction Queue</h2>
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
-          Purchase orders returned by the Admin role for modifications and correction. {isPM ? 'Review suggestions, edit, and resubmit.' : 'View items and suggestions.'}
+          {isPM ? 'POs returned by Admin for your corrections. Review, edit and resubmit.' :
+           isSupervisor ? 'POs returned by PM for your corrections. Review, edit and resubmit.' :
+           'All returned purchase orders. Review and take action.'}
         </p>
       </div>
 
@@ -89,8 +114,8 @@ export default function ReturnedPOs() {
               <div key={po.id} className="card-clean tr-hover" style={{ display: 'flex', flexDirection: 'column', gap: '18px', borderLeft: '4px solid #ef4444', position: 'relative' }}>
                 
                 {/* Badge */}
-                <div style={{ position: 'absolute', top: 0, right: 0, background: '#fef2f2', color: '#b91c1c', padding: '6px 14px', borderBottomLeftRadius: '10px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  ↩ Returned for Edit
+                <div style={{ position: 'absolute', top: 0, right: 0, background: getReturnLabel(po.status).bg, color: getReturnLabel(po.status).color, padding: '6px 14px', borderBottomLeftRadius: '10px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${getReturnLabel(po.status).border}` }}>
+                  {getReturnLabel(po.status).label}
                 </div>
 
                 {/* Header detail */}
@@ -115,9 +140,9 @@ export default function ReturnedPOs() {
                     <button onClick={() => setSelectedPo(po)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 12px' }}>
                       👁️ View Sheet
                     </button>
-                    {(isPM || isAdmin) && (
+                    {(isPM || isAdmin || isSupervisor) && (
                       <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#2563eb', borderColor: '#2563eb', color: 'white' }}>
-                        ✏️ Edit &amp; Resubmit
+                        ✏️ Edit & Resubmit
                       </Link>
                     )}
                   </div>
@@ -132,9 +157,9 @@ export default function ReturnedPOs() {
                   padding: '16px 20px',
                   boxShadow: '0 4px 12px rgba(239,68,68,0.08)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 900, color: '#b91c1c', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 900, color: getReturnLabel(po.status).color, marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     <span style={{ fontSize: '18px' }}>⚠️</span>
-                    Admin Correction Notice — Action Required
+                    {getReturnLabel(po.status).label} — Action Required
                   </div>
                   <p style={{
                     fontSize: '14px',
@@ -256,9 +281,9 @@ export default function ReturnedPOs() {
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
               <button className="btn-corp" onClick={() => setSelectedPo(null)}>Close</button>
-              {(isPM || isAdmin) && (
+              {(isPM || isAdmin || isSupervisor) && (
                 <Link href={`/po/create?id=${selectedPo.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', background: '#2563eb', borderColor: '#2563eb', color: 'white' }}>
-                  ✏️ Edit &amp; Resubmit
+                  ✏️ Edit & Resubmit
                 </Link>
               )}
             </div>

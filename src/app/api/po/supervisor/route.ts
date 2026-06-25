@@ -101,14 +101,23 @@ export async function POST(req: NextRequest) {
           VALUES (?, 'supervisor_verified', ?, ?, ?, ?)
         `).run(id, user.id, user.full_name, remarks || 'Supervisor verified — all materials received and confirmed', timestampStr);
 
-        // Update received quantities for all items
+        // Update received quantities and actual received rates for all items
         if (items && items.length > 0) {
           for (const item of items) {
-            await db.prepare(`
-              UPDATE purchase_order_items
-              SET received_qty = ?
-              WHERE id = ? AND po_id = ?
-            `).run(item.received_qty || 0, item.id, id);
+            const newRate = item.order_rate !== undefined ? Number(item.order_rate) : null;
+            if (newRate !== null) {
+              await db.prepare(`
+                UPDATE purchase_order_items
+                SET received_qty = ?, order_rate = ?
+                WHERE id = ? AND po_id = ?
+              `).run(item.received_qty || 0, newRate, item.id, id);
+            } else {
+              await db.prepare(`
+                UPDATE purchase_order_items
+                SET received_qty = ?
+                WHERE id = ? AND po_id = ?
+              `).run(item.received_qty || 0, item.id, id);
+            }
           }
         }
 
@@ -138,14 +147,23 @@ export async function POST(req: NextRequest) {
         }
 
       } else if (action === 'partial_entry') {
-        // Update received quantities for all items but don't complete the PO
+        // Update received quantities and rates but don't complete the PO
         if (items && items.length > 0) {
           for (const item of items) {
-            await db.prepare(`
-              UPDATE purchase_order_items
-              SET received_qty = ?
-              WHERE id = ? AND po_id = ?
-            `).run(item.received_qty || 0, item.id, id);
+            const newRate = item.order_rate !== undefined ? Number(item.order_rate) : null;
+            if (newRate !== null) {
+              await db.prepare(`
+                UPDATE purchase_order_items
+                SET received_qty = ?, order_rate = ?
+                WHERE id = ? AND po_id = ?
+              `).run(item.received_qty || 0, newRate, item.id, id);
+            } else {
+              await db.prepare(`
+                UPDATE purchase_order_items
+                SET received_qty = ?
+                WHERE id = ? AND po_id = ?
+              `).run(item.received_qty || 0, item.id, id);
+            }
           }
         }
 

@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
       configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get('menu_visibility_config') as { value: string } | undefined;
     }
 
-    let hasApprovePermission = user.role === 'admin';
-    if (!hasApprovePermission) {
+    let hasApprovePermission = user.role === 'admin' || user.role === 'pm';
+    if (user.role !== 'admin' && user.role !== 'pm') {
       let isPoPendingVisible = true; // default is true
       if (configRow) {
         try {
@@ -49,8 +49,16 @@ export async function POST(req: NextRequest) {
     `).get(id) as any;
     if (!po) return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
 
-    if (po.status !== 'pending_admin_approval') {
-      return NextResponse.json({ error: 'This PO is not in the pending approval queue.' }, { status: 400 });
+    if (po.status !== 'pending_admin_approval' && po.status !== 'pending_pm_approval') {
+      return NextResponse.json({ error: 'This PO is not in a pending approval queue.' }, { status: 400 });
+    }
+    
+    // PM can only approve pending_pm_approval, Admin can only approve pending_admin_approval
+    if (user.role === 'pm' && po.status !== 'pending_pm_approval') {
+      return NextResponse.json({ error: 'PM can only pre-approve POs.' }, { status: 403 });
+    }
+    if (user.role === 'admin' && po.status !== 'pending_admin_approval') {
+      return NextResponse.json({ error: 'Admin can only approve POs after PM pre-approval.' }, { status: 403 });
     }
 
     // Capture IST timestamps
@@ -66,53 +74,88 @@ export async function POST(req: NextRequest) {
     const result = await db.transaction(async () => {
 
       if (action === 'approve') {
-        const grand_total = po.net_amount;
-        const balance_amount = grand_total;
+        if (user.role === 'pm') {
+          // PM approves -> sends to Admin
+          await db.prepare(`
+            UPDATE purchase_orders 
+            SET status = 'pending_admin_approval',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).run(id);
 
-        await db.prepare(`
-          UPDATE purchase_orders 
-          SET status = 'accountant_processing',
-              approved_by = ?,
-              approved_at_date = ?,
-              approved_at_time = ?,
-              approved_timestamp = ?,
-              grand_total = ?,
-              balance_amount = ?,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ?
-        `).run(user.id, dateStr, timeStr, timestampStr, grand_total, balance_amount, id);
+          await db.prepare(`
+            INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
+            VALUES (?, 'submit', ?, ?, ?, ?)
+          `).run(id, user.id, user.full_name, comments || 'Pre-Approved by PM', timestampStr);
 
-        await db.prepare(`
-          INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
-          VALUES (?, 'approve', ?, ?, ?, ?)
-        `).run(id, user.id, user.full_name, comments || 'Approved by Admin', timestampStr);
+          await db.prepare(`
+            INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
+            VALUES (?, ?, ?, 'approve', ?)
+          `).run(id, user.id, user.username, `Pre-Approved Purchase Order. Moved to Admin queue: ${po.po_number}`);
 
-        await db.prepare(`
-          INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
-          VALUES (?, ?, ?, 'approve', ?)
-        `).run(id, user.id, user.username, `Approved Purchase Order. Moved to Accountant queue: ${po.po_number}`);
+          // Notify Admin
+          const admins = await db.prepare(`SELECT id FROM users WHERE role = 'admin'`).all() as any[];
+          for (const adm of admins) {
+            await db.prepare(`
+              INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+              VALUES (?, ?, ?, 'pending_admin_approval', ?, ?)
+            `).run(
+              adm.id, id, po.po_number,
+              `⏳ Purchase Order ${po.po_number} was pre-approved by PM ${user.full_name} and is pending your final approval.`,
+              new Date().toISOString()
+            );
+          }
+        } else {
+          // Admin approves -> sends to Accountant
+          const grand_total = po.net_amount;
+          const balance_amount = grand_total;
 
-        // 🔔 Notify PM (creator) — approved
-        await db.prepare(`
-          INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-          po.creator_user_id, id, po.po_number, 'approved',
-          `✅ Your Purchase Order ${po.po_number} was approved by Admin and sent to Accountant for processing.`,
-          new Date().toISOString()
-        );
+          await db.prepare(`
+            UPDATE purchase_orders 
+            SET status = 'accountant_processing',
+                approved_by = ?,
+                approved_at_date = ?,
+                approved_at_time = ?,
+                approved_timestamp = ?,
+                grand_total = ?,
+                balance_amount = ?,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `).run(user.id, dateStr, timeStr, timestampStr, grand_total, balance_amount, id);
 
-        // 🔔 Notify all Accountants — approved and in their queue
-        for (const acct of accountants) {
+          await db.prepare(`
+            INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
+            VALUES (?, 'approve', ?, ?, ?, ?)
+          `).run(id, user.id, user.full_name, comments || 'Approved by Admin', timestampStr);
+
+          await db.prepare(`
+            INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
+            VALUES (?, ?, ?, 'approve', ?)
+          `).run(id, user.id, user.username, `Approved Purchase Order. Moved to Accountant queue: ${po.po_number}`);
+
+          // Notify Creator
           await db.prepare(`
             INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
             VALUES (?, ?, ?, ?, ?, ?)
           `).run(
-            acct.id, id, po.po_number, 'approved',
-            `📋 Purchase Order ${po.po_number} has been approved and is now ready in your processing queue.`,
+            po.creator_user_id, id, po.po_number, 'approved',
+            `✅ Your Purchase Order ${po.po_number} was approved by Admin and sent to Accountant for processing.`,
             new Date().toISOString()
           );
+
+          // Notify Accountants
+          for (const acct of accountants) {
+            await db.prepare(`
+              INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `).run(
+              acct.id, id, po.po_number, 'approved',
+              `📋 Purchase Order ${po.po_number} has been approved and is now ready in your processing queue.`,
+              new Date().toISOString()
+            );
+          }
         }
+
 
       } else if (action === 'reject') {
         await db.prepare(`
@@ -133,44 +176,61 @@ export async function POST(req: NextRequest) {
           VALUES (?, ?, ?, 'reject', ?)
         `).run(id, user.id, user.username, `Rejected Purchase Order: ${po.po_number}`);
 
-        // 🔔 Notify PM (creator) only — rejected, no further edit
+        // 🔔 Notify Creator only — rejected, no further edit
         await db.prepare(`
           INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
           VALUES (?, ?, ?, ?, ?, ?)
         `).run(
           po.creator_user_id, id, po.po_number, 'rejected',
-          `❌ Your Purchase Order ${po.po_number} was rejected by Admin. Reason: ${rejection_reason || comments || 'No reason provided'}`,
+          `❌ Your Purchase Order ${po.po_number} was rejected by ${user.role.toUpperCase()}. Reason: ${rejection_reason || comments || 'No reason provided'}`,
           new Date().toISOString()
         );
 
       } else if (action === 'return') {
+        const returnStatus = user.role === 'admin' ? 'returned_by_admin' : 'returned_by_pm';
+        
         await db.prepare(`
           UPDATE purchase_orders 
-          SET status = 'returned_for_edit',
+          SET status = ?,
               correction_notes = ?,
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ?
-        `).run(correction_notes || comments || 'Please review inputs', id);
+        `).run(returnStatus, correction_notes || comments || 'Please review inputs', id);
 
         await db.prepare(`
           INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
           VALUES (?, 'return', ?, ?, ?, ?)
-        `).run(id, user.id, user.full_name, correction_notes || comments || 'Returned for edit', timestampStr);
+        `).run(id, user.id, user.full_name, correction_notes || comments || `Returned for edit by ${user.role.toUpperCase()}`, timestampStr);
 
         await db.prepare(`
           INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
           VALUES (?, ?, ?, 'return_for_edit', ?)
         `).run(id, user.id, user.username, `Returned Purchase Order for Correction: ${po.po_number}`);
 
-        // 🔔 Notify PM (creator) only — returned, can edit & resubmit
-        await db.prepare(`
-          INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-          po.creator_user_id, id, po.po_number, 'returned_for_edit',
-          `🔄 Your Purchase Order ${po.po_number} was returned for correction by Admin. Notes: ${correction_notes || comments || 'Please review inputs'}. You can edit and resubmit.`,
-          new Date().toISOString()
-        );
+        if (user.role === 'admin') {
+          // Admin returned to PM, notify all PMs
+          const pms = await db.prepare(`SELECT id FROM users WHERE role = 'pm'`).all() as any[];
+          for (const pm of pms) {
+            await db.prepare(`
+              INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `).run(
+              pm.id, id, po.po_number, 'returned_by_admin',
+              `🔄 Admin returned PO ${po.po_number} for PM correction. Notes: ${correction_notes || comments || 'Please review inputs'}`,
+              new Date().toISOString()
+            );
+          }
+        } else {
+          // PM returned to creator
+          await db.prepare(`
+            INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(
+            po.creator_user_id, id, po.po_number, 'returned_by_pm',
+            `🔄 PM returned your PO ${po.po_number} for correction. Notes: ${correction_notes || comments || 'Please review inputs'}. You can edit and resubmit.`,
+            new Date().toISOString()
+          );
+        }
 
       } else {
         throw new Error('Unknown approval action');

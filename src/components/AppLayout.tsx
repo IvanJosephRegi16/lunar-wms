@@ -510,7 +510,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
         if (Array.isArray(data.pos)) {
           if (user.role === 'admin') {
             const pnd = data.pos.filter((p: any) => p.status === 'pending_admin_approval').length;
-            const ret = data.pos.filter((p: any) => p.status === 'returned_for_edit').length;
+            const ret = data.pos.filter((p: any) => p.status === 'returned_by_admin').length;
             const acct = data.pos.filter((p: any) => p.status === 'accountant_processing').length;
             const sup = data.pos.filter((p: any) => p.status === 'supervisor_review').length;
             setPendingCount(pnd);
@@ -518,7 +518,9 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
             setAccountantCount(acct);
             setSupervisorCount(sup);
           } else if (user.role === 'pm') {
-            const ret = data.pos.filter((p: any) => p.status === 'returned_for_edit').length;
+            const pre = data.pos.filter((p: any) => p.status === 'pending_pm_approval').length;
+            const ret = data.pos.filter((p: any) => p.status === 'returned_by_admin').length;
+            setPendingCount(pre);
             setReturnedCount(ret);
             
             try {
@@ -532,6 +534,8 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
             const acct = data.pos.filter((p: any) => p.status === 'accountant_processing').length;
             setAccountantCount(acct);
           } else if (user.role === 'supervisor') {
+            const ret = data.pos.filter((p: any) => p.status === 'returned_by_pm').length;
+            setReturnedCount(ret);
             const sup = data.pos.filter((p: any) => p.status === 'supervisor_review').length;
             setSupervisorCount(sup);
           }
@@ -891,8 +895,8 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
             </>
           )}
 
-          {/* Purchasing Order section (Moved to top for PM and Admin) */}
-          {(isPM || isAdmin) && (isAdmin || menuVisibility.po_section !== false) && personalMenuVisibility.po_section !== false && (
+          {/* Purchasing Order section (Moved to top for PM, Admin, and Supervisor) */}
+          {(isPM || isAdmin || user?.role === 'supervisor') && (isAdmin || menuVisibility.po_section !== false) && personalMenuVisibility.po_section !== false && (
             <>
               <div onClick={togglePo} style={{ fontSize: '12px', color: '#f1f5f9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', margin: '24px 8px 12px 8px', padding: '12px 16px', border: '1px solid rgba(255, 255, 255, 0.05)', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', backdropFilter: 'blur(10px)' }} className="po-toggle">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '16px' }}>📄</span><span>Purchasing Order</span></div>
@@ -904,7 +908,8 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                   <NavLink href="/po/materials-hub" icon="📦" label="Materials Hub" permissionKey="po_materials_hub" />
                   <NavLink href="/po/create" icon="✍️" label="Create PO" permissionKey="po_create" />
                   <NavLink href="/po/drafts" icon="📝" label="Draft POs" permissionKey="po_create" />
-                  <NavLink href="/po/pending" icon="⏳" label="Pending Approval" badge={pendingCount} permissionKey="po_pending" />
+                  {isPM && <NavLink href="/po/pending" icon="🔍" label="Pre Approval" badge={pendingCount} permissionKey="po_pending" />}
+                  {!isPM && <NavLink href="/po/pending" icon="⏳" label="Pending Approval" badge={pendingCount} permissionKey="po_pending" />}
                   <NavLink href="/po/returned" icon="🔄" label="Returned POs" badge={returnedCount} permissionKey="po_returned" />
                   <NavLink href="/po/approved" icon="✅" label="Approved PO" permissionKey="po_approved" />
                   <NavLink href="/po/rejected" icon="❌" label="Rejected PO" permissionKey="po_rejected" />
@@ -973,8 +978,8 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
               )}
             </>
           )}
-          {/* Purchasing Order section (Standard layout for non-PMs and non-Admins) */}
-          {!(isPM || isAdmin) && (isAdmin || menuVisibility.po_section !== false) && personalMenuVisibility.po_section !== false && (
+          {/* Purchasing Order section (Standard layout for non-PMs, non-Admins, and non-Supervisors) */}
+          {!(isPM || isAdmin || user?.role === 'supervisor') && (isAdmin || menuVisibility.po_section !== false) && personalMenuVisibility.po_section !== false && (
             <>
               <div onClick={togglePo} style={{ fontSize: '12px', color: '#f1f5f9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', margin: '24px 8px 12px 8px', padding: '12px 16px', border: '1px solid rgba(255, 255, 255, 0.05)', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)', backdropFilter: 'blur(10px)' }} className="po-toggle">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '16px' }}>📄</span><span>Purchasing Order</span></div>

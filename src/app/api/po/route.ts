@@ -10,7 +10,9 @@ export async function GET(req: NextRequest) {
 
     const db = getDb();
     let query = `
-      SELECT po.*, u.full_name as creator_name 
+      SELECT po.*, u.full_name as creator_name, u.username as creator_username,
+             u.role as creator_role,
+             COALESCE(SUBSTR(u.full_name, 1, INSTR(u.full_name || ' ', ' ') - 1), u.full_name) as creator_first_name
       FROM purchase_orders po
       JOIN users u ON po.created_by = u.id
       WHERE po.is_deleted = 0
@@ -19,7 +21,12 @@ export async function GET(req: NextRequest) {
 
     // Role-based visibility
     if (user.role === 'pm') {
-      query += ` AND po.created_by = ?`;
+      // PMs see POs pending their pre-approval, returned by admin, plus their own POs
+      query += ` AND (po.status IN ('pending_pm_approval', 'returned_by_admin') OR po.created_by = ?)`;
+      params.push(user.id);
+    } else if (user.role === 'supervisor') {
+      // Supervisors see POs they created, plus POs returned by PM to creator
+      query += ` AND (po.created_by = ? OR po.status = 'returned_by_pm')`;
       params.push(user.id);
     } else if (user.role === 'accountant') {
       // Accountant can ONLY see POs that are approved (processing or completed)
@@ -78,9 +85,13 @@ export async function GET(req: NextRequest) {
         WHERE po_id = ?
       `).all(healed.id) as any[];
       
+      // Collect unique non-empty categories from items
+      const uniqueCategories = [...new Set(items.map((it: any) => it.category).filter(Boolean))];
+      
       return {
         ...healed,
-        items
+        items,
+        categories: uniqueCategories
       };
     }));
 
@@ -117,9 +128,9 @@ export async function POST(req: NextRequest) {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    // Strict backend role check: Only Admin and PM can create POs
-    if (user.role !== 'pm' && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Only Purchase Managers or Admins can create POs' }, { status: 403 });
+    // Strict backend role check: Admin, PM, and Supervisor can create POs
+    if (user.role !== 'pm' && user.role !== 'admin' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Only Purchase Managers, Admins, or Supervisors can create POs' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -284,28 +295,28 @@ export async function POST(req: NextRequest) {
         VALUES (?, ?, ?, 'create', ?)
       `).run(poId, user.id, user.username, `Created Raw Material Purchase Order Draft: ${po_number}`);
 
-      if (status === 'pending_admin_approval') {
+      if (status === 'pending_pm_approval') {
         await db.prepare(`
           INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
           VALUES (?, ?, ?, 'submit', ?)
-        `).run(poId, user.id, user.username, `Submitted Raw Material PO for Admin Review: ${po_number}`);
+        `).run(poId, user.id, user.username, `Submitted Raw Material PO for PM Pre-Approval: ${po_number}`);
         
         // Log to approval history
         const istStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
         await db.prepare(`
           INSERT INTO po_approval_history (po_id, action, actor_id, actor_name, comments, ist_timestamp)
-          VALUES (?, 'submit', ?, ?, 'Initial Procurement Submit', ?)
+          VALUES (?, 'submit', ?, ?, 'Initial Procurement Submit to PM', ?)
         `).run(poId, user.id, user.full_name, istStr);
 
-        // 🔔 MNC-grade Notification: Insert separate row for each Admin user so they can read independently
-        const admins = await db.prepare(`SELECT id FROM users WHERE role = 'admin'`).all() as any[];
-        for (const adm of admins) {
+        // 🔔 MNC-grade Notification: Insert separate row for each PM user so they can read independently
+        const pms = await db.prepare(`SELECT id FROM users WHERE role = 'pm'`).all() as any[];
+        for (const pm of pms) {
           await db.prepare(`
             INSERT INTO po_notifications (user_id, po_id, po_number, type, message, created_at)
             VALUES (?, ?, ?, 'pending_admin_approval', ?, ?)
           `).run(
-            adm.id, poId, po_number,
-            `⏳ Purchase Order ${po_number} was submitted by ${user.full_name} and is pending your approval.`,
+            pm.id, poId, po_number,
+            `⏳ Purchase Order ${po_number} was submitted by ${user.full_name} and is pending your pre-approval.`,
             new Date().toISOString()
           );
         }

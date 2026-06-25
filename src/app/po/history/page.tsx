@@ -38,7 +38,10 @@ export default function POHistory() {
   const getStatusLabel = (status: string) => {
     const map: Record<string, string> = {
       'draft': 'Draft',
-      'pending_admin_approval': 'Pending Approval',
+      'pending_pm_approval': 'PM Pre-Approval',
+      'pending_admin_approval': 'Admin Approval',
+      'returned_by_pm': 'Returned by PM',
+      'returned_by_admin': 'Returned by Admin',
       'returned_for_edit': 'Returned for Edit',
       'rejected': 'Rejected',
       'accountant_processing': 'Accountant Processing',
@@ -239,24 +242,28 @@ export default function POHistory() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 {pos.filter(p => p.po_number.toLowerCase().includes(search.toLowerCase()) || (p.vendor && p.vendor.toLowerCase().includes(search.toLowerCase()))).map(po => {
                   
-                  // Define stages based on PO lifecycle
+                  // Define stages based on PO lifecycle (now with Pre-Approval)
                   const stages = [
-                    { id: 'draft', label: 'Draft', icon: '📝' },
+                    { id: 'created',               label: `Created By: ${po.creator_first_name || po.creator_name?.split(' ')[0] || '?'} (${po.creator_role || 'user'})`, icon: '✍️' },
+                    { id: 'pending_pm_approval',   label: 'Pre-Approval (PM)', icon: '🔍' },
                     { id: 'pending_admin_approval', label: 'Admin Approval', icon: '🔑' },
                     { id: 'accountant_processing', label: 'Accountant', icon: '💸' },
-                    { id: 'supervisor_review', label: 'Store Review', icon: '🔍' },
-                    { id: 'completed', label: 'Completed', icon: '✅' }
+                    { id: 'supervisor_review',     label: 'Store Review', icon: '📦' },
+                    { id: 'completed',             label: 'Completed', icon: '✅' }
                   ];
 
                   // Map PO status to the correct tracker stage index
                   const statusToStage: Record<string, number> = {
                     'draft': 0,
-                    'pending_admin_approval': 1,
-                    'returned_for_edit': 1,
-                    'rejected': 1,
-                    'accountant_processing': 2,
-                    'supervisor_review': 3,
-                    'completed': 4
+                    'pending_pm_approval': 1,
+                    'returned_by_pm': 1,
+                    'pending_admin_approval': 2,
+                    'returned_by_admin': 2,
+                    'returned_for_edit': 2,
+                    'rejected': 2,
+                    'accountant_processing': 3,
+                    'supervisor_review': 4,
+                    'completed': 5
                   };
                   const activeIdx = statusToStage[po.status] ?? 0;
 
@@ -264,46 +271,56 @@ export default function POHistory() {
                     <div key={po.id} onClick={() => setSelectedPo(po)} style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
                          onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.05)'}
                          onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                         <div>
                           <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>{po.po_number}</span>
                           <span style={{ fontSize: '13px', color: 'var(--text-ghost)', marginLeft: '8px' }}>({po.vendor || 'No Vendor'})</span>
+                          <div style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '4px', fontWeight: 600 }}>
+                            Created by <strong style={{ color: 'var(--text-muted)' }}>{po.creator_first_name || po.creator_name?.split(' ')[0] || '—'}</strong>
+                            <span style={{ margin: '0 4px' }}>·</span>
+                            <span style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, textTransform: 'capitalize' }}>{po.creator_role || 'user'}</span>
+                            {(po.categories && po.categories.length > 0) && (
+                              <><span style={{ margin: '0 4px' }}>·</span>
+                              <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '1px 6px', borderRadius: '4px', fontWeight: 700 }}>📦 {po.categories.join(', ')}</span>
+                              </>
+                            )}
+                          </div>
                         </div>
                         <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', background: po.status === 'completed' ? '#dcfce7' : po.status === 'supervisor_review' ? '#eff6ff' : po.status.includes('reject') || po.status.includes('return') ? '#fee2e2' : '#f1f5f9', color: po.status === 'completed' ? '#16a34a' : po.status === 'supervisor_review' ? '#1d4ed8' : po.status.includes('reject') || po.status.includes('return') ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>
                           {getStatusLabel(po.status)}
                         </span>
                       </div>
 
-                      {/* Tracker Visual */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                        {/* Connecting Line */}
-                        <div style={{ position: 'absolute', top: '16px', left: '30px', right: '30px', height: '4px', background: '#e2e8f0', zIndex: 0, borderRadius: '2px' }}></div>
-                        <div style={{ position: 'absolute', top: '16px', left: '30px', width: `${(activeIdx / (stages.length - 1)) * 100}%`, height: '4px', background: po.status.includes('reject') || po.status.includes('return') ? '#ef4444' : '#10b981', zIndex: 1, borderRadius: '2px', transition: 'width 0.5s' }}></div>
+                        {/* Tracker Visual */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginTop: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
+                          {/* Connecting Line */}
+                          <div style={{ position: 'absolute', top: '16px', left: '30px', right: '30px', height: '4px', background: '#e2e8f0', zIndex: 0, borderRadius: '2px' }}></div>
+                          <div style={{ position: 'absolute', top: '16px', left: '30px', width: `${(activeIdx / (stages.length - 1)) * 100}%`, height: '4px', background: po.status.includes('reject') || po.status.includes('return') ? '#ef4444' : '#10b981', zIndex: 1, borderRadius: '2px', transition: 'width 0.5s' }}></div>
 
-                        {stages.map((stage, i) => {
-                          const isCompleted = i < activeIdx;
-                          const isActive = i === activeIdx;
-                          const isError = isActive && (po.status.includes('reject') || po.status.includes('return'));
+                          {stages.map((stage, i) => {
+                            const isCompleted = i < activeIdx;
+                            const isActive = i === activeIdx;
+                            const isError = isActive && (po.status.includes('reject') || po.status.includes('return'));
 
-                          return (
-                            <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, width: '80px' }}>
-                              <div style={{
-                                width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px',
-                                background: isCompleted ? '#10b981' : isError ? '#ef4444' : isActive ? '#3b82f6' : '#f8fafc',
-                                border: `2px solid ${isCompleted ? '#10b981' : isError ? '#ef4444' : isActive ? '#3b82f6' : '#cbd5e1'}`,
-                                color: isCompleted || isActive || isError ? 'white' : '#94a3b8',
-                                boxShadow: isActive ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none',
-                                transition: 'all 0.3s'
-                              }}>
-                                {isCompleted ? '✓' : isError ? '!' : stage.icon}
+                            return (
+                              <div key={stage.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2, minWidth: '70px', flex: 1 }}>
+                                <div style={{
+                                  width: '34px', height: '34px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px',
+                                  background: isCompleted ? '#10b981' : isError ? '#ef4444' : isActive ? '#3b82f6' : '#f8fafc',
+                                  border: `2px solid ${isCompleted ? '#10b981' : isError ? '#ef4444' : isActive ? '#3b82f6' : '#cbd5e1'}`,
+                                  color: isCompleted || isActive || isError ? 'white' : '#94a3b8',
+                                  boxShadow: isActive ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none',
+                                  transition: 'all 0.3s'
+                                }}>
+                                  {isCompleted ? '✓' : isError ? '!' : stage.icon}
+                                </div>
+                                <span style={{ fontSize: '10px', fontWeight: isActive ? 800 : 600, color: isActive ? 'var(--text-main)' : 'var(--text-ghost)', marginTop: '8px', textAlign: 'center', lineHeight: 1.3 }}>
+                                  {stage.label}
+                                </span>
                               </div>
-                              <span style={{ fontSize: '11px', fontWeight: isActive ? 800 : 600, color: isActive ? 'var(--text-main)' : 'var(--text-ghost)', marginTop: '8px', textAlign: 'center' }}>
-                                {stage.label}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
 
                     </div>
                   );
@@ -371,6 +388,7 @@ export default function POHistory() {
               <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                    <th style={{ textAlign: 'left', padding: '10px 12px' }}>Category</th>
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Material</th>
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Description</th>
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Size</th>
@@ -389,8 +407,9 @@ export default function POHistory() {
                     const pendQty = Math.max(0, reqQty - recQty);
                     return (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code}</td>
-                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-ghost)', fontSize: '11px' }}>{item.category || '—'}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code || '—'}</td>
+                        <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name || '—'}</td>
                         <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{Number(item.current_stock || 0).toLocaleString()} {item.current_stock_unit || ''}</td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{reqQty.toLocaleString()} {item.unit || 'Pair'}</td>
