@@ -21,8 +21,8 @@ export async function GET(req: NextRequest) {
 
     // Role-based visibility
     if (user.role === 'pm') {
-      // PMs see POs pending their pre-approval, returned by admin, plus their own POs
-      query += ` AND (po.status IN ('pending_pm_approval', 'returned_by_admin') OR po.created_by = ?)`;
+      // PMs see POs pending their pre-approval, returned by admin, plus their own POs, and any POs they rejected or returned
+      query += ` AND (po.status IN ('pending_pm_approval', 'returned_by_admin', 'returned_by_pm', 'rejected') OR po.created_by = ?)`;
       params.push(user.id);
     } else if (user.role === 'supervisor') {
       // Supervisors see POs they created, plus POs returned by PM to creator

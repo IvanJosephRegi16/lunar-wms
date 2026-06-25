@@ -28,9 +28,9 @@ export default function RejectedPOs() {
 
         const res = await fetch('/api/po');
         const data = await res.json();
-        // PM sees only their own rejected POs; Admin sees all
+        // PM sees POs they created AND POs that were rejected (which implies they rejected them)
         const all = (data.pos || []).filter((p: any) => p.status === 'rejected');
-        const filtered = role === 'pm' ? all.filter((p: any) => p.created_by === meData.user.id) : all;
+        const filtered = role === 'pm' ? all : all;
         setPos(filtered);
       } catch (e: any) {
         setError(e.message || 'Error loading rejected orders');

@@ -38,7 +38,8 @@ export default function ReturnedPOs() {
           p.status === 'returned_by_admin' || p.status === 'returned_by_pm' || p.status === 'returned_for_edit'
         );
       } else if (meData.user.role === 'pm') {
-        returnedList = allPos.filter((p: any) => p.status === 'returned_by_admin');
+        // PM sees POs returned by Admin to them, AND POs they returned to supervisors
+        returnedList = allPos.filter((p: any) => p.status === 'returned_by_admin' || p.status === 'returned_by_pm');
       } else {
         // supervisor / creator — only their own POs returned by PM
         returnedList = allPos.filter((p: any) =>
