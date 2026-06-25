@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     let query = `
       SELECT po.*, u.full_name as creator_name, u.username as creator_username,
              u.role as creator_role,
-             COALESCE(SUBSTR(u.full_name, 1, INSTR(u.full_name || ' ', ' ') - 1), u.full_name) as creator_first_name
+             split_part(u.full_name, ' ', 1) as creator_first_name
       FROM purchase_orders po
       JOIN users u ON po.created_by = u.id
       WHERE po.is_deleted = 0
