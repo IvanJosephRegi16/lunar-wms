@@ -307,8 +307,8 @@ function CreatePOFormContent() {
         // Verify User Auth
         const meRes = await fetch('/api/auth/me');
         const meData = await meRes.json();
-        if (meData.error || (meData.user.role !== 'pm' && meData.user.role !== 'admin')) {
-          setError('Unauthorized Access: Only Purchase Managers or System Administrators can create/edit POs.');
+        if (meData.error || (meData.user.role !== 'pm' && meData.user.role !== 'admin' && meData.user.role !== 'supervisor')) {
+          setError('Unauthorized Access: Only Purchase Managers, Supervisors, or System Administrators can create/edit POs.');
           setLoading(false);
           return;
         }
@@ -1176,8 +1176,8 @@ function CreatePOFormContent() {
         <div style={{
           position: 'fixed',
           top: '0', left: '0', right: '0', bottom: '0',
-          background: 'rgba(15, 23, 42, 0.7)',
-          backdropFilter: 'blur(6px)',
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(8px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1185,42 +1185,68 @@ function CreatePOFormContent() {
         }}>
           <div className="card-clean fade-up" style={{
             width: '100%',
-            maxWidth: '460px',
-            padding: '36px',
+            maxWidth: '500px',
+            padding: '48px 40px',
             textAlign: 'center',
-            borderTop: '5px solid #eab308',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            borderTop: '5px solid #7c3aed',
+            boxShadow: '0 40px 80px -20px rgba(124, 58, 237, 0.35)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             gap: '20px'
           }}>
+            {/* Top Icon */}
             <div style={{
-              width: '80px',
-              height: '80px',
-              borderRadius: '50%',
-              background: '#fef9c3',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '40px',
-              boxShadow: '0 4px 10px rgba(234, 179, 8, 0.2)',
-              animation: 'pulse-slow 2s infinite'
+              width: '90px', height: '90px', borderRadius: '50%',
+              background: 'linear-gradient(135deg, #ede9fe, #ddd6fe)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '44px',
+              boxShadow: '0 8px 24px rgba(124, 58, 237, 0.25)',
             }}>
-              ⏳
+              🔍
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <h3 style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-main)' }}>
-                Sent to Admin Successfully
+            {/* Title */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: '11px', letterSpacing: '0.1em', fontWeight: 900, color: '#7c3aed', textTransform: 'uppercase' }}>
+                Purchase Order Submitted
+              </div>
+              <h3 style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-main)', margin: 0 }}>
+                Sent to PM for Pre-Approval
               </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, lineHeight: 1.5 }}>
-                Wait for Approval....
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600, lineHeight: 1.7, margin: 0 }}>
+                Your purchase order has been successfully submitted and is now awaiting
+                review by the <strong style={{ color: '#7c3aed' }}>Purchase Manager</strong>.
+                You'll be notified once a decision is made.
               </p>
             </div>
 
-            <div style={{ background: '#f8fafc', padding: '12px 18px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '12px', color: 'var(--text-ghost)', fontWeight: 700 }}>
-              PO Number: {poNumber}
+            {/* PO Details Card */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+              border: '1.5px solid #c4b5fd',
+              padding: '16px 24px', borderRadius: '12px',
+              width: '100%', display: 'flex', flexDirection: 'column', gap: '8px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#6d28d9', textTransform: 'uppercase' }}>PO Number</span>
+                <span style={{ fontSize: '15px', fontWeight: 900, fontFamily: 'monospace', color: '#4c1d95' }}>{poNumber}</span>
+              </div>
+              <div style={{ borderTop: '1px dashed #c4b5fd', paddingTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '18px' }}>⏳</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#5b21b6' }}>Status: Pending PM Pre-Approval</span>
+              </div>
+            </div>
+
+            {/* Workflow visual */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-ghost)' }}>
+              <span style={{ background: '#7c3aed', color: 'white', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' }}>You</span>
+              <span>→</span>
+              <span style={{ background: '#ede9fe', color: '#7c3aed', padding: '4px 10px', borderRadius: '20px', border: '1.5px solid #c4b5fd', fontSize: '10px' }}>🔍 PM Review</span>
+              <span>→</span>
+              <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' }}>Admin</span>
+              <span>→</span>
+              <span style={{ background: '#f1f5f9', color: '#94a3b8', padding: '4px 10px', borderRadius: '20px', fontSize: '10px' }}>Done</span>
             </div>
 
             <button
@@ -1231,16 +1257,17 @@ function CreatePOFormContent() {
               className="btn-corp btn-primary-corp"
               style={{
                 width: '100%',
-                background: '#eab308',
-                borderColor: '#eab308',
-                color: 'black',
+                background: 'linear-gradient(135deg, #7c3aed, #6d28d9)',
+                borderColor: '#7c3aed',
+                color: 'white',
                 fontWeight: 800,
                 fontSize: '14px',
-                padding: '12px',
-                marginTop: '10px'
+                padding: '14px',
+                marginTop: '4px',
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.4)',
               }}
             >
-              Okay, Go to Dashboard
+              ✔ Go to Dashboard
             </button>
           </div>
         </div>

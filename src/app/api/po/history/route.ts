@@ -19,10 +19,15 @@ export async function GET(req: NextRequest) {
       LIMIT 200
     `).all() as any[];
 
-    // Fetch POs for tracking view with full details
+    // Fetch POs for tracking view — exclude drafts (only show submitted POs)
     const rawPos = await db.prepare(`
-      SELECT po.*
+      SELECT po.*,
+             u.full_name as creator_name,
+             u.role as creator_role,
+             COALESCE(SUBSTR(u.full_name, 1, INSTR(u.full_name || ' ', ' ') - 1), u.full_name) as creator_first_name
       FROM purchase_orders po
+      LEFT JOIN users u ON po.created_by = u.id
+      WHERE po.status != 'draft' AND po.is_deleted = 0
       ORDER BY po.id DESC
     `).all() as any[];
 
@@ -72,7 +77,8 @@ export async function GET(req: NextRequest) {
         FROM purchase_order_items 
         WHERE po_id = ?
       `).all(healed.id) as any[];
-      return { ...healed, items };
+      const uniqueCategories = [...new Set(items.map((it: any) => it.category).filter(Boolean))];
+      return { ...healed, items, categories: uniqueCategories };
     }));
 
     return NextResponse.json({ logs, pos });
