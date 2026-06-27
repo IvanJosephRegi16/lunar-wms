@@ -17,7 +17,11 @@ export async function GET(req: NextRequest) {
       // Admin sees everything
       query = `
         SELECT l.*, u.full_name as emp_name, u.phone, u.role, 
-               s.full_name as supervisor_name
+               s.full_name as supervisor_name,
+               (SELECT SUM(total_days) FROM leave_applications l2 
+                WHERE l2.user_id = l.user_id 
+                AND l2.status = 'approved' 
+                AND strftime('%Y-%m', l2.start_date) = strftime('%Y-%m', 'now')) as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id
@@ -27,7 +31,8 @@ export async function GET(req: NextRequest) {
       // Supervisor sees their own AND those assigned to them
       query = `
         SELECT l.*, u.full_name as emp_name, u.phone, u.role,
-               s.full_name as supervisor_name
+               s.full_name as supervisor_name,
+               0 as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id
@@ -35,11 +40,28 @@ export async function GET(req: NextRequest) {
         ORDER BY l.created_at DESC
       `;
       params = [user.id, user.id];
-    } else {
-      // Worker / PM / Accountant sees only their own
+    } else if (user.role === 'pm') {
+      // PM sees their own AND those in pending_pm / returned_by_pm / rejected_by_pm
       query = `
         SELECT l.*, u.full_name as emp_name, u.phone, u.role,
-               s.full_name as supervisor_name
+               s.full_name as supervisor_name,
+               (SELECT SUM(total_days) FROM leave_applications l2 
+                WHERE l2.user_id = l.user_id 
+                AND l2.status = 'approved' 
+                AND strftime('%Y-%m', l2.start_date) = strftime('%Y-%m', 'now')) as this_month_taken
+        FROM leave_applications l
+        JOIN users u ON l.user_id = u.id
+        LEFT JOIN users s ON l.supervisor_id = s.id
+        WHERE l.user_id = ? OR l.status IN ('pending_pm', 'returned_by_pm', 'rejected_by_pm')
+        ORDER BY l.created_at DESC
+      `;
+      params = [user.id];
+    } else {
+      // Worker / Accountant sees only their own
+      query = `
+        SELECT l.*, u.full_name as emp_name, u.phone, u.role,
+               s.full_name as supervisor_name,
+               0 as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id
@@ -81,9 +103,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Supervisor selection is required for workers' }, { status: 400 });
       }
       initialStatus = 'pending_supervisor';
-    } else {
+    } else if (user.role === 'supervisor') {
+      initialStatus = 'pending_pm';
+    } else if (user.role === 'pm' || user.role === 'accountant') {
       // Non-workers send directly to Admin
-      assignedSupervisor = null;
+      initialStatus = 'pending_admin';
+    } else {
+      initialStatus = 'pending_admin';
     }
 
     await db.prepare(`

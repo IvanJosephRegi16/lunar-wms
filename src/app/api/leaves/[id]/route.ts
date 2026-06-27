@@ -35,7 +35,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     
     // Authorization & Status Transition Logic
     if (user.role === 'admin') {
-      if (!['pending_admin', 'pending_supervisor'].includes(currentLeave.status)) {
+      if (!['pending_admin', 'pending_supervisor', 'pending_pm'].includes(currentLeave.status)) {
         return NextResponse.json({ error: 'Leave is not in a pending state' }, { status: 400 });
       }
       
@@ -44,6 +44,16 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       if (action === 'return') newStatus = 'returned_by_admin';
       updateField = 'admin_remarks';
       
+    } else if (user.role === 'pm') {
+      if (currentLeave.status !== 'pending_pm') {
+        return NextResponse.json({ error: 'Leave is not pending PM approval' }, { status: 400 });
+      }
+
+      if (action === 'approve') newStatus = 'pending_admin';
+      if (action === 'reject') newStatus = 'rejected_by_pm';
+      if (action === 'return') newStatus = 'returned_by_pm';
+      updateField = 'pm_remarks';
+
     } else if (user.role === 'supervisor') {
       // Supervisor can only act on leaves assigned to them and currently pending supervisor approval
       if (currentLeave.supervisor_id !== user.id) {
@@ -53,7 +63,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: 'Leave is not pending supervisor approval' }, { status: 400 });
       }
       
-      if (action === 'approve') newStatus = 'pending_admin';
+      if (action === 'approve') newStatus = 'pending_pm';
       if (action === 'reject') newStatus = 'rejected_by_supervisor';
       if (action === 'return') newStatus = 'returned_by_supervisor';
       updateField = 'supervisor_remarks';

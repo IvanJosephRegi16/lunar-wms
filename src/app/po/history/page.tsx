@@ -81,6 +81,28 @@ export default function POHistory() {
     l.username.toLowerCase().includes(search.toLowerCase())
   );
 
+  const filteredPos = pos.filter(p => {
+    if (!search) return true;
+    const s = search.toLowerCase();
+    const inPo = p.po_number.toLowerCase().includes(s);
+    const inVendor = p.vendor && p.vendor.toLowerCase().includes(s);
+    const inItems = p.items && p.items.some((it: any) => 
+      (it.material_name && it.material_name.toLowerCase().includes(s)) ||
+      (it.material_code && it.material_code.toLowerCase().includes(s)) ||
+      (it.category && it.category.toLowerCase().includes(s)) ||
+      (it.remarks && it.remarks.toLowerCase().includes(s))
+    );
+    return inPo || inVendor || inItems;
+  }).sort((a, b) => {
+    if (!search) return 0;
+    const s = search.toLowerCase();
+    const aInItems = a.items && a.items.some((it: any) => (it.material_name || '').toLowerCase().includes(s) || (it.material_code || '').toLowerCase().includes(s));
+    const bInItems = b.items && b.items.some((it: any) => (it.material_name || '').toLowerCase().includes(s) || (it.material_code || '').toLowerCase().includes(s));
+    if (aInItems && !bInItems) return -1;
+    if (!aInItems && bInItems) return 1;
+    return 0;
+  });
+
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: '16px' }}>
@@ -234,13 +256,13 @@ export default function POHistory() {
 
         {activeTab === 'tracker' && (
           <>
-            {pos.filter(p => p.po_number.toLowerCase().includes(search.toLowerCase()) || (p.vendor && p.vendor.toLowerCase().includes(search.toLowerCase()))).length === 0 ? (
+            {filteredPos.length === 0 ? (
               <div style={{ color: 'var(--text-ghost)', textAlign: 'center', padding: '48px', fontWeight: 600 }}>
-                No active POs found.
+                No active POs found matching your search.
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                {pos.filter(p => p.po_number.toLowerCase().includes(search.toLowerCase()) || (p.vendor && p.vendor.toLowerCase().includes(search.toLowerCase()))).map(po => {
+                {filteredPos.map(po => {
                   
                   // Define stages based on PO lifecycle (now with Pre-Approval)
                   const stages = [

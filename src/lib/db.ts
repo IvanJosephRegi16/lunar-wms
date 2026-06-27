@@ -810,6 +810,9 @@ ON CONFLICT (username) DO NOTHING;
           'pending_supervisor', 
           'returned_by_supervisor', 
           'rejected_by_supervisor', 
+          'pending_pm',
+          'returned_by_pm',
+          'rejected_by_pm',
           'pending_admin', 
           'returned_by_admin', 
           'rejected_by_admin', 
@@ -850,6 +853,7 @@ ON CONFLICT (username) DO NOTHING;
       { table: 'vendors',             column: 'address',                 type: 'TEXT' },
       { table: 'materials',           column: 'size_thickness',          type: 'TEXT' },
       { table: 'materials',           column: 'rate',                    type: 'REAL DEFAULT 0' },
+      { table: 'leave_applications',  column: 'pm_remarks',              type: 'TEXT' },
     ];
 
     for (const m of columnMigrations) {
@@ -868,6 +872,10 @@ ON CONFLICT (username) DO NOTHING;
       await client.query(`ALTER TABLE purchase_orders ADD CONSTRAINT purchase_orders_status_check CHECK(status IN ('draft', 'pending_pm_approval', 'pending_admin_approval', 'returned_by_pm', 'returned_by_admin', 'returned_for_edit', 'rejected', 'accountant_processing', 'supervisor_review', 'completed'))`);
       console.log('[MIGRATION] purchase_orders status constraint updated with supervisor_review');
       
+      await client.query(`ALTER TABLE leave_applications DROP CONSTRAINT IF EXISTS leave_applications_status_check`);
+      await client.query(`ALTER TABLE leave_applications ADD CONSTRAINT leave_applications_status_check CHECK(status IN ('pending_supervisor', 'returned_by_supervisor', 'rejected_by_supervisor', 'pending_pm', 'returned_by_pm', 'rejected_by_pm', 'pending_admin', 'returned_by_admin', 'rejected_by_admin', 'approved'))`);
+      console.log('[MIGRATION] leave_applications status constraint updated with pm statuses');
+
       await client.query(`ALTER TABLE po_approval_history DROP CONSTRAINT IF EXISTS po_approval_history_action_check`);
       await client.query(`ALTER TABLE po_approval_history ADD CONSTRAINT po_approval_history_action_check CHECK(action IN ('submit', 'approve', 'reject', 'return', 'supervisor_verified', 'supervisor_returned', 'partial_entry'))`);
       console.log('[MIGRATION] po_approval_history constraint updated');

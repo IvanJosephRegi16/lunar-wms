@@ -115,14 +115,11 @@ export default function LeaveApplicationsPage() {
   };
 
   const handleAction = async (id: number, action: string) => {
-    const remarks = prompt(`Enter remarks for ${action.toUpperCase()} (optional):`);
-    if (remarks === null) return;
-
     try {
       const res = await fetch(`/api/leaves/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, remarks })
+        body: JSON.stringify({ action, remarks: '' })
       });
       if (!res.ok) throw new Error('Failed to update status');
       fetchData();
@@ -370,6 +367,11 @@ export default function LeaveApplicationsPage() {
                         <span style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a' }}>{leave.emp_name}</span>
                         <span style={{ padding: '4px 10px', background: '#f1f5f9', borderRadius: '20px', fontSize: '10px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{leave.role}</span>
                         <span style={{ padding: '4px 10px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{leave.leave_type}</span>
+                        {(user?.role === 'admin' || user?.role === 'pm') && leave.this_month_taken !== undefined && (
+                          <span style={{ padding: '4px 10px', background: '#fff1f2', color: '#be123c', border: '1px solid #fecdd3', borderRadius: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Taken This Month: {leave.this_month_taken} Days
+                          </span>
+                        )}
                       </div>
                       
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', fontWeight: 600, color: '#64748b', marginBottom: '12px' }}>
@@ -405,12 +407,18 @@ export default function LeaveApplicationsPage() {
                   </div>
                 </div>
 
-                {(leave.supervisor_remarks || leave.admin_remarks) && (
+                {(leave.supervisor_remarks || leave.pm_remarks || leave.admin_remarks) && (
                   <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                     {leave.supervisor_remarks && (
                       <div style={{ background: '#fffbeb', padding: '12px 16px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
                         <div style={{ fontSize: '10px', fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>Supervisor Remarks</div>
                         <div style={{ fontSize: '13px', color: '#92400e' }}>{leave.supervisor_remarks}</div>
+                      </div>
+                    )}
+                    {leave.pm_remarks && (
+                      <div style={{ background: '#eff6ff', padding: '12px 16px', borderRadius: '12px', border: '1px solid #bfdbfe' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>PM Remarks</div>
+                        <div style={{ fontSize: '13px', color: '#1e3a8a' }}>{leave.pm_remarks}</div>
                       </div>
                     )}
                     {leave.admin_remarks && (
@@ -434,7 +442,8 @@ export default function LeaveApplicationsPage() {
 // Helpers
 function canActionLeave(user: any, leave: any) {
   if (!user) return false;
-  if (user.role === 'admin' && ['pending_admin', 'pending_supervisor'].includes(leave.status)) return true;
+  if (user.role === 'admin' && ['pending_admin', 'pending_pm', 'pending_supervisor'].includes(leave.status)) return true;
+  if (user.role === 'pm' && leave.status === 'pending_pm') return true;
   if (user.role === 'supervisor' && leave.supervisor_id === user.id && leave.status === 'pending_supervisor') return true;
   return false;
 }
@@ -442,11 +451,14 @@ function canActionLeave(user: any, leave: any) {
 function StatusBadge({ status }: { status: string }) {
   const configs: Record<string, { bg: string, color: string, border: string, label: string }> = {
     'pending_supervisor': { bg: '#fef9c3', color: '#a16207', border: '#fef08a', label: 'Pending Supervisor' },
+    'pending_pm': { bg: '#e0e7ff', color: '#4338ca', border: '#c7d2fe', label: 'Pending PM' },
     'pending_admin': { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', label: 'Pending Admin' },
     'approved': { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0', label: 'Approved' },
     'rejected_by_supervisor': { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: 'Rejected (Supervisor)' },
+    'rejected_by_pm': { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: 'Rejected (PM)' },
     'rejected_by_admin': { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: 'Rejected (Admin)' },
     'returned_by_supervisor': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', label: 'Returned (Supervisor)' },
+    'returned_by_pm': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', label: 'Returned (PM)' },
     'returned_by_admin': { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', label: 'Returned (Admin)' },
   };
 
