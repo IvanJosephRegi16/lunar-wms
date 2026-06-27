@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Only Admin or PM can add categories' }, { status: 403 });
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Only Admin, PM, or Supervisors can add categories' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -60,8 +60,8 @@ export async function DELETE(req: NextRequest) {
   try {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Only Admin or PM can delete categories' }, { status: 403 });
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Only Admin, PM, or Supervisors can delete categories' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
