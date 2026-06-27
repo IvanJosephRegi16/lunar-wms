@@ -35,9 +35,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Only admin and pm roles are allowed to register raw materials/vendors
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Forbidden: Only Admins or PMs can register materials/vendors' }, { status: 403 });
+    // Admin, PM, and Supervisor roles are allowed to register raw materials/vendors
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Forbidden: Only Admins, PMs, or Supervisors can register materials/vendors' }, { status: 403 });
     }
 
     const db = getDb();
@@ -89,8 +89,8 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Forbidden: Only Admins or PMs can edit materials/vendors' }, { status: 403 });
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Forbidden: Only Admins, PMs, or Supervisors can edit materials/vendors' }, { status: 403 });
     }
 
     const db = getDb();
@@ -132,8 +132,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Forbidden: Only Admins or PMs can delete materials/vendors' }, { status: 403 });
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Forbidden: Only Admins, PMs, or Supervisors can delete materials/vendors' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
