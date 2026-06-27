@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { format, differenceInCalendarDays, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 export default function LeaveApplicationsPage() {
@@ -153,22 +154,34 @@ export default function LeaveApplicationsPage() {
           <h1 style={{ fontSize: '32px', fontWeight: 900, margin: 0, color: '#0f172a', letterSpacing: '-0.5px' }}>Leave Management</h1>
           <p style={{ fontSize: '14px', color: '#64748b', marginTop: '4px', fontWeight: 500 }}>Streamlined Time-Off Requests & Approvals</p>
         </div>
-        <button 
-          onClick={() => { setShowForm(!showForm); setErrorMsg(''); }}
-          style={{ 
-            background: showForm ? '#f1f5f9' : 'linear-gradient(135deg, #e11d48, #be123c)',
-            color: showForm ? '#475569' : '#ffffff',
-            border: showForm ? '1px solid #cbd5e1' : 'none',
-            padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
-            cursor: 'pointer', boxShadow: showForm ? 'none' : '0 8px 20px rgba(225,29,72,0.3)',
-            transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-            display: 'flex', alignItems: 'center', gap: '8px'
-          }}
-          onMouseEnter={e => !showForm && (e.currentTarget.style.transform = 'translateY(-2px)')}
-          onMouseLeave={e => !showForm && (e.currentTarget.style.transform = 'none')}
-        >
-          {showForm ? '✕ Close Form' : '➕ Create Application'}
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {(user?.role === 'admin' || user?.role === 'pm') && (
+            <Link href="/leaves/history" style={{
+              background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1',
+              padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
+              textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px',
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}>
+              📊 History
+            </Link>
+          )}
+          <button 
+            onClick={() => { setShowForm(!showForm); setErrorMsg(''); }}
+            style={{ 
+              background: showForm ? '#f1f5f9' : 'linear-gradient(135deg, #e11d48, #be123c)',
+              color: showForm ? '#475569' : '#ffffff',
+              border: showForm ? '1px solid #cbd5e1' : 'none',
+              padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
+              cursor: 'pointer', boxShadow: showForm ? 'none' : '0 8px 20px rgba(225,29,72,0.3)',
+              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+              display: 'flex', alignItems: 'center', gap: '8px'
+            }}
+            onMouseEnter={e => !showForm && (e.currentTarget.style.transform = 'translateY(-2px)')}
+            onMouseLeave={e => !showForm && (e.currentTarget.style.transform = 'none')}
+          >
+            {showForm ? '✕ Close Form' : '➕ Create Application'}
+          </button>
+        </div>
       </div>
 
       {errorMsg && (

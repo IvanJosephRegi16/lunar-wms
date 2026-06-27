@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getAuthUser();
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const leaveId = parseInt(params.id, 10);
+  const resolvedParams = await params;
+  const leaveId = parseInt(resolvedParams.id, 10);
   if (isNaN(leaveId)) {
     return NextResponse.json({ error: 'Invalid leave ID' }, { status: 400 });
   }
@@ -79,7 +80,27 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       WHERE id = ?
     `).run(newStatus, remarks || null, leaveId);
 
-    // TODO: Add Notification Logic Here
+    // Notification Logic
+    const notifyUser = async (userId: number, msg: string) => {
+      await db.prepare(`INSERT INTO po_notifications (user_id, message, type) VALUES (?, ?, 'leave')`).run(userId, msg);
+    };
+    
+    const notifyRole = async (role: string, msg: string) => {
+      const roleUsers = await db.prepare(`SELECT id FROM users WHERE role = ? AND is_active = 1`).all(role) as any[];
+      for (const u of roleUsers) {
+        await notifyUser(u.id, msg);
+      }
+    };
+
+    if (newStatus === 'pending_pm') {
+      await notifyRole('pm', `Leave application escalated to you for pre-approval`);
+    } else if (newStatus === 'pending_admin') {
+      await notifyRole('admin', `Leave application requires final sanction`);
+    } else if (newStatus.startsWith('rejected') || newStatus.startsWith('returned') || newStatus === 'approved') {
+      // Notify the original applicant
+      const stateLabel = newStatus.includes('approved') ? 'Approved' : newStatus.includes('rejected') ? 'Rejected' : 'Returned';
+      await notifyUser(currentLeave.user_id, `Your leave application has been ${stateLabel}`);
+    }
 
     return NextResponse.json({ success: true, newStatus });
   } catch (error: any) {

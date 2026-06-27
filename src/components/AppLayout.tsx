@@ -62,6 +62,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
   const [hrOpen, setHrOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [pmOpen, setPmOpen] = useState(false);
+  const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [menuVisibility, setMenuVisibility] = useState<any>(DEFAULT_MENU_VISIBILITY);
@@ -542,6 +543,22 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           }
         }
       } catch { /* ignore */ }
+
+      try {
+        const leafRes = await fetch('/api/leaves');
+        if (leafRes.ok) {
+          const leafData = await leafRes.json();
+          if (Array.isArray(leafData.leaves)) {
+            let count = 0;
+            for (const l of leafData.leaves) {
+              if (user.role === 'admin' && ['pending_admin', 'pending_pm', 'pending_supervisor'].includes(l.status)) count++;
+              if (user.role === 'pm' && l.status === 'pending_pm') count++;
+              if (user.role === 'supervisor' && l.supervisor_id === user.id && l.status === 'pending_supervisor') count++;
+            }
+            setPendingLeavesCount(count);
+          }
+        }
+      } catch { /* ignore */ }
     };
 
     const fetchAccessRequests = async () => {
@@ -841,7 +858,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
         <nav style={{ flex: 1 }}>
           <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', marginLeft: '16px' }}>Overview</div>
           <NavLink href="/" icon="📊" label="Dashboard" exact permissionKey="dashboard" />
-          <NavLink href="/leaves" icon="🏖️" label="Leave Applications" />
+          <NavLink href="/leaves" icon="🏖️" label="Leave Applications" badge={pendingLeavesCount} />
           
           {(isAdmin || isPM) && (
             <>

@@ -128,6 +128,23 @@ export async function POST(req: NextRequest) {
       initialStatus
     );
 
+    // Notification Logic
+    const notifMsg = `New leave application from ${user.full_name} (${total_days} days)`;
+    if (initialStatus === 'pending_supervisor' && assignedSupervisor) {
+      await db.prepare(`INSERT INTO po_notifications (user_id, message, type) VALUES (?, ?, 'leave')`).run(assignedSupervisor, notifMsg);
+    } else if (initialStatus === 'pending_pm') {
+      const pms = await db.prepare(`SELECT id FROM users WHERE role = 'pm' AND is_active = 1`).all() as any[];
+      for (const pm of pms) {
+        await db.prepare(`INSERT INTO po_notifications (user_id, message, type) VALUES (?, ?, 'leave')`).run(pm.id, notifMsg);
+      }
+    } else if (initialStatus === 'pending_admin') {
+      const admins = await db.prepare(`SELECT id FROM users WHERE role = 'admin' AND is_active = 1`).all() as any[];
+      for (const adm of admins) {
+        await db.prepare(`INSERT INTO po_notifications (user_id, message, type) VALUES (?, ?, 'leave')`).run(adm.id, notifMsg);
+      }
+    }
+
+
     return NextResponse.json({ success: true, message: 'Leave application submitted successfully' });
   } catch (error: any) {
     console.error('Error creating leave:', error);
