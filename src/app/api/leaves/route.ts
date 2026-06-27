@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
                (SELECT SUM(total_days) FROM leave_applications l2 
                 WHERE l2.user_id = l.user_id 
                 AND l2.status = 'approved' 
-                AND strftime('%Y-%m', l2.start_date) = strftime('%Y-%m', 'now')) as this_month_taken
+                AND TO_CHAR(l2.start_date::timestamp, 'YYYY-MM') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM')) as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
                (SELECT SUM(total_days) FROM leave_applications l2 
                 WHERE l2.user_id = l.user_id 
                 AND l2.status = 'approved' 
-                AND strftime('%Y-%m', l2.start_date) = strftime('%Y-%m', 'now')) as this_month_taken
+                AND TO_CHAR(l2.start_date::timestamp, 'YYYY-MM') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM')) as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id

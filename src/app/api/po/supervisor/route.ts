@@ -105,20 +105,25 @@ export async function POST(req: NextRequest) {
         if (items && items.length > 0) {
           for (const item of items) {
             const newRate = item.order_rate !== undefined ? Number(item.order_rate) : null;
+            const recvQty = Number(item.received_qty || 0);
+            const newAmount = newRate !== null ? recvQty * newRate : null;
             if (newRate !== null) {
               await db.prepare(`
                 UPDATE purchase_order_items
-                SET received_qty = ?, order_rate = ?
+                SET received_qty = ?, order_rate = ?, amount = ?
                 WHERE id = ? AND po_id = ?
-              `).run(item.received_qty || 0, newRate, item.id, id);
+              `).run(recvQty, newRate, newAmount, item.id, id);
             } else {
               await db.prepare(`
                 UPDATE purchase_order_items
                 SET received_qty = ?
                 WHERE id = ? AND po_id = ?
-              `).run(item.received_qty || 0, item.id, id);
+              `).run(recvQty, item.id, id);
             }
           }
+          // Recalculate grand_total from all items
+          const totalRow = await db.prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM purchase_order_items WHERE po_id = ?`).get(id) as any;
+          await db.prepare(`UPDATE purchase_orders SET grand_total = ? WHERE id = ?`).run(totalRow?.total || 0, id);
         }
 
         // Notify PM creator
@@ -151,20 +156,25 @@ export async function POST(req: NextRequest) {
         if (items && items.length > 0) {
           for (const item of items) {
             const newRate = item.order_rate !== undefined ? Number(item.order_rate) : null;
+            const recvQty = Number(item.received_qty || 0);
+            const newAmount = newRate !== null ? recvQty * newRate : null;
             if (newRate !== null) {
               await db.prepare(`
                 UPDATE purchase_order_items
-                SET received_qty = ?, order_rate = ?
+                SET received_qty = ?, order_rate = ?, amount = ?
                 WHERE id = ? AND po_id = ?
-              `).run(item.received_qty || 0, newRate, item.id, id);
+              `).run(recvQty, newRate, newAmount, item.id, id);
             } else {
               await db.prepare(`
                 UPDATE purchase_order_items
                 SET received_qty = ?
                 WHERE id = ? AND po_id = ?
-              `).run(item.received_qty || 0, item.id, id);
+              `).run(recvQty, item.id, id);
             }
           }
+          // Recalculate grand_total from all items
+          const totalRow = await db.prepare(`SELECT COALESCE(SUM(amount), 0) as total FROM purchase_order_items WHERE po_id = ?`).get(id) as any;
+          await db.prepare(`UPDATE purchase_orders SET grand_total = ? WHERE id = ?`).run(totalRow?.total || 0, id);
         }
 
         await db.prepare(`

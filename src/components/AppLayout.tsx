@@ -888,6 +888,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           </div>
           {leavesOpen && (
             <div className="fade-up" style={{ paddingLeft: '8px' }}>
+              <NavLink href="/leaves/my-profile" icon="👤" label="My Leave Profile" />
               <NavLink href="/leaves" icon="📝" label="Leave Applications" badge={pendingLeavesCount} />
               {(isAdmin || isPM || user?.role === 'supervisor') && (
                 <NavLink href="/leaves/history" icon="📊" label="Leave History" />

@@ -161,13 +161,12 @@ export default function StoreVerification() {
           <POResetExportPanel
             userRole={userRole}
             exportFilename={`Store_POs_${new Date().toISOString().slice(0,10)}`}
-            exportHeaders={['PO Number', 'Vendor', 'Items Count', 'Grand Total (Rs)', 'Payment Status', 'Created By']}
+            exportHeaders={['PO Number', 'Vendor', 'Items Count', 'Grand Total (Rs)', 'Created By']}
             exportRows={pos.map((po: any) => [
               po.po_number,
               po.vendor || '',
               (po.items || []).length,
               po.grand_total ?? 0,
-              po.payment_status || 'unpaid',
               po.creator_name || ''
             ])}
             onResetComplete={loadData}
@@ -196,7 +195,6 @@ export default function StoreVerification() {
                   <th style={{ textAlign: 'left', padding: '14px 16px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Vendor</th>
                   <th style={{ textAlign: 'center', padding: '14px 16px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Items</th>
                   <th style={{ textAlign: 'right', padding: '14px 16px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Grand Total</th>
-                  <th style={{ textAlign: 'center', padding: '14px 16px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Payment</th>
                   <th style={{ textAlign: 'left', padding: '14px 16px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Created By</th>
                   <th style={{ textAlign: 'center', padding: '14px 16px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.05em' }}>Action</th>
                 </tr>
@@ -204,7 +202,7 @@ export default function StoreVerification() {
               <tbody>
                 {pos.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-ghost)' }}>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-ghost)' }}>
                       <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
                       <div style={{ fontWeight: 800, fontSize: '15px' }}>No POs Pending Verification</div>
                       <div style={{ fontSize: '12px', marginTop: '6px', color: '#94a3b8' }}>All purchase orders have been verified. Check back later.</div>
@@ -218,14 +216,6 @@ export default function StoreVerification() {
                     <td style={{ padding: '14px 16px', fontWeight: 600 }}>{po.vendor}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700 }}>{po.items?.length || 0}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(po.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      <span style={{
-                        display: 'inline-block', padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase',
-                        background: po.payment_status === 'paid' ? '#f0fdf4' : '#fffbeb',
-                        color: po.payment_status === 'paid' ? '#16a34a' : '#b45309',
-                        border: `1px solid ${po.payment_status === 'paid' ? '#bbf7d0' : '#fde68a'}`
-                      }}>{po.payment_status || 'unpaid'}</span>
-                    </td>
                     <td style={{ padding: '14px 16px', fontWeight: 600, fontSize: '12px', color: '#64748b' }}>{po.creator_name || '-'}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                       <button onClick={() => { 
@@ -302,13 +292,6 @@ export default function StoreVerification() {
               <div>
                 <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.6)' }}>Grand Total</div>
                 <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: 'monospace', marginTop: '4px', color: '#a5b4fc' }}>₹{Number(selectedPO.grand_total || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-                <div style={{ marginTop: '8px' }}>
-                  <span style={{
-                    padding: '4px 12px', borderRadius: '20px', fontSize: '10px', fontWeight: 800, textTransform: 'uppercase',
-                    background: selectedPO.payment_status === 'paid' ? 'rgba(34,197,94,0.2)' : 'rgba(251,191,36,0.2)',
-                    color: selectedPO.payment_status === 'paid' ? '#4ade80' : '#fbbf24'
-                  }}>{selectedPO.payment_status || 'unpaid'}</span>
-                </div>
               </div>
             </div>
           </div>
@@ -402,7 +385,12 @@ export default function StoreVerification() {
                           style={{ width: '90px', padding: '6px', textAlign: 'center', borderRadius: '6px', border: '1.5px solid #f97316', fontWeight: 700, fontFamily: 'monospace', color: '#ea580c', outline: 'none' }}
                         />
                       </td>
-                      <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800 }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 800 }}>₹{(() => {
+                        const currentRate = receivedRate[i] !== undefined ? Number(receivedRate[i]) : Number(item.order_rate || 0);
+                        const currentQty = receivedQty[i] !== undefined ? Number(receivedQty[i]) : Math.max(0, item.required_qty - (item.received_qty || 0));
+                        const prevReceived = Number(item.received_qty || 0);
+                        return ((prevReceived + currentQty) * currentRate).toLocaleString(undefined, { minimumFractionDigits: 2 });
+                      })()}</td>
                     </tr>
                   ))}
                 </tbody>

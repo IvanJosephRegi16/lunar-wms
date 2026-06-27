@@ -4,8 +4,8 @@ import { getAuthUser } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
-  if (!user || (user.role !== 'admin' && user.role !== 'pm')) {
-    return NextResponse.json({ error: 'Unauthorized. Only Admin and PM can view history.' }, { status: 401 });
+  if (!user || (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor')) {
+    return NextResponse.json({ error: 'Unauthorized. Only Admin, PM, and Supervisor can view history.' }, { status: 401 });
   }
 
   try {
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
                SELECT SUM(total_days) FROM leave_applications l 
                WHERE l.user_id = u.id 
                AND l.status = 'approved' 
-               AND strftime('%Y-%m', l.start_date) = strftime('%Y-%m', 'now')
+               AND TO_CHAR(l.start_date::timestamp, 'YYYY-MM') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM')
              ), 0) as this_month_taken
       FROM users u
       WHERE u.is_active = 1
