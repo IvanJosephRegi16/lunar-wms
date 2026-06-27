@@ -137,14 +137,34 @@ export default function ReturnedPOs() {
                     <span style={{ fontSize: '10px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase' }}>Net Amount</span>
                     <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-main)', marginTop: '2px', fontFamily: 'monospace' }}>₹{(po.net_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
                     <button onClick={() => setSelectedPo(po)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 12px' }}>
                       👁️ View Sheet
                     </button>
-                    {(isPM || isAdmin || isSupervisor) && (
+                    {/* Show Edit only to the role who needs to correct it */}
+                    {(
+                      (po.status === 'returned_by_pm' && (isSupervisor || isAdmin)) ||
+                      (po.status === 'returned_by_admin' && (isPM || isAdmin)) ||
+                      (po.status === 'returned_for_edit' && (isPM || isAdmin))
+                    ) && (
                       <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#2563eb', borderColor: '#2563eb', color: 'white' }}>
                         ✏️ Edit & Resubmit
                       </Link>
+                    )}
+                    {(isAdmin || (isSupervisor && po.status === 'returned_by_pm') || (isPM && po.status === 'returned_by_admin')) && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(`Delete PO ${po.po_number}? This cannot be undone.`)) return;
+                          const res = await fetch(`/api/po/${po.id}`, { method: 'DELETE' });
+                          const data = await res.json();
+                          if (data.error) { alert(data.error); return; }
+                          loadData();
+                        }}
+                        className="btn-corp"
+                        style={{ fontSize: '12px', padding: '6px 12px', color: '#ef4444', border: '1px solid #fca5a5', background: '#fef2f2', fontWeight: 700 }}
+                      >
+                        🗑️ Delete
+                      </button>
                     )}
                   </div>
                 </div>
@@ -282,7 +302,11 @@ export default function ReturnedPOs() {
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '4px' }}>
               <button className="btn-corp" onClick={() => setSelectedPo(null)}>Close</button>
-              {(isPM || isAdmin || isSupervisor) && (
+              {(
+                (selectedPo.status === 'returned_by_pm' && (isSupervisor || isAdmin)) ||
+                (selectedPo.status === 'returned_by_admin' && (isPM || isAdmin)) ||
+                (selectedPo.status === 'returned_for_edit' && (isPM || isAdmin))
+              ) && (
                 <Link href={`/po/create?id=${selectedPo.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', background: '#2563eb', borderColor: '#2563eb', color: 'white' }}>
                   ✏️ Edit & Resubmit
                 </Link>

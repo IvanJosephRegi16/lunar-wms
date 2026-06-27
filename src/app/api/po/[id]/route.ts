@@ -301,3 +301,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const resolvedParams = await params;
+    const poId = resolvedParams.id;
+    const db = getDb();
+
+    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(poId) as any;
+    if (!po) return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
+
+    // Only allow deletion of deletable statuses unless admin
+    const deletableStatuses = ['draft', 'returned_by_pm', 'returned_by_admin', 'returned_for_edit', 'rejected'];
+    if (user.role !== 'admin') {
+      if (!deletableStatuses.includes(po.status)) {
+        return NextResponse.json({ error: `Cannot delete a PO in '${po.status}' status. Only draft, returned, or rejected POs can be deleted.` }, { status: 403 });
+      }
+      // Supervisors can only delete their own POs
+      if (user.role === 'supervisor' && po.created_by !== user.id) {
+        return NextResponse.json({ error: 'You can only delete your own POs.' }, { status: 403 });
+      }
+    }
+
+    // Soft delete
+    await db.prepare(`UPDATE purchase_orders SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`).run(poId);
+
+    // Log it
+    await db.prepare(`
+      INSERT INTO po_activity_logs (po_id, user_id, username, action, description)
+      VALUES (?, ?, ?, 'delete', ?)
+    `).run(poId, user.id, user.username, `Deleted PO ${po.po_number} (was in '${po.status}' status)`);
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error('Error deleting PO:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

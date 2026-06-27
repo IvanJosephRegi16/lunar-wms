@@ -286,10 +286,27 @@ export default function POHistory() {
                             )}
                           </div>
                         </div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', background: po.status === 'completed' ? '#dcfce7' : po.status === 'supervisor_review' ? '#eff6ff' : po.status.includes('reject') || po.status.includes('return') ? '#fee2e2' : '#f1f5f9', color: po.status === 'completed' ? '#16a34a' : po.status === 'supervisor_review' ? '#1d4ed8' : po.status.includes('reject') || po.status.includes('return') ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>
-                          {getStatusLabel(po.status)}
-                        </span>
-                      </div>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', background: po.status === 'completed' ? '#dcfce7' : po.status === 'supervisor_review' ? '#eff6ff' : po.status.includes('reject') || po.status.includes('return') ? '#fee2e2' : '#f1f5f9', color: po.status === 'completed' ? '#16a34a' : po.status === 'supervisor_review' ? '#1d4ed8' : po.status.includes('reject') || po.status.includes('return') ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>
+                            {getStatusLabel(po.status)}
+                          </span>
+                          {/* Delete button for draft POs */}
+                          {po.status === 'draft' && (userRole === 'pm' || userRole === 'admin' || userRole === 'supervisor') && (
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Delete draft PO ${po.po_number}? This cannot be undone.`)) return;
+                                const res = await fetch(`/api/po/${po.id}`, { method: 'DELETE' });
+                                const data = await res.json();
+                                if (data.error) { alert(data.error); return; }
+                                loadData();
+                              }}
+                              style={{ fontSize: '11px', padding: '4px 10px', color: '#ef4444', border: '1px solid #fca5a5', background: '#fef2f2', fontWeight: 700, borderRadius: '8px', cursor: 'pointer' }}
+                            >
+                              🗑️ Delete
+                            </button>
+                          )}
+                        </div>
 
                         {/* Tracker Visual */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginTop: '16px', overflowX: 'auto', paddingBottom: '4px' }}>

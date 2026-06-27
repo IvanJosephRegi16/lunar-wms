@@ -267,42 +267,63 @@ export default function EmailModal({ po, items, onClose }: Props) {
     setSending(true);
     await savePOEdits();
     try {
+      // Step 1: Capture the PO as a canvas image (sequential, no callbacks)
       const canvas = await captureFullBill();
-      canvas.toBlob(async (blob) => {
-        if (!blob) throw new Error('Failed to generate image blob');
-        const subject = encodeURIComponent(`Purchase Order ${po?.po_number} - Viking Rubbers Pvt. Ltd.`);
-        const bodyText = `Dear ${terms.vendorName || 'Vendor'},\n\nPlease find attached the Purchase Order ${po?.po_number} from Viking Rubbers Pvt. Ltd. for your reference and processing.\n\nKindly acknowledge receipt and confirm the delivery schedule as per the terms mentioned in the PO.\n\nIf you have any questions, please feel free to reach out.\n\nBest Regards,\nAccounts Department\nViking Rubbers Pvt. Ltd.\n\n[Please Paste the PO Image Here or Attach the downloaded PDF]`;
-        const bodyParam = encodeURIComponent(bodyText);
-        const toParam = to.trim() ? `&to=${to}` : '';
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}&body=${bodyParam}`;
-          try {
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            alert('✅ Full PO Image Copied to Clipboard!\n\nGmail is opening... Just press Ctrl+V to paste the complete image into the email body.\n\nA PDF version will also download automatically for your records.');
-            window.open(gmailUrl, '_blank');
-          } catch {
-            const link = document.createElement('a');
-            link.download = `PO_${po?.po_number}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            window.open(gmailUrl, '_blank');
-          }
-          try {
-            const { jsPDF } = await import('jspdf');
-            const pdf = new jsPDF({
-              orientation: 'portrait',
-              unit: 'px',
-              format: [canvas.width / 4, canvas.height / 4]
-            });
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width / 4, canvas.height / 4);
-            const vendorSlug = (terms.vendorName || po?.vendor || 'Vendor').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-            const dateSlug = new Date().toISOString().slice(0, 10);
-            pdf.save(`PO_${po?.po_number}_${vendorSlug}_${dateSlug}.pdf`);
-          } catch (pdfErr) {
-            console.error('PDF Export failed', pdfErr);
-          }
-        }, 'image/png');
-      } catch (err) {
-      alert('Failed to generate image or open Gmail.');
+      const imageDataUrl = canvas.toDataURL('image/png');
+
+      // Step 2: Download PDF automatically FIRST (before Gmail opens)
+      try {
+        const { jsPDF } = await import('jspdf');
+        const pdfWidth = canvas.width / 4;
+        const pdfHeight = canvas.height / 4;
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [pdfWidth, pdfHeight]
+        });
+        pdf.addImage(imageDataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+        const vendorSlug = (terms.vendorName || po?.vendor || 'Vendor').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+        const dateSlug = new Date().toISOString().slice(0, 10);
+        pdf.save(`PO_${po?.po_number}_${vendorSlug}_${dateSlug}.pdf`);
+      } catch (pdfErr) {
+        console.error('PDF Export failed:', pdfErr);
+        // Fallback: download as PNG if PDF fails
+        const link = document.createElement('a');
+        link.download = `PO_${po?.po_number}.png`;
+        link.href = imageDataUrl;
+        link.click();
+      }
+
+      // Step 3: Try to copy image to clipboard
+      let clipboardCopied = false;
+      try {
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('Blob failed')), 'image/png');
+        });
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        clipboardCopied = true;
+      } catch {
+        // Clipboard API not available (common on installed PWA / mobile)
+        clipboardCopied = false;
+      }
+
+      // Step 4: Build Gmail compose URL and open it
+      const subject = encodeURIComponent(`Purchase Order ${po?.po_number} - Viking Rubbers Pvt. Ltd.`);
+      const bodyText = `Dear ${terms.vendorName || 'Vendor'},\n\nPlease find the Purchase Order ${po?.po_number} from Viking Rubbers Pvt. Ltd. for your reference.\n\nKindly acknowledge receipt and confirm the delivery schedule.\n\n${clipboardCopied ? '✅ The PO image has been copied — press Ctrl+V in the email body to paste it.' : '📎 The PO PDF has been downloaded to your device. Please attach it to this email.'}\n\nBest Regards,\nAccounts Department\nViking Rubbers Pvt. Ltd.`;
+      const toParam = to.trim() ? `&to=${encodeURIComponent(to)}` : '';
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1${toParam}&su=${subject}&body=${encodeURIComponent(bodyText)}`;
+
+      // Step 5: Show result alert then open Gmail
+      if (clipboardCopied) {
+        alert('✅ PO Image copied to clipboard!\n📄 PDF downloaded to your device.\n\nGmail is opening now — press Ctrl+V to paste the image into the email body.');
+      } else {
+        alert('📄 PO PDF has been downloaded to your device.\n\nGmail is opening now — please attach the PDF file to the email.');
+      }
+      window.open(gmailUrl, '_blank');
+
+    } catch (err: any) {
+      console.error('Gmail flow error:', err);
+      alert('Failed to generate the PO image. Please try again.');
     } finally {
       setSending(false);
     }
