@@ -307,6 +307,7 @@ export default function POHistory() {
                             </button>
                           )}
                         </div>
+                      </div>
 
                         {/* Tracker Visual */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative', marginTop: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
