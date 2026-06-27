@@ -60,6 +60,7 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
   const [packingOpen, setPackingOpen] = useState(false);
   const [poOpen, setPoOpen] = useState(false);
   const [hrOpen, setHrOpen] = useState(false);
+  const [leavesOpen, setLeavesOpen] = useState(false);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [pmOpen, setPmOpen] = useState(false);
   const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
@@ -135,6 +136,21 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       setHrOpen(false);
     } else {
       setHrOpen(true);
+      setPackingOpen(false);
+      setUpperStockOpen(false);
+      setPoOpen(false);
+      setMaterialsOpen(false);
+      setPmOpen(false);
+      setLeavesOpen(false);
+    }
+  };
+
+  const toggleLeaves = () => {
+    if (leavesOpen) {
+      setLeavesOpen(false);
+    } else {
+      setLeavesOpen(true);
+      setHrOpen(false);
       setPackingOpen(false);
       setUpperStockOpen(false);
       setPoOpen(false);
@@ -858,12 +874,25 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
         <nav style={{ flex: 1 }}>
           <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', marginLeft: '16px' }}>Overview</div>
           <NavLink href="/" icon="📊" label="Dashboard" exact permissionKey="dashboard" />
-          <NavLink href="/leaves" icon="🏖️" label="Leave Applications" badge={pendingLeavesCount} />
           
           {(isAdmin || isPM) && (
             <>
               <NavLink href="/pm/live-sheet" icon="📖" label="Live Ledger" exact permissionKey="pm_live_sheet" />
             </>
+          )}
+
+          {/* Leave Management */}
+          <div onClick={toggleLeaves} style={{ fontSize: '12px', color: '#f1f5f9', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', margin: '16px 8px 12px 8px', padding: '12px 16px', border: '1px solid rgba(255, 255, 255, 0.05)', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }} className="leaves-toggle">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '16px' }}>🏖️</span><span>Leave Tracking</span></div>
+            <span style={{ fontSize: '10px', opacity: 0.5 }}>{leavesOpen ? '▼' : '▶'}</span>
+          </div>
+          {leavesOpen && (
+            <div className="fade-up" style={{ paddingLeft: '8px' }}>
+              <NavLink href="/leaves" icon="📝" label="Leave Applications" badge={pendingLeavesCount} />
+              {(isAdmin || isPM || user?.role === 'supervisor') && (
+                <NavLink href="/leaves/history" icon="📊" label="Leave History" />
+              )}
+            </div>
           )}
 
           {/* Workforce (HR & Payroll) */}

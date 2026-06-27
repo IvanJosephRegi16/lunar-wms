@@ -12,6 +12,9 @@ export default function LeaveApplicationsPage() {
   const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Custom Action Popup State
+  const [actionPopup, setActionPopup] = useState<{show: boolean; message: string; type: 'success' | 'error'}>({ show: false, message: '', type: 'success' });
 
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -122,10 +125,34 @@ export default function LeaveApplicationsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, remarks: '' })
       });
-      if (!res.ok) throw new Error('Failed to update status');
-      fetchData();
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update status');
+      }
+      const data = await res.json();
+      
+      // Determine message and next stage based on action and new status
+      let msg = '';
+      if (action === 'approve') {
+        if (data.newStatus === 'pending_pm') msg = 'Leave Pre-Approved. Next stage: PM Approval.';
+        else if (data.newStatus === 'pending_admin') msg = 'Leave Approved. Next stage: Final Sanction (Admin).';
+        else if (data.newStatus === 'approved') msg = 'Leave Successfully Sanctioned.';
+        else msg = 'Leave Approved.';
+      } else if (action === 'return') {
+        msg = 'Leave Application Returned.';
+      } else {
+        msg = 'Leave Application Rejected.';
+      }
+
+      setActionPopup({ show: true, message: msg, type: 'success' });
+      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4000);
+
+      // Optimistically remove or update the leave from the UI list
+      setLeaves(prev => prev.filter(l => l.id !== id));
+      
     } catch (err: any) {
-      alert(err.message);
+      setActionPopup({ show: true, message: err.message, type: 'error' });
+      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4000);
     }
   };
 
@@ -141,8 +168,23 @@ export default function LeaveApplicationsPage() {
   return (
     <div className="fade-up" style={{ 
       display: 'flex', flexDirection: 'column', gap: '32px', maxWidth: '1000px', margin: '0 auto', 
-      paddingBottom: '40px', fontFamily: '"Inter", "Segoe UI", sans-serif'
+      paddingBottom: '40px', fontFamily: '"Inter", "Segoe UI", sans-serif', position: 'relative'
     }}>
+      
+      {/* ── ACTION POPUP (Custom) ── */}
+      {actionPopup.show && (
+        <div style={{
+          position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
+          background: actionPopup.type === 'success' ? '#0f172a' : '#ef4444', 
+          color: '#ffffff', padding: '16px 24px', borderRadius: '16px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.2)', zIndex: 99999,
+          display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700,
+          animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <span style={{ fontSize: '20px' }}>{actionPopup.type === 'success' ? '✅' : '⚠️'}</span>
+          {actionPopup.message}
+        </div>
+      )}
       
       {/* ── HEADER ── */}
       <div style={{ 
