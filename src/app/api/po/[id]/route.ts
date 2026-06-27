@@ -109,10 +109,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(poId) as any;
     if (!po) return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
 
-    // Strict role check: PMs can ONLY edit draft or returned POs
+    // Strict role check: PMs can ONLY edit draft, returned, or pending_pm_approval POs
     if (user.role === 'pm') {
-      if (po.status !== 'draft' && po.status !== 'returned_for_edit') {
+      if (po.status !== 'draft' && po.status !== 'returned_for_edit' && po.status !== 'returned_by_admin' && po.status !== 'pending_pm_approval') {
         return NextResponse.json({ error: 'This PO is locked and cannot be edited by PM roles.' }, { status: 403 });
+      }
+    } else if (user.role === 'supervisor') {
+      if (po.created_by !== user.id) {
+        return NextResponse.json({ error: 'Supervisors can only edit their own POs.' }, { status: 403 });
+      }
+      if (po.status !== 'draft' && po.status !== 'returned_by_pm') {
+        return NextResponse.json({ error: 'This PO is locked and cannot be edited by Supervisor.' }, { status: 403 });
       }
     } else if (user.role !== 'admin' && user.role !== 'accountant') {
       // Workers cannot edit basic details
@@ -145,11 +152,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Purchase Order must contain at least one material item' }, { status: 400 });
     }
 
-    // Verify row level items (Skip strict validation for drafts)
-    if (status !== 'draft') {
+    // Verify row level items (Skip strict validation for drafts and pre-approval submissions)
+    if (status !== 'draft' && status !== 'pending_pm_approval') {
       for (const [idx, item] of items.entries()) {
         const { required_qty } = item;
-        if (required_qty === undefined) {
+        if (required_qty === undefined || required_qty === null || required_qty === '') {
           return NextResponse.json({ error: `Item at index ${idx + 1} is missing Required Quantity` }, { status: 400 });
         }
         if (Number(required_qty) <= 0) {

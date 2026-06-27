@@ -159,12 +159,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Purchase Order must contain at least one material item' }, { status: 400 });
     }
 
-    // Verify row level items (Skip strict validation for drafts)
-    if (status !== 'draft') {
+    // Verify row level items (Skip strict validation for drafts and pre-approval submissions)
+    if (status !== 'draft' && status !== 'pending_pm_approval') {
       for (const [idx, item] of items.entries()) {
-        const { material_name, required_qty } = item;
-        if (!material_name || required_qty === undefined) {
-          return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Name or Qty)` }, { status: 400 });
+        const { required_qty } = item;
+        if (required_qty === undefined || required_qty === null || required_qty === '') {
+          return NextResponse.json({ error: `Item at index ${idx + 1} has missing operational fields (Qty)` }, { status: 400 });
         }
         if (Number(required_qty) <= 0) {
           return NextResponse.json({ error: `Item at index ${idx + 1} must have a positive Required Quantity` }, { status: 400 });

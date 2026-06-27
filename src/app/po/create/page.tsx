@@ -401,9 +401,15 @@ function CreatePOFormContent() {
           }
           const po = data.po;
           
-          // Enforce locking rules on approved states
-          if (po.status !== 'draft' && po.status !== 'returned_for_edit' && meData.user.role !== 'admin') {
-            setError(`This PO has moved to the '${po.status}' stage and is completely locked from further PM edits.`);
+          const role = meData.user.role;
+          const status = po.status;
+          let canEdit = false;
+          if (role === 'admin') canEdit = true;
+          else if (role === 'pm' && ['draft', 'returned_for_edit', 'returned_by_admin', 'pending_pm_approval'].includes(status)) canEdit = true;
+          else if (role === 'supervisor' && ['draft', 'returned_by_pm'].includes(status)) canEdit = true;
+
+          if (!canEdit) {
+            setError(`This PO has moved to the '${po.status}' stage and is completely locked from further edits by your role.`);
             setLoading(false);
             return;
           }
@@ -413,7 +419,7 @@ function CreatePOFormContent() {
           setVendor(po.vendor || '');
           setDiscountPercent(po.discount_percent || 0);
           setRemarks(po.remarks || '');
-          if (po.status === 'returned_for_edit') {
+          if (['returned_for_edit', 'returned_by_admin', 'returned_by_pm'].includes(status)) {
             setCorrectionNotes(po.correction_notes || '');
           }
 
@@ -495,7 +501,9 @@ function CreatePOFormContent() {
         setMaterialsList([...materialsList, {
           material_code: newMaterialData.material_code.toUpperCase(),
           material_name: newMaterialData.material_name,
-          category: finalCategory
+          category: finalCategory,
+          size_thickness: newMaterialData.size_thickness,
+          rate: newMaterialData.rate
         }]);
         setShowNewMaterialModal(false);
         setNewMaterialData({ category: '', material_code: '', material_name: '', size_thickness: '', rate: '', date: '' });
@@ -591,7 +599,7 @@ function CreatePOFormContent() {
     }
 
     // Verify row level items
-    if (status !== 'draft') {
+    if (status !== 'draft' && status !== 'pending_pm_approval') {
       for (const [idx, item] of items.entries()) {
         if (Number(item.required_qty) <= 0) {
           setShowWarningPopup(`Row #${idx + 1} must have a positive Required Quantity.`);

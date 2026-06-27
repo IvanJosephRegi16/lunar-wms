@@ -207,6 +207,11 @@ export default function AdminPOQueue() {
 
                 {/* Action Buttons */}
                 <div style={{ display: 'flex', gap: '10px', borderTop: '1px solid var(--border)', paddingTop: '18px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  {user?.role === 'pm' && (
+                    <Link href={`/po/create?id=${po.id}`} className="btn-corp" style={{ textDecoration: 'none', color: '#0f172a', border: '1px solid #cbd5e1', background: '#f8fafc', fontWeight: 700, padding: '8px 16px', display: 'flex', alignItems: 'center' }}>
+                      ✏️ Edit PO Details
+                    </Link>
+                  )}
                   <button className="btn-corp" style={{ color: '#16a34a', border: '1px solid #86efac', background: '#f0fdf4', fontWeight: 700 }}
                     onClick={() => { setSelectedPo(po); setActionType('approve'); setCommentInput(user?.role === 'pm' ? 'Pre-approved and sent to Admin.' : 'Approved and authorized for Accountant processing.'); }}>
                     {user?.role === 'pm' ? '✓ Approve & Send to Admin' : '✓ Approve PO'}
