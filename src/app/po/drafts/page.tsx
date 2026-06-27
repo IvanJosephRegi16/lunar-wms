@@ -62,6 +62,7 @@ export default function DraftPOs() {
 
   const isPM = user?.role === 'pm';
   const isAdmin = user?.role === 'admin';
+  const isSupervisor = user?.role === 'supervisor';
 
   const handleDeleteDraft = async (id: number) => {
     if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) return;
@@ -123,7 +124,7 @@ export default function DraftPOs() {
                       <button onClick={() => setSelectedPo(po)} className="btn-corp" style={{ fontSize: '12px', padding: '6px 12px' }}>
                         👁️ View Sheet
                       </button>
-                      {(isPM || isAdmin) && (
+                      {(isPM || isAdmin || (isSupervisor && po.created_by === user?.id)) && (
                         <>
                           <Link href={`/po/create?id=${po.id}`} className="btn-corp btn-primary-corp" style={{ textDecoration: 'none', fontSize: '12px', padding: '6px 14px', background: '#3b82f6', borderColor: '#3b82f6', color: 'white' }}>
                             📝 Resume Draft

@@ -337,9 +337,9 @@ export async function DELETE(req: NextRequest) {
     const user = await getAuthUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     
-    // Only Admin and PM can delete drafts
-    if (user.role !== 'pm' && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Only Purchase Managers or Admins can delete PO drafts' }, { status: 403 });
+    // Admin, PM, and Supervisor can delete drafts
+    if (user.role !== 'pm' && user.role !== 'admin' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Only Purchase Managers, Admins, or Supervisors can delete PO drafts' }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -360,8 +360,8 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Only drafts can be deleted' }, { status: 400 });
     }
 
-    // Role check: PM can only delete their own drafts unless they are admin
-    if (user.role === 'pm' && po.created_by !== user.id) {
+    // Role check: PM and Supervisor can only delete their own drafts unless they are admin
+    if ((user.role === 'pm' || user.role === 'supervisor') && po.created_by !== user.id) {
       return NextResponse.json({ error: 'You can only delete your own drafts' }, { status: 403 });
     }
 
