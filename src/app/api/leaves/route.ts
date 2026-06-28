@@ -32,7 +32,10 @@ export async function GET(req: NextRequest) {
       query = `
         SELECT l.*, u.full_name as emp_name, u.phone, u.role,
                s.full_name as supervisor_name,
-               0 as this_month_taken
+               (SELECT COALESCE(SUM(total_days),0) FROM leave_applications l2 
+                WHERE l2.user_id = l.user_id 
+                AND l2.status = 'approved' 
+                AND TO_CHAR(l2.start_date::timestamp, 'YYYY-MM') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM')) as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id
@@ -61,7 +64,10 @@ export async function GET(req: NextRequest) {
       query = `
         SELECT l.*, u.full_name as emp_name, u.phone, u.role,
                s.full_name as supervisor_name,
-               0 as this_month_taken
+               (SELECT COALESCE(SUM(total_days),0) FROM leave_applications l2 
+                WHERE l2.user_id = l.user_id 
+                AND l2.status = 'approved' 
+                AND TO_CHAR(l2.start_date::timestamp, 'YYYY-MM') = TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM')) as this_month_taken
         FROM leave_applications l
         JOIN users u ON l.user_id = u.id
         LEFT JOIN users s ON l.supervisor_id = s.id

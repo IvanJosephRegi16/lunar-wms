@@ -14,7 +14,11 @@ export default function LeaveApplicationsPage() {
   const [errorMsg, setErrorMsg] = useState('');
   
   // Custom Action Popup State
-  const [actionPopup, setActionPopup] = useState<{show: boolean; message: string; type: 'success' | 'error'}>({ show: false, message: '', type: 'success' });
+  const [actionPopup, setActionPopup] = useState<{show: boolean; message: string; type: 'success' | 'error' | 'reject'}>({ show: false, message: '', type: 'success' });
+  // Remarks modal for return/reject
+  const [actionModal, setActionModal] = useState<{show: boolean; leaveId: number; action: string; leaveName: string}>({ show: false, leaveId: 0, action: '', leaveName: '' });
+  const [actionRemarks, setActionRemarks] = useState('');
+  const [actionProcessing, setActionProcessing] = useState(false);
 
   // Form State
   const [showForm, setShowForm] = useState(false);
@@ -118,41 +122,61 @@ export default function LeaveApplicationsPage() {
     }
   };
 
-  const handleAction = async (id: number, action: string) => {
+  const openActionModal = (id: number, action: string, name: string) => {
+    if (action === 'approve') {
+      handleAction(id, action, '');
+    } else {
+      setActionModal({ show: true, leaveId: id, action, leaveName: name });
+      setActionRemarks('');
+    }
+  };
+
+  const handleAction = async (id: number, action: string, remarks: string) => {
+    setActionProcessing(true);
     try {
       const res = await fetch(`/api/leaves/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, remarks: '' })
+        body: JSON.stringify({ action, remarks })
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to update status');
       }
       const data = await res.json();
+      const firstName = (data.emp_name || '').split(' ')[0];
       
-      // Determine message and next stage based on action and new status
       let msg = '';
+      let popType: 'success' | 'error' | 'reject' = 'success';
       if (action === 'approve') {
-        if (data.newStatus === 'pending_pm') msg = 'Leave Pre-Approved. Next stage: PM Approval.';
-        else if (data.newStatus === 'pending_admin') msg = 'Leave Approved. Next stage: Final Sanction (Admin).';
-        else if (data.newStatus === 'approved') msg = 'Leave Successfully Sanctioned.';
+        if (data.newStatus === 'approved') msg = `✅ ${firstName}'s leave for ${data.total_days} day(s) has been Approved!`;
+        else if (data.newStatus === 'pending_pm') msg = `${firstName}'s leave pre-approved → Sent to PM`;
+        else if (data.newStatus === 'pending_admin') msg = `${firstName}'s leave approved → Sent to Admin for final sanction`;
         else msg = 'Leave Approved.';
+      } else if (action === 'reject') {
+        msg = `❌ ${firstName}'s leave request has been Rejected.`;
+        popType = 'reject';
       } else if (action === 'return') {
-        msg = 'Leave Application Returned.';
-      } else {
-        msg = 'Leave Application Rejected.';
+        msg = `↺ ${firstName}'s leave returned with instructions.`;
+      } else if (action === 'resubmit') {
+        msg = `Leave resubmitted for approval.`;
       }
 
-      setActionPopup({ show: true, message: msg, type: 'success' });
-      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4000);
+      setActionPopup({ show: true, message: msg, type: popType });
+      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4500);
+      setActionModal({ show: false, leaveId: 0, action: '', leaveName: '' });
 
-      // Optimistically remove or update the leave from the UI list
-      setLeaves(prev => prev.filter(l => l.id !== id));
-      
+      // Re-fetch data to get updated list
+      const leavesRes = await fetch('/api/leaves');
+      if (leavesRes.ok) {
+        const d = await leavesRes.json();
+        setLeaves(d.leaves || []);
+      }
     } catch (err: any) {
       setActionPopup({ show: true, message: err.message, type: 'error' });
-      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4000);
+      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4500);
+    } finally {
+      setActionProcessing(false);
     }
   };
 
@@ -175,13 +199,13 @@ export default function LeaveApplicationsPage() {
       {actionPopup.show && (
         <div style={{
           position: 'fixed', top: '24px', left: '50%', transform: 'translateX(-50%)',
-          background: actionPopup.type === 'success' ? '#0f172a' : '#ef4444', 
+          background: actionPopup.type === 'reject' ? '#dc2626' : actionPopup.type === 'error' ? '#ef4444' : '#0f172a', 
           color: '#ffffff', padding: '16px 24px', borderRadius: '16px',
           boxShadow: '0 20px 40px rgba(0,0,0,0.2)', zIndex: 99999,
           display: 'flex', alignItems: 'center', gap: '12px', fontWeight: 700,
-          animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
+          animation: 'slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)', maxWidth: '90vw'
         }}>
-          <span style={{ fontSize: '20px' }}>{actionPopup.type === 'success' ? '✅' : '⚠️'}</span>
+          <span style={{ fontSize: '20px' }}>{actionPopup.type === 'success' ? '✅' : actionPopup.type === 'reject' ? '❌' : '⚠️'}</span>
           {actionPopup.message}
         </div>
       )}
@@ -207,22 +231,24 @@ export default function LeaveApplicationsPage() {
               📊 History
             </Link>
           )}
-          <button 
-            onClick={() => { setShowForm(!showForm); setErrorMsg(''); }}
-            style={{ 
-              background: showForm ? '#f1f5f9' : 'linear-gradient(135deg, #e11d48, #be123c)',
-              color: showForm ? '#475569' : '#ffffff',
-              border: showForm ? '1px solid #cbd5e1' : 'none',
-              padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
-              cursor: 'pointer', boxShadow: showForm ? 'none' : '0 8px 20px rgba(225,29,72,0.3)',
-              transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-              display: 'flex', alignItems: 'center', gap: '8px'
-            }}
-            onMouseEnter={e => !showForm && (e.currentTarget.style.transform = 'translateY(-2px)')}
-            onMouseLeave={e => !showForm && (e.currentTarget.style.transform = 'none')}
-          >
-            {showForm ? '✕ Close Form' : '➕ Create Application'}
-          </button>
+          {user?.role !== 'admin' && (
+            <button 
+              onClick={() => { setShowForm(!showForm); setErrorMsg(''); }}
+              style={{ 
+                background: showForm ? '#f1f5f9' : 'linear-gradient(135deg, #e11d48, #be123c)',
+                color: showForm ? '#475569' : '#ffffff',
+                border: showForm ? '1px solid #cbd5e1' : 'none',
+                padding: '12px 24px', borderRadius: '12px', fontWeight: 800, fontSize: '14px',
+                cursor: 'pointer', boxShadow: showForm ? 'none' : '0 8px 20px rgba(225,29,72,0.3)',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                display: 'flex', alignItems: 'center', gap: '8px'
+              }}
+              onMouseEnter={e => !showForm && (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseLeave={e => !showForm && (e.currentTarget.style.transform = 'none')}
+            >
+              {showForm ? '✕ Close Form' : '➕ Create Application'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -454,10 +480,15 @@ export default function LeaveApplicationsPage() {
 
                     {canActionLeave(user, leave) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                        <button onClick={() => handleAction(leave.id, 'approve')} style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={e => e.currentTarget.style.background = '#f0fdf4'}>✓ Approve</button>
-                        <button onClick={() => handleAction(leave.id, 'return')} style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#fef3c7'} onMouseLeave={e => e.currentTarget.style.background = '#fffbeb'}>↺ Return</button>
-                        <button onClick={() => handleAction(leave.id, 'reject')} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}>✕ Reject</button>
+                        <button onClick={() => openActionModal(leave.id, 'approve', leave.emp_name)} disabled={actionProcessing} style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', opacity: actionProcessing ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={e => e.currentTarget.style.background = '#f0fdf4'}>✓ Approve</button>
+                        <button onClick={() => openActionModal(leave.id, 'return', leave.emp_name)} disabled={actionProcessing} style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', opacity: actionProcessing ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.background = '#fef3c7'} onMouseLeave={e => e.currentTarget.style.background = '#fffbeb'}>↺ Return</button>
+                        <button onClick={() => openActionModal(leave.id, 'reject', leave.emp_name)} disabled={actionProcessing} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', opacity: actionProcessing ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}>✕ Reject</button>
                       </div>
+                    )}
+
+                    {/* Resubmit for returned leaves */}
+                    {leave.user_id === user?.id && leave.status.startsWith('returned_') && (
+                      <button onClick={() => handleAction(leave.id, 'resubmit', '')} disabled={actionProcessing} style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', marginTop: '8px' }}>🔄 Resubmit Application</button>
                     )}
                   </div>
                 </div>
@@ -489,6 +520,57 @@ export default function LeaveApplicationsPage() {
           </div>
         )}
       </div>
+      {/* ── ACTION MODAL (Remarks) ── */}
+      {actionModal.show && (
+        <div style={{
+          position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
+          background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="card-clean fade-up" style={{ width: '90%', maxWidth: '400px', padding: '32px', background: 'white', borderRadius: '24px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
+              {actionModal.action === 'return' ? '↺ Return Application' : '✕ Reject Application'}
+            </h3>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
+              {actionModal.action === 'return' 
+                ? `Please provide instructions to ${actionModal.leaveName.split(' ')[0]} on what needs to be corrected.`
+                : `Please provide a reason for rejecting ${actionModal.leaveName.split(' ')[0]}'s leave application.`
+              }
+            </p>
+
+            <textarea 
+              autoFocus
+              value={actionRemarks}
+              onChange={e => setActionRemarks(e.target.value)}
+              placeholder="Enter remarks here (Required)"
+              rows={4}
+              style={{ padding: '16px', border: '1.5px solid #cbd5e1', borderRadius: '12px', fontSize: '14px', fontWeight: 500, outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', marginBottom: '24px' }}
+            />
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setActionModal({ show: false, leaveId: 0, action: '', leaveName: '' })}
+                style={{ padding: '12px 20px', background: 'white', color: '#475569', border: '1px solid #cbd5e1', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => handleAction(actionModal.leaveId, actionModal.action, actionRemarks)}
+                disabled={!actionRemarks.trim() || actionProcessing}
+                style={{ 
+                  padding: '12px 24px', 
+                  background: actionModal.action === 'return' ? '#d97706' : '#dc2626', 
+                  color: 'white', border: 'none', borderRadius: '10px', fontWeight: 800, fontSize: '13px', 
+                  cursor: (!actionRemarks.trim() || actionProcessing) ? 'not-allowed' : 'pointer',
+                  opacity: (!actionRemarks.trim() || actionProcessing) ? 0.5 : 1
+                }}
+              >
+                {actionProcessing ? 'Processing...' : 'Confirm Action'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

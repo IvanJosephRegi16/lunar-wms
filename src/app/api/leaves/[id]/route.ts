@@ -16,24 +16,54 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
   try {
     const body = await req.json();
-    const { action, remarks } = body; // action: 'approve', 'reject', 'return'
+    const { action, remarks } = body; // action: 'approve', 'reject', 'return', 'resubmit'
 
-    if (!['approve', 'reject', 'return'].includes(action)) {
+    if (!['approve', 'reject', 'return', 'resubmit'].includes(action)) {
       return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
 
     const db = getDb();
     
-    // Fetch current leave
-    const leave = await db.prepare('SELECT * FROM leave_applications WHERE id = ?').all(leaveId);
-    if (!leave || leave.length === 0) {
+    // Fetch current leave with applicant info
+    const leaveRows = await db.prepare(`
+      SELECT l.*, u.full_name as emp_name, u.role as emp_role
+      FROM leave_applications l
+      JOIN users u ON l.user_id = u.id
+      WHERE l.id = ?
+    `).all(leaveId) as any[];
+
+    if (!leaveRows || leaveRows.length === 0) {
       return NextResponse.json({ error: 'Leave application not found' }, { status: 404 });
     }
 
-    const currentLeave = leave[0];
+    const currentLeave = leaveRows[0];
     let newStatus = currentLeave.status;
     let updateField = '';
     
+    // Handle resubmit by the applicant
+    if (action === 'resubmit') {
+      if (currentLeave.user_id !== user.id) {
+        return NextResponse.json({ error: 'Only the applicant can resubmit' }, { status: 403 });
+      }
+      if (!currentLeave.status.startsWith('returned_')) {
+        return NextResponse.json({ error: 'Only returned applications can be resubmitted' }, { status: 400 });
+      }
+      // Resubmit to the role that returned it
+      if (currentLeave.status === 'returned_by_supervisor') newStatus = 'pending_supervisor';
+      else if (currentLeave.status === 'returned_by_pm') newStatus = 'pending_pm';
+      else if (currentLeave.status === 'returned_by_admin') newStatus = 'pending_admin';
+
+      await db.prepare(`
+        UPDATE leave_applications SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+      `).run(newStatus, leaveId);
+
+      return NextResponse.json({ 
+        success: true, newStatus, 
+        emp_name: currentLeave.emp_name, 
+        total_days: currentLeave.total_days 
+      });
+    }
+
     // Authorization & Status Transition Logic
     if (user.role === 'admin') {
       if (!['pending_admin', 'pending_supervisor', 'pending_pm'].includes(currentLeave.status)) {
@@ -56,7 +86,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       updateField = 'pm_remarks';
 
     } else if (user.role === 'supervisor') {
-      // Supervisor can only act on leaves assigned to them and currently pending supervisor approval
       if (currentLeave.supervisor_id !== user.id) {
         return NextResponse.json({ error: 'Not authorized to action this leave' }, { status: 403 });
       }
@@ -92,17 +121,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     };
 
+    const firstName = (currentLeave.emp_name || '').split(' ')[0];
+
     if (newStatus === 'pending_pm') {
-      await notifyRole('pm', `Leave application escalated to you for pre-approval`);
+      await notifyRole('pm', `Leave from ${firstName} (${currentLeave.total_days} days) needs your pre-approval`);
     } else if (newStatus === 'pending_admin') {
-      await notifyRole('admin', `Leave application requires final sanction`);
-    } else if (newStatus.startsWith('rejected') || newStatus.startsWith('returned') || newStatus === 'approved') {
-      // Notify the original applicant
-      const stateLabel = newStatus.includes('approved') ? 'Approved' : newStatus.includes('rejected') ? 'Rejected' : 'Returned';
-      await notifyUser(currentLeave.user_id, `Your leave application has been ${stateLabel}`);
+      await notifyRole('admin', `Leave from ${firstName} (${currentLeave.total_days} days) needs final approval`);
+    } else if (newStatus === 'approved') {
+      await notifyUser(currentLeave.user_id, `Your leave for ${currentLeave.total_days} day(s) has been Approved by ${user.full_name}`);
+    } else if (newStatus.startsWith('rejected')) {
+      await notifyUser(currentLeave.user_id, `Your leave request was Rejected by ${user.full_name}`);
+    } else if (newStatus.startsWith('returned')) {
+      await notifyUser(currentLeave.user_id, `Your leave was Returned by ${user.full_name} with instructions`);
     }
 
-    return NextResponse.json({ success: true, newStatus });
+    return NextResponse.json({ 
+      success: true, 
+      newStatus, 
+      emp_name: currentLeave.emp_name,
+      total_days: currentLeave.total_days,
+      action
+    });
   } catch (error: any) {
     console.error('Error updating leave:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
