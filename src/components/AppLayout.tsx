@@ -750,6 +750,8 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
       router.push('/po/returned');
     } else if (n.type === 'rejected') {
       router.push('/po/rejected');
+    } else if (n.type === 'leave') {
+      router.push('/leaves');
     } else {
       router.push('/po');
     }
@@ -1240,6 +1242,11 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
                               {isAdmin && n.type === 'pending_admin_approval' && (
                                 <span style={{ fontSize: '11px', color: '#fbbf24', fontWeight: 700, display: 'inline-block', marginTop: '6px' }}>
                                   ⏳ Review & Approve →
+                                </span>
+                              )}
+                              {n.type === 'leave' && (
+                                <span style={{ fontSize: '11px', color: '#8b5cf6', fontWeight: 700, display: 'inline-block', marginTop: '6px' }}>
+                                  🏖️ View Leave Dashboard →
                                 </span>
                               )}
                             </div>

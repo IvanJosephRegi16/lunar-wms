@@ -330,8 +330,8 @@ CREATE TABLE IF NOT EXISTS po_activity_logs (
 CREATE TABLE IF NOT EXISTS po_notifications (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
-  po_id INTEGER NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
-  po_number TEXT NOT NULL,
+  po_id INTEGER REFERENCES purchase_orders(id) ON DELETE CASCADE,
+  po_number TEXT,
   type TEXT NOT NULL,
   message TEXT NOT NULL,
   is_read INTEGER NOT NULL DEFAULT 0,
@@ -881,6 +881,14 @@ ON CONFLICT (username) DO NOTHING;
       console.log('[MIGRATION] po_approval_history constraint updated');
     } catch (e: any) {
       console.warn('[MIGRATION] status constraint update skipped:', e.message);
+    }
+
+    try {
+      await client.query(`ALTER TABLE po_notifications ALTER COLUMN po_id DROP NOT NULL`);
+      await client.query(`ALTER TABLE po_notifications ALTER COLUMN po_number DROP NOT NULL`);
+      console.log('[MIGRATION] po_notifications constraints relaxed');
+    } catch (e: any) {
+      console.warn('[MIGRATION] po_notifications constraints relax skipped:', e.message);
     }
 
     // ── Seed default data (idempotent) ────────────────────────────────────

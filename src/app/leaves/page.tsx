@@ -114,7 +114,8 @@ export default function LeaveApplicationsPage() {
         supervisor_id: ''
       });
       fetchData();
-      alert('Leave Application Submitted Successfully!');
+      setActionPopup({ show: true, message: '🎉 Leave Application Submitted Successfully!', type: 'success' });
+      setTimeout(() => setActionPopup({ show: false, message: '', type: 'success' }), 4500);
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
