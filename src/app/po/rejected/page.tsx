@@ -134,10 +134,10 @@ export default function RejectedPOs() {
                           <td style={{ padding: '8px 12px', fontWeight: 700 }}>{item.material_code}</td>
                           <td style={{ padding: '8px 12px', fontWeight: 600 }}>{item.material_name}</td>
                           <td style={{ padding: '8px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{item.required_qty?.toLocaleString()}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>{(item.required_qty ?? 0).toLocaleString()}</td>
                           <td style={{ padding: '8px 12px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px' }}>{item.unit || 'Pair'}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>₹{item.order_rate?.toFixed(2)}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace' }}>₹{item.amount?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -150,6 +150,21 @@ export default function RejectedPOs() {
                 <Link href="/po/history" className="btn-corp" style={{ textDecoration: 'none', fontSize: '12px' }}>
                   🕒 View Audit History
                 </Link>
+                {(user?.role === 'pm' || user?.role === 'admin' || user?.role === 'supervisor') && (
+                  <button
+                    onClick={async () => {
+                      if (!confirm(`Delete rejected PO ${po.po_number}? This cannot be undone.`)) return;
+                      const res = await fetch(`/api/po/${po.id}`, { method: 'DELETE' });
+                      const data = await res.json();
+                      if (data.error) { alert(data.error); return; }
+                      setPos(prev => prev.filter(p => p.id !== po.id));
+                    }}
+                    className="btn-corp"
+                    style={{ fontSize: '12px', padding: '6px 12px', color: '#ef4444', border: '1px solid #fca5a5', background: '#fef2f2', fontWeight: 700 }}
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
               </div>
             </div>
           ))}

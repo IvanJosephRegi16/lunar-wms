@@ -67,7 +67,7 @@ export default function DraftPOs() {
   const handleDeleteDraft = async (id: number) => {
     if (!confirm('Are you sure you want to delete this draft? This action cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/po?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/po/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.error) {
         alert(data.error);

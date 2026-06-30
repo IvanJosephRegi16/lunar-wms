@@ -13,7 +13,8 @@ function PremiumSearchDropdown({
   onSelectOption,
   placeholder,
   required = false,
-  style = {}
+  style = {},
+  allowCustom = true
 }: any) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState(value || '');
@@ -88,7 +89,9 @@ function PremiumSearchDropdown({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearch(val);
-    onChange(val); // Update live as they type
+    if (allowCustom) {
+      onChange(val); // Update live as they type only if custom allowed
+    }
     setIsOpen(true);
   };
 
@@ -106,10 +109,10 @@ function PremiumSearchDropdown({
           onFocus={() => setIsOpen(true)}
           style={{
             width: '100%',
-            padding: '10px 36px 10px 14px',
+            padding: '12px 36px 12px 14px',
             border: isOpen ? '2px solid var(--primary)' : '1px solid var(--border)',
             borderRadius: '8px',
-            fontSize: '13px',
+            fontSize: '14px',
             fontWeight: 600,
             background: 'white',
             outline: 'none',
@@ -205,7 +208,7 @@ function PremiumSearchDropdown({
           )}
 
           {/* Special option to type a custom code if search is not empty and not an exact match */}
-          {search.trim() !== '' && !isExactMatch && (
+          {allowCustom && search.trim() !== '' && !isExactMatch && (
             <div
               onMouseDown={(e) => {
                 e.preventDefault();
@@ -901,12 +904,15 @@ function CreatePOFormContent() {
                       <td style={{ padding: '8px', minWidth: '220px' }}>
                         <PremiumSearchDropdown
                           value={item.material_code}
+                          allowCustom={false}
                           onChange={(val: string) => {
                             const selected = materialsList.find(m => m.material_code.toUpperCase() === val.toUpperCase());
                             let updates: any = { material_code: val };
                             if (selected) {
                               updates.material_name = selected.material_name;
-                              updates.category = selected.category || item.category || 'Others';
+                              if (!item.category || item.category === '') {
+                                updates.category = selected.category || 'Others';
+                              }
                               if (selected.size_thickness) updates.size_thickness = selected.size_thickness;
                               if (selected.rate) updates.order_rate = selected.rate;
                             }
@@ -921,7 +927,7 @@ function CreatePOFormContent() {
                               return itemBaseCat === mBaseCat;
                             })
                             .map(m => ({ value: m.material_code, label: m.material_name }))}
-                          placeholder={!item.category ? "Select Category First..." : "Search or type code (optional)..."}
+                          placeholder={!item.category ? "Select Category First..." : "Search material code..."}
                         />
                       </td>
                       <td style={{ padding: '8px' }}>
@@ -930,13 +936,16 @@ function CreatePOFormContent() {
                           return (
                             <PremiumSearchDropdown
                               value={item.material_name}
+                              allowCustom={false}
                               onChange={(val: string) => {
                                 const selected = materialsList.find(m => m.material_name.toUpperCase() === val.toUpperCase());
                                 let updates: any = { material_name: val };
                                 
                                 if (selected) {
                                   updates.material_code = selected.material_code;
-                                  updates.category = selected.category || item.category || 'Others';
+                                  if (!item.category || item.category === '') {
+                                    updates.category = selected.category || 'Others';
+                                  }
                                   if (selected.size_thickness) updates.size_thickness = selected.size_thickness;
                                   if (selected.rate) updates.order_rate = selected.rate;
                                 }
@@ -951,7 +960,7 @@ function CreatePOFormContent() {
                                   return itemBaseCat === mBaseCat;
                                 })
                                 .map(m => ({ value: m.material_name, label: m.material_code }))}
-                              placeholder={isRegistered ? "Populated from registry..." : "Search or type name..."}
+                              placeholder={isRegistered ? "Populated from registry..." : "Search material name..."}
                             />
                           );
                         })()}

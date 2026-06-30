@@ -336,12 +336,12 @@ export default function POHistory() {
                           <span style={{ fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '8px', background: po.status === 'completed' ? '#dcfce7' : po.status === 'supervisor_review' ? '#eff6ff' : po.status.includes('reject') || po.status.includes('return') ? '#fee2e2' : '#f1f5f9', color: po.status === 'completed' ? '#16a34a' : po.status === 'supervisor_review' ? '#1d4ed8' : po.status.includes('reject') || po.status.includes('return') ? '#dc2626' : '#64748b', textTransform: 'uppercase' }}>
                             {getStatusLabel(po.status)}
                           </span>
-                          {/* Delete button for draft POs */}
-                          {po.status === 'draft' && (userRole === 'pm' || userRole === 'admin' || userRole === 'supervisor') && (
+                          {/* Delete button for draft, returned, and rejected POs */}
+                          {['draft', 'returned_by_pm', 'returned_by_admin', 'returned_for_edit', 'rejected'].includes(po.status) && (userRole === 'pm' || userRole === 'admin' || userRole === 'supervisor') && (
                             <button
                               onClick={async (e) => {
                                 e.stopPropagation();
-                                if (!confirm(`Delete draft PO ${po.po_number}? This cannot be undone.`)) return;
+                                if (!confirm(`Delete PO ${po.po_number}? This cannot be undone.`)) return;
                                 const res = await fetch(`/api/po/${po.id}`, { method: 'DELETE' });
                                 const data = await res.json();
                                 if (data.error) { alert(data.error); return; }

@@ -22,6 +22,8 @@ export default function LeaveApplicationsPage() {
 
   // Form State
   const [showForm, setShowForm] = useState(false);
+  // Full-screen view modal for approvers
+  const [viewModal, setViewModal] = useState<{show: boolean; leave: any}>({ show: false, leave: null });
   const [formData, setFormData] = useState({
     department: '',
     leave_type: 'Annual Leave',
@@ -89,6 +91,15 @@ export default function LeaveApplicationsPage() {
       .filter(l => isWithinInterval(new Date(l.start_date), { start, end }))
       .reduce((sum, l) => sum + l.total_days, 0);
   };
+
+  // Filter leaves: Approvers only see what they need to act on OR their own.
+  const activeLeaves = leaves.filter(leave => {
+    if (leave.user_id === user?.id) return true; // always show my own applications
+    if (user?.role === 'admin') return ['pending_admin'].includes(leave.status); // Admin ledger = pending admin approval
+    if (user?.role === 'pm') return leave.status === 'pending_pm'; // PM ledger = pending pm approval
+    if (user?.role === 'supervisor') return leave.status === 'pending_supervisor' && leave.supervisor_id === user?.id; // Supervisor ledger = pending supervisor
+    return false;
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,7 +429,7 @@ export default function LeaveApplicationsPage() {
           <div style={{ flex: 1, height: '2px', background: 'linear-gradient(90deg, #e2e8f0, transparent)' }} />
         </div>
 
-        {leaves.length === 0 ? (
+        {activeLeaves.length === 0 ? (
           <div style={{ background: '#ffffff', borderRadius: '24px', padding: '64px 24px', textAlign: 'center', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px rgba(0,0,0,0.02)' }}>
             <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }}>📂</div>
             <div style={{ fontSize: '18px', fontWeight: 800, color: '#475569' }}>No Leave Records Found</div>
@@ -426,7 +437,7 @@ export default function LeaveApplicationsPage() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {leaves.map((leave) => (
+            {activeLeaves.map((leave) => (
               <div key={leave.id} style={{ 
                 background: '#ffffff', borderRadius: '20px', border: '1px solid #e2e8f0',
                 padding: '24px', boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
@@ -481,6 +492,7 @@ export default function LeaveApplicationsPage() {
 
                     {canActionLeave(user, leave) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                        <button onClick={() => setViewModal({ show: true, leave })} style={{ background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s', width: '100%' }} onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'} onMouseLeave={e => e.currentTarget.style.background = '#f1f5f9'}>👁️ View Full Form</button>
                         <button onClick={() => openActionModal(leave.id, 'approve', leave.emp_name)} disabled={actionProcessing} style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', opacity: actionProcessing ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.background = '#dcfce7'} onMouseLeave={e => e.currentTarget.style.background = '#f0fdf4'}>✓ Approve</button>
                         <button onClick={() => openActionModal(leave.id, 'return', leave.emp_name)} disabled={actionProcessing} style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', opacity: actionProcessing ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.background = '#fef3c7'} onMouseLeave={e => e.currentTarget.style.background = '#fffbeb'}>↺ Return</button>
                         <button onClick={() => openActionModal(leave.id, 'reject', leave.emp_name)} disabled={actionProcessing} style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', padding: '10px 16px', borderRadius: '10px', fontWeight: 800, fontSize: '11px', textTransform: 'uppercase', cursor: actionProcessing ? 'wait' : 'pointer', transition: 'all 0.2s', width: '100%', opacity: actionProcessing ? 0.6 : 1 }} onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'} onMouseLeave={e => e.currentTarget.style.background = '#fef2f2'}>✕ Reject</button>
@@ -568,6 +580,58 @@ export default function LeaveApplicationsPage() {
               >
                 {actionProcessing ? 'Processing...' : 'Confirm Action'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── FULL SCREEN VIEW MODAL ── */}
+      {viewModal.show && viewModal.leave && (
+        <div style={{
+          position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="fade-up" style={{ width: '100%', maxWidth: '800px', maxHeight: '95vh', overflowY: 'auto', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', padding: '40px', position: 'relative' }}>
+            <button onClick={() => setViewModal({ show: false, leave: null })} style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+            
+            <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '24px', marginBottom: '32px' }}>
+              <div style={{ fontSize: '12px', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Official Leave Application Form</div>
+              <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0 }}>{viewModal.leave.emp_name}</h2>
+              <div style={{ fontSize: '14px', color: '#64748b', fontWeight: 600, marginTop: '8px' }}>Role: {viewModal.leave.role.toUpperCase()} | Department: {viewModal.leave.department}</div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leave Type</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{viewModal.leave.leave_type}</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Duration</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{viewModal.leave.total_days} Days</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{format(new Date(viewModal.leave.start_date), 'dd MMM yyyy')}</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{format(new Date(viewModal.leave.end_date), 'dd MMM yyyy')}</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '40px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Applicant's Reason</div>
+              <div style={{ background: '#fefce8', padding: '24px', borderRadius: '16px', border: '1px solid #fef08a', fontSize: '16px', color: '#854d0e', lineHeight: 1.6, fontStyle: 'italic' }}>
+                "{viewModal.leave.reason}"
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'flex-end', borderTop: '2px solid #f1f5f9', paddingTop: '32px' }}>
+              <button onClick={() => setViewModal({ show: false, leave: null })} style={{ padding: '16px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>Close Review</button>
+              <button onClick={() => { setViewModal({ show: false, leave: null }); openActionModal(viewModal.leave.id, 'reject', viewModal.leave.emp_name); }} style={{ padding: '16px 32px', background: '#fef2f2', color: '#dc2626', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>✕ Reject</button>
+              <button onClick={() => { setViewModal({ show: false, leave: null }); openActionModal(viewModal.leave.id, 'return', viewModal.leave.emp_name); }} style={{ padding: '16px 32px', background: '#fffbeb', color: '#d97706', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer' }}>↺ Return</button>
+              <button onClick={() => { setViewModal({ show: false, leave: null }); openActionModal(viewModal.leave.id, 'approve', viewModal.leave.emp_name); }} style={{ padding: '16px 40px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', boxShadow: '0 4px 14px rgba(22, 163, 74, 0.4)' }}>✓ Approve Application</button>
             </div>
           </div>
         </div>
