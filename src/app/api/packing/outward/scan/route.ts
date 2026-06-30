@@ -75,17 +75,14 @@ export async function POST(req: NextRequest) {
 
     const currentCount = scannedCount.count;
 
-    if (currentCount >= ruleQuantity + 1) {
-      return NextResponse.json({ error: `Size ${scannedSize} exceeds the maximum +1 tolerance limit (${currentCount} scanned, rule is ${ruleQuantity}). Additional scans blocked.` }, { status: 400 });
-    }
-
-    if (currentCount === ruleQuantity && !force) {
+    // Trigger approval warning for any scan that reaches or exceeds the required rule quantity
+    if (currentCount >= ruleQuantity && !force) {
       const isCustom = ruleQuantity === 0;
       return NextResponse.json({ 
         requireApproval: true, 
         message: isCustom 
           ? `Size ${scannedSize} is not defined in the original carton rule. Would you like to add it as a custom size variation?` 
-          : `You have reached the required rule limit for size ${scannedSize}. Adding an extra pair will exceed the standard limit. Approve variation?`
+          : `You have reached the required rule limit for size ${scannedSize}. You are about to add an extra pair (${currentCount + 1} scanned, rule is ${ruleQuantity}). Approve variation?`
       }, { status: 200 });
     }
 

@@ -206,6 +206,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 
   // Sticker & MRP State
   const [mrpPopup, setMrpPopup] = useState(false);
+  const [earlySealWarning, setEarlySealWarning] = useState(false);
   const [enteredMrp, setEnteredMrp] = useState('');
   const [sealedCartonData, setSealedCartonData] = useState<any>(null);
 
@@ -306,6 +307,18 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   };
 
   const handleManualSealClick = () => {
+    const totalPairsScanned = progress.reduce((acc, curr) => acc + curr.scanned, 0);
+    const totalPairsRequired = progress.reduce((acc, curr) => acc + curr.required, 0);
+    
+    if (totalPairsScanned < totalPairsRequired) {
+      setEarlySealWarning(true);
+      return;
+    }
+    proceedToSeal();
+  };
+
+  const proceedToSeal = () => {
+    setEarlySealWarning(false);
     if (session?.mrp) {
       const totalPairs = progress.reduce((acc, curr) => acc + curr.scanned, 0);
       const computedMrp = (session.mrp * totalPairs).toFixed(2);
@@ -437,6 +450,32 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               </button>
               <button onClick={confirmApproval} className="btn-corp" style={{ background: 'var(--neon-violet)', color: 'white', border: 'none', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(124, 58, 237, 0.4)' }}>
                 Approve
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EARLY SEAL WARNING MODAL */}
+      {earlySealWarning && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="card-clean" style={{ background: '#ffffff', padding: '40px', maxWidth: '440px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ fontSize: '56px', marginBottom: '20px', animation: 'bounce 2s infinite' }}>⚠️</div>
+            <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '0 0 16px 0', color: '#0f172a', letterSpacing: '-0.5px' }}>Warning: Incomplete Carton</h2>
+            <p style={{ margin: '0 0 32px 0', color: '#475569', fontSize: '16px', lineHeight: '1.6', fontWeight: 500 }}>
+              You have only scanned <strong>{progress.reduce((acc, curr) => acc + curr.scanned, 0)}</strong> pairs (Rule requires {progress.reduce((acc, curr) => acc + curr.required, 0)} pairs).<br/>Are you sure you want to process and seal this carton early?
+            </p>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <button onClick={() => setEarlySealWarning(false)} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '2px solid #fecaca', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px' }}>
+                Go Back
+              </button>
+              <button onClick={proceedToSeal} className="btn-corp" style={{ background: '#f59e0b', color: 'white', border: 'none', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.4)' }}>
+                Yes, Seal Early
               </button>
             </div>
           </div>
