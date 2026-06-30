@@ -630,6 +630,11 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
 
   const barcodeValue = carton || '';
 
+  const isJokot = article && article.toUpperCase().startsWith('J');
+  const brandName = isJokot ? 'JOKOT WMS' : 'LUNAR WMS';
+  const mfdBy = isJokot ? 'Jokot Footwear' : 'Lunar Rubbers Pvt Ltd — Thodupuzha, Kerala';
+  const mktdBy = isJokot ? 'Jokot Footwear' : 'Lunar Footwear — Customer Care: 1800-123-456';
+
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
       
@@ -698,7 +703,7 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
       <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="sticker">
           <div className="sticker-header">
-            <div className="brand">LUNAR WMS</div>
+            <div className="brand">{brandName}</div>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <div className="assortment-tag">Assortment</div>
               <div className="badge">Master Carton</div>
@@ -759,8 +764,8 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
           </div>
 
           <div className="sticker-footer">
-            <div className="footer-line"><strong>Mfd. &amp; Pkd. By:</strong> Lunar Rubbers Pvt Ltd — Thodupuzha, Kerala</div>
-            <div className="footer-line"><strong>Mktd. By:</strong> Lunar Footwear — Customer Care: 1800-123-456</div>
+            <div className="footer-line"><strong>Mfd. &amp; Pkd. By:</strong> {mfdBy}</div>
+            <div className="footer-line"><strong>Mktd. By:</strong> {mktdBy}</div>
           </div>
         </div>
       </div>

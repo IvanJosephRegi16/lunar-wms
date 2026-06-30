@@ -15,9 +15,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse ARTICLE|COLOUR|SIZE or ARTICLE|COLOUR|SIZE|MRP format
-    const parts = barcode.split('|');
+    // JOKOT format "ARTICLE COLOUR SIZE" (starts with J)
+    let parts: string[] = [];
+    if (barcode.includes('|')) {
+      parts = barcode.split('|');
+    } else if (barcode.startsWith('J') || barcode.startsWith('j')) {
+      parts = barcode.split(' ');
+    }
+
     if (parts.length < 3) {
-      return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE or ARTICLE|COLOUR|SIZE|MRP' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE or ARTICLE COLOUR SIZE (for Jokot)' }, { status: 400 });
     }
 
     const scannedArticle = parts[0].toUpperCase();
