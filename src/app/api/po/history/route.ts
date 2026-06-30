@@ -90,17 +90,10 @@ export async function GET(req: NextRequest) {
     };
 
     pos.forEach(po => {
-      if (po.status === 'pending_pm') stats.pendingPm++;
-      if (po.status === 'pending_accountant') stats.pendingAccountant++;
-      if (po.status === 'pending_admin') stats.pendingAdmin++;
-      
-      // Store Keeper verification pending (approved POs with unverified items)
-      if (po.status === 'approved' || po.status === 'partially_received') {
-        const hasUnverified = po.items.some((it: any) => 
-          (it.received_qty || 0) > 0 && (it.verified_qty || 0) < (it.received_qty || 0)
-        );
-        if (hasUnverified) stats.pendingStoreKeeper++;
-      }
+      if (po.status === 'pending_pm_approval') stats.pendingPm++;
+      if (po.status === 'accountant_processing') stats.pendingAccountant++;
+      if (po.status === 'pending_admin_approval') stats.pendingAdmin++;
+      if (po.status === 'supervisor_review') stats.pendingStoreKeeper++;
     });
 
     return NextResponse.json({ logs, pos, stats });

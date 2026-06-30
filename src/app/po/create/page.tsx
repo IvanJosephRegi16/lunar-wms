@@ -189,7 +189,6 @@ function PremiumSearchDropdown({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span>{opt.value}</span>
-                    {isSelected && <span style={{ fontSize: '10.5px', color: 'var(--primary)' }}>✓ Active</span>}
                   </div>
                   {opt.label && (
                     <span style={{ fontSize: '11px', color: 'var(--text-ghost)', marginTop: '2px', fontWeight: 500 }}>
@@ -284,7 +283,7 @@ function CreatePOFormContent() {
 
   // Spreadsheet Dynamic Rows
   const [items, setItems] = useState<any[]>([
-    { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '' }
+    { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: '', upper_sizes: {} }
   ]);
 
   // Derived dynamic categories: custom from DB + any already in materials list
@@ -552,7 +551,7 @@ function CreatePOFormContent() {
   const addRow = () => {
     setItems([
       ...items,
-      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '', upper_sizes: {} }
     ]);
   };
 
@@ -565,7 +564,7 @@ function CreatePOFormContent() {
 
   const clearTable = () => {
     setItems([
-      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '' }
+      { category: '', material_code: '', material_name: '', size_thickness: '', order_rate: 0, current_stock: '', current_stock_unit: '', custom_current_stock_unit: '', required_qty: 0, unit: '', custom_unit: '', remarks: '', vendor: vendor || '', upper_sizes: {} }
     ]);
   };
 
@@ -582,6 +581,13 @@ function CreatePOFormContent() {
   // Live spreadsheet formulas calculations
   const grossAmount = items.reduce((sum, item) => {
     const rate = Number(item.order_rate) || 0;
+    if (item.category === 'Upper') {
+      let upperQty = 0;
+      for (let i = 1; i <= 13; i++) {
+        upperQty += Number(item.upper_sizes?.[i]) || 0;
+      }
+      return sum + (rate * upperQty);
+    }
     const qty = Number(item.required_qty) || 0;
     return sum + (rate * qty);
   }, 0);
@@ -601,9 +607,20 @@ function CreatePOFormContent() {
     // Verify row level items
     if (status !== 'draft' && status !== 'pending_pm_approval') {
       for (const [idx, item] of items.entries()) {
-        if (Number(item.required_qty) <= 0) {
-          setShowWarningPopup(`Row #${idx + 1} must have a positive Required Quantity.`);
-          return;
+        if (item.category === 'Upper') {
+          let hasQty = false;
+          for (let i = 1; i <= 13; i++) {
+            if (Number(item.upper_sizes?.[i]) > 0) hasQty = true;
+          }
+          if (!hasQty) {
+            setShowWarningPopup(`Row #${idx + 1} (Upper Category) must have at least one size with a positive quantity.`);
+            return;
+          }
+        } else {
+          if (Number(item.required_qty) <= 0) {
+            setShowWarningPopup(`Row #${idx + 1} must have a positive Required Quantity.`);
+            return;
+          }
         }
         const unitValue = item.unit === 'Custom' ? item.custom_unit : item.unit;
         if (!unitValue || !unitValue.trim()) {
@@ -628,11 +645,29 @@ function CreatePOFormContent() {
           discount_percent: discountVal,
           remarks,
           status,
-          items: items.map(it => ({
-            ...it,
-            unit: it.unit === 'Custom' ? it.custom_unit : it.unit,
-            current_stock_unit: it.current_stock_unit === 'Custom' ? it.custom_current_stock_unit : it.current_stock_unit
-          }))
+          items: items.flatMap(it => {
+            const baseItem = {
+              ...it,
+              unit: it.unit === 'Custom' ? it.custom_unit : it.unit,
+              current_stock_unit: it.current_stock_unit === 'Custom' ? it.custom_current_stock_unit : it.current_stock_unit
+            };
+
+            if (it.category === 'Upper') {
+              const expanded = [];
+              for (let i = 1; i <= 13; i++) {
+                const qty = Number(it.upper_sizes?.[i]) || 0;
+                if (qty > 0) {
+                  expanded.push({
+                    ...baseItem,
+                    size_thickness: String(i),
+                    required_qty: qty
+                  });
+                }
+              }
+              return expanded.length > 0 ? expanded : [baseItem];
+            }
+            return [baseItem];
+          })
         })
       });
 
@@ -822,7 +857,9 @@ function CreatePOFormContent() {
               </thead>
               <tbody>
                 {items.map((item, idx) => {
-                  const itemAmount = (Number(item.order_rate) || 0) * (Number(item.required_qty) || 0);
+                  const itemAmount = item.category === 'Upper' 
+                    ? (Number(item.order_rate) || 0) * ([1,2,3,4,5,6,7,8,9,10,11,12,13].reduce((sum, sz) => sum + (Number(item.upper_sizes?.[sz]) || 0), 0))
+                    : (Number(item.order_rate) || 0) * (Number(item.required_qty) || 0);
                   return (
                     <tr key={idx} style={{ borderBottom: '1px solid var(--border)' }} className="table-row-hover">
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-ghost)', textAlign: 'center' }}>{idx + 1}</td>
@@ -920,7 +957,13 @@ function CreatePOFormContent() {
                         })()}
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <input type="text" placeholder="e.g. 5mm" value={item.size_thickness} onChange={e => handleItemChange(idx, 'size_thickness', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
+                        {item.category === 'Upper' ? (
+                          <div style={{ color: 'var(--text-ghost)', fontSize: '12px', fontWeight: 600, textAlign: 'center', background: '#f8fafc', padding: '8px', borderRadius: '6px' }}>
+                            Sizes<br/>1 - 13
+                          </div>
+                        ) : (
+                          <input type="text" placeholder="e.g. 5mm" value={item.size_thickness} onChange={e => handleItemChange(idx, 'size_thickness', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
+                        )}
                       </td>
                       <td style={{ padding: '8px' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -964,74 +1007,92 @@ function CreatePOFormContent() {
                         </div>
                       </td>
                       <td style={{ padding: '8px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                          <select
-                            value={item.unit || ''}
-                            onChange={e => {
-                              const newUnit = e.target.value;
-                              handleItemChange(idx, 'unit', newUnit);
-                              if (!newUnit) {
-                                handleItemChange(idx, 'required_qty', 0);
-                              }
-                            }}
-                            style={{ 
-                              width: '100%', 
-                              padding: '6px 8px', 
-                              border: '1px solid var(--border)', 
-                              borderRadius: '6px', 
-                              fontSize: '11px', 
-                              fontWeight: 700, 
-                              background: '#f8fafc',
-                              color: 'var(--text-main)'
-                            }}
-                          >
-                            <option value="">-- Choose Unit --</option>
-                            <option value="Pair">Pair</option>
-                            <option value="piece">Piece</option>
-                            <option value="Meter">Meter</option>
-                            <option value="KG">KG</option>
-                            <option value="Custom">Custom</option>
-                          </select>
-
-                          {item.unit === 'Custom' && (
-                            <input 
-                              type="text"
-                              placeholder="Write Custom Unit..."
-                              required
-                              value={item.custom_unit || ''}
-                              onChange={e => handleItemChange(idx, 'custom_unit', e.target.value)}
+                        {item.category === 'Upper' ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '4px' }}>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].map(sz => (
+                              <div key={sz} style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-ghost)' }}>Sz {sz}</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  placeholder="0"
+                                  value={item.upper_sizes?.[sz] || ''}
+                                  onChange={e => handleItemChange(idx, { upper_sizes: { ...item.upper_sizes, [sz]: e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value) || 0) } })}
+                                  style={{ padding: '4px', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '11px', textAlign: 'center' }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <select
+                              value={item.unit || ''}
+                              onChange={e => {
+                                const newUnit = e.target.value;
+                                handleItemChange(idx, 'unit', newUnit);
+                                if (!newUnit) {
+                                  handleItemChange(idx, 'required_qty', 0);
+                                }
+                              }}
                               style={{ 
                                 width: '100%', 
                                 padding: '6px 8px', 
                                 border: '1px solid var(--border)', 
                                 borderRadius: '6px', 
                                 fontSize: '11px', 
-                                fontWeight: 600 
+                                fontWeight: 700, 
+                                background: '#f8fafc',
+                                color: 'var(--text-main)'
                               }}
-                            />
-                          )}
+                            >
+                              <option value="">-- Choose Unit --</option>
+                              <option value="Pair">Pair</option>
+                              <option value="piece">Piece</option>
+                              <option value="Meter">Meter</option>
+                              <option value="KG">KG</option>
+                              <option value="Custom">Custom</option>
+                            </select>
 
-                          <input 
-                            type="number" 
-                            min="0.01" 
-                            step="any" 
-                            required 
-                            disabled={!item.unit}
-                            placeholder={!item.unit ? "Select unit first" : `Qty (${item.unit === 'Custom' ? (item.custom_unit || 'Custom') : item.unit})`}
-                            value={item.required_qty || ''} 
-                            onChange={e => handleItemChange(idx, 'required_qty', Math.max(parseFloat(e.target.value) || 0, 0))} 
-                            style={{ 
-                              width: '100%', 
-                              padding: '8px 10px', 
-                              border: '1px solid var(--border)', 
-                              borderRadius: '6px', 
-                              fontSize: '13px', 
-                              fontWeight: 600, 
-                              background: !item.unit ? '#f1f5f9' : '#fffbeb',
-                              cursor: !item.unit ? 'not-allowed' : 'auto'
-                            }} 
-                          />
-                        </div>
+                            {item.unit === 'Custom' && (
+                              <input 
+                                type="text"
+                                placeholder="Write Custom Unit..."
+                                required
+                                value={item.custom_unit || ''}
+                                onChange={e => handleItemChange(idx, 'custom_unit', e.target.value)}
+                                style={{ 
+                                  width: '100%', 
+                                  padding: '6px 8px', 
+                                  border: '1px solid var(--border)', 
+                                  borderRadius: '6px', 
+                                  fontSize: '11px', 
+                                  fontWeight: 600 
+                                }}
+                              />
+                            )}
+
+                            <input 
+                              type="number" 
+                              min="0.01" 
+                              step="any" 
+                              required 
+                              disabled={!item.unit}
+                              placeholder={!item.unit ? "Select unit first" : `Qty (${item.unit === 'Custom' ? (item.custom_unit || 'Custom') : item.unit})`}
+                              value={item.required_qty || ''} 
+                              onChange={e => handleItemChange(idx, 'required_qty', Math.max(parseFloat(e.target.value) || 0, 0))} 
+                              style={{ 
+                                width: '100%', 
+                                padding: '8px 10px', 
+                                border: '1px solid var(--border)', 
+                                borderRadius: '6px', 
+                                fontSize: '13px', 
+                                fontWeight: 600, 
+                                background: !item.unit ? '#f1f5f9' : '#fffbeb',
+                                cursor: !item.unit ? 'not-allowed' : 'auto'
+                              }} 
+                            />
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input type="number" min="0" step="any" placeholder="Optional" value={item.order_rate || ''} onChange={e => handleItemChange(idx, 'order_rate', Math.max(parseFloat(e.target.value) || 0, 0))} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600, background: '#fffbeb' }} />
