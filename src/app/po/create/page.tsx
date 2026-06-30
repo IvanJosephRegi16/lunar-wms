@@ -853,7 +853,6 @@ function CreatePOFormContent() {
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '160px' }}>Required Qty & Unit *</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '100px' }}>Order Rate (₹)</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '110px' }}>Amount (₹)</th>
-                  <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '140px' }}>Vendor</th>
                   <th style={{ padding: '12px 12px', color: 'var(--text-ghost)', fontWeight: 800, minWidth: '140px' }}>Remarks</th>
                   <th style={{ padding: '12px 16px', color: 'var(--text-ghost)', fontWeight: 800, width: '50px' }}>Action</th>
                 </tr>
@@ -904,7 +903,7 @@ function CreatePOFormContent() {
                       <td style={{ padding: '8px', minWidth: '220px' }}>
                         <PremiumSearchDropdown
                           value={item.material_code}
-                          allowCustom={false}
+                          allowCustom={true}
                           onChange={(val: string) => {
                             const selected = materialsList.find(m => m.material_code.toUpperCase() === val.toUpperCase());
                             let updates: any = { material_code: val };
@@ -936,7 +935,7 @@ function CreatePOFormContent() {
                           return (
                             <PremiumSearchDropdown
                               value={item.material_name}
-                              allowCustom={false}
+                              allowCustom={true}
                               onChange={(val: string) => {
                                 const selected = materialsList.find(m => m.material_name.toUpperCase() === val.toUpperCase());
                                 let updates: any = { material_name: val };
@@ -1108,9 +1107,6 @@ function CreatePOFormContent() {
                       </td>
                       <td style={{ padding: '12px', fontWeight: 800, fontFamily: 'monospace', color: 'var(--primary)' }}>
                         ₹{itemAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td style={{ padding: '8px' }}>
-                        <input type="text" placeholder="Row Vendor (Optional)" value={item.vendor} onChange={e => handleItemChange(idx, 'vendor', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />
                       </td>
                       <td style={{ padding: '8px' }}>
                         <input type="text" placeholder="Remarks (Internal)" value={item.remarks || ''} onChange={e => handleItemChange(idx, 'remarks', e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '13px', fontWeight: 600 }} />

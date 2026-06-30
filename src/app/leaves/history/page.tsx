@@ -9,6 +9,7 @@ export default function LeaveHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [viewModal, setViewModal] = useState<{show: boolean; leave: any}>({ show: false, leave: null });
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -119,7 +120,13 @@ export default function LeaveHistoryPage() {
                       {userLeaves.map(leave => {
                         const style = getStatusColor(leave.status);
                         return (
-                          <div key={leave.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                          <div 
+                            key={leave.id} 
+                            onClick={() => setViewModal({ show: true, leave: { ...leave, emp_name: u.emp_name, role: u.role, department: leave.department || 'N/A' } })}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', cursor: 'pointer', transition: 'all 0.2s' }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                          >
                             <div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                                 <span style={{ fontSize: '14px', fontWeight: 800, color: '#0f172a' }}>{leave.leave_type}</span>
@@ -136,8 +143,13 @@ export default function LeaveHistoryPage() {
                                 "{leave.reason}"
                               </div>
                             </div>
-                            <div style={{ textAlign: 'right', fontSize: '11px', color: '#94a3b8' }}>
-                              Applied: {new Date(leave.created_at).toLocaleDateString('en-GB')}
+                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                              <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+                                Applied: {new Date(leave.created_at).toLocaleDateString('en-GB')}
+                              </div>
+                              <div style={{ fontSize: '11px', fontWeight: 800, color: '#3b82f6', background: '#eff6ff', padding: '4px 8px', borderRadius: '4px' }}>
+                                👁️ View Full Form
+                              </div>
                             </div>
                           </div>
                         );
@@ -150,6 +162,65 @@ export default function LeaveHistoryPage() {
           );
         })}
       </div>
+
+      {/* ── FULL SCREEN VIEW MODAL ── */}
+      {viewModal.show && viewModal.leave && (
+        <div style={{
+          position: 'fixed', top: '0', left: '0', right: '0', bottom: '0',
+          background: 'rgba(15, 23, 42, 0.75)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="fade-up" style={{ width: '100%', maxWidth: '800px', maxHeight: '95vh', overflowY: 'auto', background: 'white', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', padding: '40px', position: 'relative' }}>
+            <button onClick={() => setViewModal({ show: false, leave: null })} style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', fontSize: '28px', cursor: 'pointer', color: '#94a3b8', lineHeight: 1 }}>×</button>
+            
+            <div style={{ borderBottom: '2px solid #f1f5f9', paddingBottom: '24px', marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: 800, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Official Leave Application Form</div>
+                <h2 style={{ fontSize: '28px', fontWeight: 900, color: '#0f172a', margin: 0 }}>{viewModal.leave.emp_name}</h2>
+                <div style={{ fontSize: '14px', color: '#64748b', fontWeight: 600, marginTop: '8px' }}>Role: {viewModal.leave.role.toUpperCase()} | Department: {viewModal.leave.department}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '10px', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Current Status</div>
+                <div style={{ marginTop: '4px', padding: '6px 12px', borderRadius: '20px', background: getStatusColor(viewModal.leave.status).bg, color: getStatusColor(viewModal.leave.status).color, border: `1px solid ${getStatusColor(viewModal.leave.status).border}`, fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {getStatusColor(viewModal.leave.status).label}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leave Type</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{viewModal.leave.leave_type}</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Duration</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{viewModal.leave.total_days} Days</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Start Date</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{new Date(viewModal.leave.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+              </div>
+              <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>End Date</div>
+                <div style={{ fontSize: '18px', fontWeight: 800, color: '#0f172a', marginTop: '4px' }}>{new Date(viewModal.leave.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '40px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>Applicant's Reason</div>
+              <div style={{ background: '#fefce8', padding: '24px', borderRadius: '16px', border: '1px solid #fef08a', fontSize: '16px', color: '#854d0e', lineHeight: 1.6, fontStyle: 'italic' }}>
+                "{viewModal.leave.reason}"
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', borderTop: '2px solid #f1f5f9', paddingTop: '32px' }}>
+              <button onClick={() => window.print()} style={{ padding: '16px 40px', background: '#0f172a', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🖨️ Print Application View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

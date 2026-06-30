@@ -248,25 +248,7 @@ export async function POST(req: NextRequest) {
 
       // Insert dynamic PO Raw Material items
       for (const item of computedItems) {
-        // Auto-upsert Material
-        if (item.material_name) {
-          const matCode = (item.material_code || '').trim().toUpperCase();
-          const category = item.category || 'Uncategorized';
-          const sizeThickness = (item.size_thickness || '').trim();
-          const rate = Number(item.order_rate) || 0;
-          
-          const existingMat = await db.prepare('SELECT id FROM materials WHERE UPPER(material_name) = UPPER(?)').get(item.material_name);
-          if (!existingMat) {
-            await db.prepare(
-              'INSERT INTO materials (material_code, material_name, category, size_thickness, rate) VALUES (?, ?, ?, ?, ?)'
-            ).run(matCode, item.material_name.trim(), category, sizeThickness, rate);
-          } else {
-            // Automatically save latest category, size, and rate to registry
-            await db.prepare(
-              'UPDATE materials SET category = ?, size_thickness = ?, rate = ?, material_code = ? WHERE id = ?'
-            ).run(category, sizeThickness, rate, matCode, existingMat.id);
-          }
-        }
+        // Note: Intentionally NOT auto-upserting into the materials registry to avoid polluting it with free-text entries.
 
         await db.prepare(`
           INSERT INTO purchase_order_items (
