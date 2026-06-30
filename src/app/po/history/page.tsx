@@ -10,6 +10,7 @@ import POHistoryExportButton from '@/components/POHistoryExportButton';
 export default function POHistory() {
   const [logs, setLogs] = useState<any[]>([]);
   const [pos, setPos] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'tracker' | 'ledger'>('tracker');
@@ -25,6 +26,7 @@ export default function POHistory() {
       .then(data => {
         setLogs(data.logs || []);
         setPos(data.pos || []);
+        if (data.stats) setStats(data.stats);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -166,6 +168,28 @@ export default function POHistory() {
           onResetComplete={loadData}
         />
       </div>
+
+      {/* Statistics Banner */}
+      {stats && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px' }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#1d4ed8' }}>{stats.pendingPm}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', marginTop: '4px', textAlign: 'center' }}>PM Approvals<br/>Pending</span>
+          </div>
+          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#b91c1c' }}>{stats.pendingAdmin}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', marginTop: '4px', textAlign: 'center' }}>Admin Approvals<br/>Pending</span>
+          </div>
+          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#b45309' }}>{stats.pendingAccountant}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#f59e0b', textTransform: 'uppercase', marginTop: '4px', textAlign: 'center' }}>Accountant Review<br/>Pending</span>
+          </div>
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <span style={{ fontSize: '24px', fontWeight: 800, color: '#15803d' }}>{stats.pendingStoreKeeper}</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: '#22c55e', textTransform: 'uppercase', marginTop: '4px', textAlign: 'center' }}>Store Verifications<br/>Pending</span>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '12px', borderBottom: '1px solid var(--border)' }}>

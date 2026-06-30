@@ -17,6 +17,7 @@ interface PackedCarton {
   total_pairs: number;
   mrp?: number;
   sizes?: { size: string, quantity: number }[];
+  brand: string;
 }
 
 export default function PackedInventoryPage() {
@@ -30,6 +31,7 @@ export default function PackedInventoryPage() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [filterBrand, setFilterBrand] = useState('ALL');
 
   // Scanning State
   const [scanBarcode, setScanBarcode] = useState('');
@@ -85,7 +87,11 @@ export default function PackedInventoryPage() {
       const res = await fetch(url);
       const data = await res.json();
       if (data.inventory) {
-        setInventory(data.inventory);
+        const enhanced = data.inventory.map((item: any) => ({
+          ...item,
+          brand: item.article_code.toUpperCase().startsWith('J') ? 'JOKOT' : 'LUNAR'
+        }));
+        setInventory(enhanced);
       }
     } catch (err) {
       console.error('Error loading packed cartons:', err);
@@ -104,6 +110,7 @@ export default function PackedInventoryPage() {
     setFromDate('');
     setToDate('');
     setStatusFilter('all');
+    setFilterBrand('ALL');
   };
 
   const handleScanCarton = async (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -145,14 +152,16 @@ export default function PackedInventoryPage() {
       item.config_name.toLowerCase().includes(term);
       
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+    const matchesBrand = filterBrand === 'ALL' || item.brand === filterBrand;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && matchesStatus && matchesBrand;
   });
 
   const getExportData = () => {
-    const headers = ['Carton ID', 'Article Code', 'Colour', 'Configuration Rule', 'Total Pairs', 'Packed Date & Time (IST)', 'Delivered Date & Time (IST)', 'Status', 'Export Date/Time'];
+    const headers = ['Brand', 'Carton ID', 'Article Code', 'Colour', 'Configuration Rule', 'Total Pairs', 'Packed Date & Time (IST)', 'Delivered Date & Time (IST)', 'Status', 'Export Date/Time'];
     const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
     const rows = filteredInventory.map(item => [
+      item.brand,
       item.carton_id,
       item.article_code,
       item.colour,
@@ -230,6 +239,7 @@ export default function PackedInventoryPage() {
             </div>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div><strong style={{ color: '#64748b' }}>Brand:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.brand}</span></div>
               <div><strong style={{ color: '#64748b' }}>Article:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.article_code}</span></div>
               <div><strong style={{ color: '#64748b' }}>Colour:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.colour}</span></div>
               <div><strong style={{ color: '#64748b' }}>Total Pairs:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.total_pairs}</span></div>
@@ -330,6 +340,19 @@ export default function PackedInventoryPage() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />
+          </div>
+
+          <div className={styles.filterGroup}>
+            <label>Brand</label>
+            <select 
+              className={styles.filterInput}
+              value={filterBrand}
+              onChange={e => setFilterBrand(e.target.value)}
+            >
+              <option value="ALL">All Brands</option>
+              <option value="LUNAR">Lunar</option>
+              <option value="JOKOT">Jokot</option>
+            </select>
           </div>
           
           <div className={styles.filterGroup}>
@@ -441,6 +464,7 @@ export default function PackedInventoryPage() {
           <table className={styles.tableSpreadsheet}>
             <thead>
               <tr>
+                <th>Brand</th>
                 <th>Carton ID</th>
                 <th>Article</th>
                 <th>Colour</th>
@@ -454,13 +478,13 @@ export default function PackedInventoryPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={8} className={styles.loadingCell}>
+                  <td colSpan={9} className={styles.loadingCell}>
                     Fetching packed carton database register...
                   </td>
                 </tr>
               ) : filteredInventory.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className={styles.emptyCell}>
+                  <td colSpan={9} className={styles.emptyCell}>
                     {viewMode === 'today' 
                       ? "No cartons packed today yet. Use Carton Generation to prepare dispatch orders!" 
                       : "No cartons match your historical filter criteria."}
@@ -469,6 +493,15 @@ export default function PackedInventoryPage() {
               ) : (
                 filteredInventory.map((item) => (
                   <tr key={item.id} onClick={() => setSelectedCarton(item)} style={{ cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                    <td>
+                      <span style={{ 
+                        padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
+                        background: item.brand === 'JOKOT' ? '#fef3c7' : '#e0e7ff',
+                        color: item.brand === 'JOKOT' ? '#d97706' : '#4338ca'
+                      }}>
+                        {item.brand}
+                      </span>
+                    </td>
                     <td>
                       <span className={styles.cartonPill}>
                         📟 {item.carton_id}

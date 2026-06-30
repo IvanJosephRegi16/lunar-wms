@@ -14,6 +14,7 @@ interface ScanHistory {
   status: string;
   created_at: string;
   scan_type: string;
+  brand: string;
 }
 
 export default function ScanHistoryPage() {
@@ -26,6 +27,7 @@ export default function ScanHistoryPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [scanTypeFilter, setScanTypeFilter] = useState('all');
+  const [brandFilter, setBrandFilter] = useState('all');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
@@ -44,7 +46,13 @@ export default function ScanHistoryPage() {
     fetch(url)
       .then(res => res.json())
       .then(data => {
-        if (data.history) setHistory(data.history);
+        if (data.history) {
+          const enhanced = data.history.map((item: any) => ({
+            ...item,
+            brand: item.article_code?.toUpperCase().startsWith('J') ? 'JOKOT' : 'LUNAR'
+          }));
+          setHistory(enhanced);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -108,14 +116,16 @@ export default function ScanHistoryPage() {
     
     const matchesStatus = statusFilter === 'all' || scan.status.includes(statusFilter);
     const matchesType = scanTypeFilter === 'all' || scan.scan_type === scanTypeFilter;
+    const matchesBrand = brandFilter === 'all' || scan.brand === brandFilter;
     
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus && matchesType && matchesBrand;
   });
 
   const exportCSV = () => {
-    const headers = ['Timestamp', 'Scan Type', 'Barcode', 'Article', 'Colour', 'Size', 'Carton ID', 'Operator', 'Status'];
+    const headers = ['Timestamp', 'Brand', 'Scan Type', 'Barcode', 'Article', 'Colour', 'Size', 'Carton ID', 'Operator', 'Status'];
     const rows = filteredHistory.map(s => [
       formatDate(s.created_at).replace(/,/g, ''),
+      s.brand,
       s.scan_type || 'intake',
       s.barcode,
       s.article_code,
@@ -206,30 +216,59 @@ export default function ScanHistoryPage() {
               Verification
             </button>
           </div>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className={styles.pillSelector}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>Brand:</span>
+              <button 
+                type="button"
+                className={`${styles.pill} ${brandFilter === 'all' ? styles.pillActive : ''}`}
+                onClick={() => setBrandFilter('all')}
+              >
+                All
+              </button>
+              <button 
+                type="button"
+                className={`${styles.pill} ${brandFilter === 'LUNAR' ? styles.pillActive : ''}`}
+                onClick={() => setBrandFilter('LUNAR')}
+                style={brandFilter === 'LUNAR' ? { background: '#e0e7ff', color: '#4338ca' } : {}}
+              >
+                Lunar
+              </button>
+              <button 
+                type="button"
+                className={`${styles.pill} ${brandFilter === 'JOKOT' ? styles.pillActive : ''}`}
+                onClick={() => setBrandFilter('JOKOT')}
+                style={brandFilter === 'JOKOT' ? { background: '#fef3c7', color: '#d97706' } : {}}
+              >
+                Jokot
+              </button>
+            </div>
           
-          <div className={styles.pillSelector}>
-            <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>Status:</span>
+            <div className={styles.pillSelector}>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: '#64748b', marginRight: '8px' }}>Status:</span>
             <button 
               type="button"
               className={`${styles.pill} ${statusFilter === 'all' ? styles.pillActive : ''}`}
               onClick={() => setStatusFilter('all')}
-            >
-              All
-            </button>
-            <button 
+              >
+                All
+              </button>
+              <button 
               type="button"
               className={`${styles.pill} ${statusFilter === 'success' ? styles.pillActive : ''}`}
               onClick={() => setStatusFilter('success')}
-            >
-              Success
-            </button>
-            <button 
+              >
+                Success
+              </button>
+              <button 
               type="button"
               className={`${styles.pill} ${statusFilter === 'error' ? styles.pillActive : ''}`}
               onClick={() => setStatusFilter('error')}
-            >
-              Errors
-            </button>
+              >
+                Errors
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -242,6 +281,7 @@ export default function ScanHistoryPage() {
             <thead>
               <tr>
                 <th>Timestamp (IST)</th>
+                <th>Brand</th>
                 <th>Type</th>
                 <th>Barcode</th>
                 <th>Article</th>
@@ -258,6 +298,15 @@ export default function ScanHistoryPage() {
                 return (
                 <tr key={scan.id}>
                   <td>{formatDate(scan.created_at)}</td>
+                  <td>
+                    <span style={{ 
+                      padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
+                      background: scan.brand === 'JOKOT' ? '#fef3c7' : '#e0e7ff',
+                      color: scan.brand === 'JOKOT' ? '#d97706' : '#4338ca'
+                    }}>
+                      {scan.brand}
+                    </span>
+                  </td>
                   <td>
                     <span style={{ background: `${typeColor}20`, color: typeColor, padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>
                       {scan.scan_type || 'intake'}
@@ -294,7 +343,7 @@ export default function ScanHistoryPage() {
               })}
               {filteredHistory.length === 0 && (
                 <tr>
-                  <td colSpan={8} className={styles.empty}>No scan history found matching filters.</td>
+                  <td colSpan={10} className={styles.empty}>No scan history found matching filters.</td>
                 </tr>
               )}
             </tbody>

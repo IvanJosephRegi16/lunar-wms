@@ -81,7 +81,29 @@ export async function GET(req: NextRequest) {
       return { ...healed, items, categories: uniqueCategories };
     }));
 
-    return NextResponse.json({ logs, pos });
+    // Calculate pending statistics
+    const stats = {
+      pendingPm: 0,
+      pendingAccountant: 0,
+      pendingAdmin: 0,
+      pendingStoreKeeper: 0
+    };
+
+    pos.forEach(po => {
+      if (po.status === 'pending_pm') stats.pendingPm++;
+      if (po.status === 'pending_accountant') stats.pendingAccountant++;
+      if (po.status === 'pending_admin') stats.pendingAdmin++;
+      
+      // Store Keeper verification pending (approved POs with unverified items)
+      if (po.status === 'approved' || po.status === 'partially_received') {
+        const hasUnverified = po.items.some((it: any) => 
+          (it.received_qty || 0) > 0 && (it.verified_qty || 0) < (it.received_qty || 0)
+        );
+        if (hasUnverified) stats.pendingStoreKeeper++;
+      }
+    });
+
+    return NextResponse.json({ logs, pos, stats });
   } catch (error: any) {
     console.error('Error fetching PO history:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

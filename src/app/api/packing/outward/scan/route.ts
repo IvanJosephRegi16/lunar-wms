@@ -61,14 +61,12 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 3. Validate size still needs pairs and check +1 tolerance
+    // 3. Validate size still needs pairs and check +1 tolerance / Custom size
     const sizeConfig = await db.prepare(`
       SELECT quantity FROM carton_generation_sizes WHERE config_id = ? AND size = ?
     `).get(session.carton_generation_id, scannedSize) as any;
 
-    if (!sizeConfig) {
-      return NextResponse.json({ error: `Size ${scannedSize} is not required for this carton configuration.` }, { status: 400 });
-    }
+    const ruleQuantity = sizeConfig ? sizeConfig.quantity : 0;
 
     const scannedCount = await db.prepare(`
       SELECT COUNT(*) as count FROM outward_scan_items 
@@ -76,16 +74,18 @@ export async function POST(req: NextRequest) {
     `).get(session_id, scannedSize) as any;
 
     const currentCount = scannedCount.count;
-    const ruleQuantity = sizeConfig.quantity;
 
     if (currentCount >= ruleQuantity + 1) {
-      return NextResponse.json({ error: `Size ${scannedSize} exceeds maximum +1 tolerance (${currentCount}/${ruleQuantity}). Cannot scan more.` }, { status: 400 });
+      return NextResponse.json({ error: `Size ${scannedSize} exceeds the maximum +1 tolerance limit (${currentCount} scanned, rule is ${ruleQuantity}). Additional scans blocked.` }, { status: 400 });
     }
 
     if (currentCount === ruleQuantity && !force) {
+      const isCustom = ruleQuantity === 0;
       return NextResponse.json({ 
         requireApproval: true, 
-        message: `You added extra 1 size which is higher than the given rule for size ${scannedSize} (${currentCount} scanned, rule is ${ruleQuantity}). Approve?`
+        message: isCustom 
+          ? `Size ${scannedSize} is not defined in the original carton rule. Would you like to add it as a custom size variation?` 
+          : `You have reached the required rule limit for size ${scannedSize}. Adding an extra pair will exceed the standard limit. Approve variation?`
       }, { status: 200 });
     }
 
@@ -98,7 +98,9 @@ export async function POST(req: NextRequest) {
     `).get(scannedArticle, scannedColour) as any;
 
     if (!pool || pool.qty < 1) {
-      return NextResponse.json({ error: `Insufficient stock in staging area for size ${scannedSize}.` }, { status: 400 });
+      return NextResponse.json({ 
+        error: `Sorry, there is not enough stock in the staging inventory for size ${scannedSize}. Please resume scanning other items.` 
+      }, { status: 400 });
     }
 
     // Success! Perform DB updates

@@ -49,9 +49,24 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ sess
         size: conf.size,
         required: conf.quantity,
         scanned: scanned ? scanned.count : 0,
-        remaining: conf.quantity - (scanned ? scanned.count : 0)
+        remaining: Math.max(0, conf.quantity - (scanned ? scanned.count : 0))
       };
     });
+
+    // Add any custom sizes that were scanned but not in original config
+    scannedItems.forEach((scanned: any) => {
+      if (!configSizes.find((c: any) => c.size === scanned.size)) {
+        progress.push({
+          size: scanned.size,
+          required: 0,
+          scanned: scanned.count,
+          remaining: 0
+        });
+      }
+    });
+
+    // Sort by size
+    progress.sort((a: any, b: any) => parseInt(a.size) - parseInt(b.size));
 
     return NextResponse.json({
       success: true,

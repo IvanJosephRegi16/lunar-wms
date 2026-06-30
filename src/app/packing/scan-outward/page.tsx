@@ -19,6 +19,7 @@ function ScanOutwardHistoryDashboard() {
   const router = useRouter();
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
     fetch('/api/packing/outward/history')
@@ -58,6 +59,35 @@ function ScanOutwardHistoryDashboard() {
     document.body.removeChild(link);
   };
 
+  const handleResetHistory = async () => {
+    const confirmMsg = `🛑 CRITICAL WARNING 🛑\n\nYou are about to PERMANENTLY DELETE all Outward Scanning History.\n\nType "RESET" to confirm.`;
+    const userInput = window.prompt(confirmMsg);
+    if (userInput !== 'RESET') {
+      alert('Reset cancelled.');
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/packing/outward/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: 'RESET_HISTORY' })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to reset history.');
+      }
+    } catch {
+      alert('Network error during reset.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="fade-up" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -68,6 +98,14 @@ function ScanOutwardHistoryDashboard() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <button 
+            onClick={handleResetHistory} 
+            disabled={isResetting}
+            className="btn-corp" 
+            style={{ background: '#ef4444', color: 'white', border: 'none', opacity: isResetting ? 0.7 : 1, cursor: isResetting ? 'wait' : 'pointer' }}
+          >
+            {isResetting ? '⏳ Resetting...' : '🛑 Reset History'}
+          </button>
           <button onClick={exportCSV} className="btn-corp" style={{ background: '#10b981', color: 'white', border: 'none' }}>
             📊 Export CSV
           </button>
@@ -85,6 +123,7 @@ function ScanOutwardHistoryDashboard() {
             <thead>
               <tr>
                 <th>Session ID</th>
+                <th>Brand</th>
                 <th>Article Code</th>
                 <th>Colour</th>
                 <th>Master Rule</th>
@@ -99,6 +138,15 @@ function ScanOutwardHistoryDashboard() {
               {history.map(session => (
                 <tr key={session.session_id}>
                   <td><strong>#{session.session_id}</strong></td>
+                  <td>
+                    <span style={{ 
+                      padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
+                      background: session.article_code?.toUpperCase().startsWith('J') ? '#fef3c7' : '#e0e7ff',
+                      color: session.article_code?.toUpperCase().startsWith('J') ? '#d97706' : '#4338ca'
+                    }}>
+                      {session.article_code?.toUpperCase().startsWith('J') ? 'JOKOT' : 'LUNAR'}
+                    </span>
+                  </td>
                   <td>{session.article_code}</td>
                   <td>{session.colour}</td>
                   <td>{session.rule_name}</td>
@@ -130,7 +178,7 @@ function ScanOutwardHistoryDashboard() {
               ))}
               {history.length === 0 && (
                 <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-ghost)' }}>
+                  <td colSpan={10} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-ghost)' }}>
                     No outward scan history found.
                   </td>
                 </tr>
@@ -440,14 +488,19 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
             {progress.map(row => {
-              const isComplete = row.remaining === 0;
-              const isOver = row.scanned > row.required;
+              const isCustom = row.required === 0;
+              const isComplete = row.remaining === 0 && !isCustom;
+              const isOver = row.scanned > row.required && !isCustom;
               
               let cardBg = '#ffffff';
               let borderColor = '#e2e8f0';
               let accentColor = '#3b82f6'; // default blue
 
-              if (isComplete) {
+              if (isCustom) {
+                cardBg = '#fdf4ff';
+                borderColor = '#e879f9';
+                accentColor = '#a855f7'; // purple for custom
+              } else if (isComplete) {
                 cardBg = '#f0fdf4';
                 borderColor = '#bbf7d0';
                 accentColor = '#22c55e'; // green
@@ -474,7 +527,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   transition: 'all 0.2s ease'
                 }}>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>
-                    SIZE
+                    {isCustom ? <span style={{ color: '#a855f7', fontWeight: 800 }}>⚡ CUSTOM SIZE</span> : 'SIZE'}
                   </div>
                   <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a', lineHeight: '1', marginBottom: '16px' }}>
                     {row.size}
@@ -484,14 +537,16 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                     <div style={{ 
                       height: '100%', 
                       background: accentColor, 
-                      width: `${Math.min(100, (row.scanned / row.required) * 100)}%`,
+                      width: row.required > 0 ? `${Math.min(100, (row.scanned / row.required) * 100)}%` : '100%',
                       transition: 'width 0.3s ease'
                     }} />
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '14px', fontWeight: 700 }}>
                     <div style={{ color: '#64748b' }}>Scanned</div>
-                    <div style={{ color: accentColor, fontSize: '16px', fontWeight: 900 }}>{row.scanned} <span style={{ color: '#94a3b8', fontSize: '12px' }}>/ {row.required}</span></div>
+                    <div style={{ color: accentColor, fontSize: '16px', fontWeight: 900 }}>
+                      {row.scanned} {isCustom ? <span style={{ color: '#a855f7', fontSize: '12px' }}>Custom</span> : <span style={{ color: '#94a3b8', fontSize: '12px' }}>/ {row.required}</span>}
+                    </div>
                   </div>
                 </div>
               );

@@ -1,0 +1,44 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getDb, logAudit } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
+
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Restrict to Admin or PM
+    if (user.role !== 'admin' && user.role !== 'pm') {
+      return NextResponse.json({ error: 'Only administrators or managers can reset inventory.' }, { status: 403 });
+    }
+
+    const { confirm } = await req.json();
+    if (confirm !== 'RESET_INVENTORY') {
+      return NextResponse.json({ error: 'Invalid confirmation token' }, { status: 400 });
+    }
+
+    const db = getDb();
+
+    // Delete all records in inventory pool
+    await db.prepare('DELETE FROM inventory_pool').run();
+
+    await logAudit({
+      userId: user.id,
+      username: user.username,
+      action: 'INVENTORY_POOL_RESET',
+      module: 'inventory_pool',
+      description: 'User permanently reset the entire scanning inventory staging pool back to zero.'
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Inventory pool has been successfully reset to zero.'
+    });
+
+  } catch (error: any) {
+    console.error('Inventory Reset failed:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
