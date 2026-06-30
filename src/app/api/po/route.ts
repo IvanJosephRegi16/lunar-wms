@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
 
       let calculatedGross = 0;
       for (const it of itemsList) {
-        calculatedGross += (Number(it.order_rate) || 0) * (Number(it.required_qty) || 0);
+        calculatedGross += (Number(it.amount) || 0);
       }
 
       const discount = Number(poObj.discount_percent) || 0;
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
     const mergedPos = await Promise.all(pos.map(async p => {
       const healed = await healPoData(p);
       const items = await db.prepare(`
-        SELECT id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks 
+        SELECT id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, received_qty, unit, amount, vendor, remarks 
         FROM purchase_order_items 
         WHERE po_id = ?
       `).all(healed.id) as any[];
