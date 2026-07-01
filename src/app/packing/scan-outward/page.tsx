@@ -833,7 +833,7 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
 
             <div className="info-row">
               <div className="info-label">Size</div>
-              <div className="info-value" style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '2px' }}>{aggregatedSizeStr.replace('x', ' × ')}</div>
+              <div className="info-value" style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '2px', color: '#000' }}>{aggregatedSizeStr.replace('x', ' × ')}</div>
             </div>
 
             {mrp && (

@@ -6,8 +6,8 @@ export async function GET() {
   try {
     const db = getDb();
     
-    // Fetch configurations
-    const configs = await db.prepare('SELECT * FROM carton_generation ORDER BY is_custom ASC, id ASC').all() as any[];
+    // Fetch configurations (exclude soft-deleted)
+    const configs = await db.prepare('SELECT * FROM carton_generation WHERE is_deleted = 0 ORDER BY is_custom ASC, id ASC').all() as any[];
     
     // Fetch sizes for all configs
     const sizes = await db.prepare('SELECT * FROM carton_generation_sizes').all() as any[];
@@ -141,8 +141,8 @@ export async function DELETE(request: Request) {
 
     const db = getDb();
     await db.transaction(async () => {
-      await db.prepare('DELETE FROM carton_generation_sizes WHERE config_id = ?').run(id);
-      await db.prepare('DELETE FROM carton_generation WHERE id = ?').run(id);
+      // Soft-delete the configuration to preserve history for already-packed cartons
+      await db.prepare('UPDATE carton_generation SET is_deleted = 1 WHERE id = ?').run(id);
     });
 
     await logAudit({
@@ -151,16 +151,12 @@ export async function DELETE(request: Request) {
       action: 'DELETE',
       module: 'carton_generation',
       recordId: parseInt(id),
-      description: `Deleted carton generation rule with ID: ${id}`
+      description: `Soft-deleted carton generation rule with ID: ${id}`
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: 'Rule successfully deleted.' });
   } catch (error: any) {
     console.error('Error deleting custom config:', error);
-    const msg = error.message || '';
-    if (msg.includes('foreign key') || msg.includes('violates')) {
-      return NextResponse.json({ error: 'This rule is actively used by existing packed cartons and cannot be deleted. Please create a new rule instead.' }, { status: 409 });
-    }
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Error deleting rule' }, { status: 500 });
   }
 }

@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS carton_generation (
   is_custom INTEGER DEFAULT 0,
   article_code TEXT,
   colour TEXT,
+  is_deleted INTEGER DEFAULT 0,
   created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -1187,3 +1188,5 @@ export async function logAudit({
     console.error('Audit log failed', e);
   }
 }
+
+

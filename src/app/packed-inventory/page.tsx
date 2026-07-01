@@ -605,7 +605,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
           <div className="pi-body">
             <div className="pi-row"><div className="pi-lbl">Art No.</div><div className="pi-val art">{article}</div></div>
             <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
-            <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val" style={{ fontSize:'20px' }}>{aggregatedSizeStr}</div></div>
+            <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val" style={{ fontSize:'32px', fontWeight: 900, letterSpacing: '2px', color: '#000' }}>{aggregatedSizeStr}</div></div>
             {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val">&#8377;{parseFloat(mrp).toFixed(2)}</div></div>)}
             <div className="pi-sizes">
               <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
