@@ -23,7 +23,11 @@ export async function GET(request: Request) {
         pt.article_code,
         pt.colour,
         pc.name as config_name,
-        (pt.total_pairs / pt.num_cartons) as total_pairs,
+        (
+          SELECT COALESCE(SUM(oi.quantity_per_carton), 0)
+          FROM outward_items oi
+          WHERE oi.transaction_id = pt.id
+        ) as total_pairs,
         (
           SELECT json_agg(json_build_object('size', oi.size, 'quantity', oi.quantity_per_carton))
           FROM outward_items oi

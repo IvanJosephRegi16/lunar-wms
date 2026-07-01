@@ -253,10 +253,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const handleScan = async (e?: React.FormEvent, force: boolean = false, overrideBarcode?: string) => {
     if (e) e.preventDefault();
     const codeToScan = overrideBarcode || barcode.trim();
-    if (!codeToScan || isScanning) return;
+    // Always clear input immediately so hardware scanner can type the next code instantly
+    if (!overrideBarcode) setBarcode('');
+    if (!codeToScan) return;
 
     setIsScanning(true);
-    if (!overrideBarcode) setBarcode(''); // clear immediately if not forced
 
     try {
       const res = await fetch('/api/packing/outward/scan', {
@@ -616,30 +617,31 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               <input 
                 ref={barcodeInputRef}
                 type="text" 
-                placeholder="Scan barcode (e.g. 2222|GREEN|5|499.00)" 
+                placeholder={isScanning ? '⚡ Processing...' : 'Scan barcode (e.g. 2222|GREEN|5|499.00)'}
                 value={barcode}
                 onChange={e => setBarcode(e.target.value)}
-                disabled={isScanning}
                 autoFocus
+                autoComplete="off"
                 className="corporate-input"
                 style={{ 
                   width: '100%', 
                   fontSize: '18px', 
                   padding: '20px 24px', 
                   fontWeight: 700, 
-                  border: '2px solid #cbd5e1',
+                  border: `2px solid ${isScanning ? '#a78bfa' : '#cbd5e1'}`,
                   borderRadius: '16px',
-                  backgroundColor: '#f8fafc',
-                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
-                  boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'
+                  backgroundColor: isScanning ? '#faf5ff' : '#f8fafc',
+                  transition: 'border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease',
+                  boxShadow: isScanning ? '0 0 0 4px rgba(124, 58, 237, 0.08)' : 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
+                  outline: 'none'
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = 'var(--neon-violet)';
                   e.target.style.boxShadow = '0 0 0 4px rgba(124, 58, 237, 0.1)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = '#cbd5e1';
-                  e.target.style.boxShadow = 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)';
+                  e.target.style.borderColor = isScanning ? '#a78bfa' : '#cbd5e1';
+                  e.target.style.boxShadow = isScanning ? '0 0 0 4px rgba(124, 58, 237, 0.08)' : 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)';
                 }}
               />
               <button 

@@ -116,10 +116,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error updating custom config:', error);
-    if (error.message?.includes('unique') || error.message?.includes('duplicate key')) {
-      return NextResponse.json({ error: 'Configuration name already exists' }, { status: 400 });
+    const msg = error.message || '';
+    if (msg.includes('unique') || msg.includes('duplicate key')) {
+      return NextResponse.json({ error: 'Configuration name already exists. Please use a different name.' }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (msg.includes('foreign key') || msg.includes('violates')) {
+      return NextResponse.json({ error: 'This rule is actively used by existing packed cartons and cannot be modified. Please create a new rule instead.' }, { status: 409 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
 
@@ -153,6 +157,10 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('Error deleting custom config:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const msg = error.message || '';
+    if (msg.includes('foreign key') || msg.includes('violates')) {
+      return NextResponse.json({ error: 'This rule is actively used by existing packed cartons and cannot be deleted. Please create a new rule instead.' }, { status: 409 });
+    }
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import styles from './page.module.css';
 import { downloadCSV, formatIST } from '@/lib/exportCSV';
 import ExportDropdown from '@/components/ExportDropdown';
+import Barcode from 'react-barcode';
 
 interface PackedCarton {
   id: number;
@@ -217,59 +218,30 @@ export default function PackedInventoryPage() {
     year: 'numeric'
   });
 
+  // Full-screen sticker view when a carton is selected
+  if (selectedCarton) {
+    const sizesArr: any[] = selectedCarton.sizes || [];
+    const totalFromSizes = sizesArr.reduce((acc: number, s: any) => acc + (Number(s.quantity) || 0), 0);
+    const progressForSticker = sizesArr.map((s: any) => ({
+      size: String(s.size),
+      scanned: Number(s.quantity) || 0,
+      required: Number(s.quantity) || 0,
+      remaining: 0
+    }));
+    const cartonData = {
+      article: selectedCarton.article_code,
+      colour: selectedCarton.colour,
+      mrp: selectedCarton.mrp ? String(selectedCarton.mrp) : null,
+      progress: progressForSticker,
+      carton: selectedCarton.carton_id
+    };
+    return <PackedStickerView cartonData={cartonData} totalPairs={totalFromSizes} onClose={() => setSelectedCarton(null)} />;
+  }
+
   return (
     <div className={styles.container}>
       
-      {/* Click-to-View Modal */}
-      {selectedCarton && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(8px)',
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div className="card-clean" style={{ background: '#ffffff', padding: '32px', maxWidth: '600px', width: '100%', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', borderBottom: '2px solid #f1f5f9', paddingBottom: '16px' }}>
-              <div>
-                <span style={{ background: 'var(--neon-violet)', color: 'white', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 800, letterSpacing: '1px' }}>
-                  {selectedCarton.carton_id}
-                </span>
-                <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '8px 0 0 0', color: '#0f172a' }}>Master Carton Details</h2>
-              </div>
-              <button onClick={() => setSelectedCarton(null)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}>×</button>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-              <div><strong style={{ color: '#64748b' }}>Brand:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.brand}</span></div>
-              <div><strong style={{ color: '#64748b' }}>Article:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.article_code}</span></div>
-              <div><strong style={{ color: '#64748b' }}>Colour:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.colour}</span></div>
-              <div><strong style={{ color: '#64748b' }}>Total Pairs:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.total_pairs}</span></div>
-              <div><strong style={{ color: '#64748b' }}>MRP:</strong> <span style={{ fontWeight: 800 }}>{selectedCarton.mrp ? `₹${selectedCarton.mrp}` : 'N/A'}</span></div>
-              <div><strong style={{ color: '#64748b' }}>Packed At:</strong> <span style={{ fontWeight: 600 }}>{formatDateTime(selectedCarton.created_at)}</span></div>
-              <div><strong style={{ color: '#64748b' }}>Delivered At:</strong> <span style={{ fontWeight: 600 }}>{selectedCarton.scanned_at ? formatDateTime(selectedCarton.scanned_at) : 'Pending Verification'}</span></div>
-            </div>
-
-            <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>Size-wise Distribution</h3>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '32px' }}>
-              {selectedCarton.sizes && selectedCarton.sizes.length > 0 ? (
-                selectedCarton.sizes.map((sz: any) => (
-                  <div key={sz.size} style={{ background: '#f8fafc', border: '2px solid #e2e8f0', borderRadius: '12px', padding: '12px 20px', textAlign: 'center', minWidth: '80px' }}>
-                    <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 800, marginBottom: '4px' }}>SIZE {sz.size}</div>
-                    <div style={{ fontSize: '20px', color: '#0f172a', fontWeight: 900 }}>{sz.quantity}</div>
-                  </div>
-                ))
-              ) : (
-                <div style={{ color: '#64748b', fontStyle: 'italic' }}>No size data available</div>
-              )}
-            </div>
-            
-            <button onClick={() => setSelectedCarton(null)} className="btn-corp" style={{ width: '100%', padding: '16px', background: '#f1f5f9', color: '#0f172a', borderRadius: '12px', border: 'none', fontWeight: 800 }}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 1. Header with View Toggle Buttons */}
+{/* 1. Header with View Toggle Buttons */}
       <div className={styles.header}>
         <div className={styles.headerText}>
           <h1>Packed Inventory Storage</h1>
@@ -549,6 +521,122 @@ export default function PackedInventoryPage() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ==========================================
+// PACKED STICKER COMPONENT (10x10cm)
+// Works for both LUNAR and JOKOT brands
+// ==========================================
+function getAggregatedSizeStr(progress) {
+  const nums = progress.filter(p => p.scanned > 0).map(p => parseInt(p.size)).sort((a, b) => a - b);
+  if (nums.length === 0) return 'N/A';
+  let consecutive = true;
+  for (let i = 1; i < nums.length; i++) {
+    if (nums[i] !== nums[i - 1] + 1) { consecutive = false; break; }
+  }
+  return consecutive && nums.length > 1 ? `${nums[0]} \u00d7 ${nums[nums.length - 1]}` : nums.join(', ');
+}
+
+function PackedStickerView({ cartonData, totalPairs, onClose }) {
+  const { article, colour, mrp, progress, carton } = cartonData;
+  const activeSizes = progress.filter((p) => p.scanned > 0).sort((a, b) => parseInt(a.size) - parseInt(b.size));
+  const aggregatedSizeStr = getAggregatedSizeStr(progress);
+  const barcodeValue = carton || 'UNKNOWN';
+  const isJokot = article && article.toUpperCase().startsWith('J');
+  const brandName = isJokot ? 'JOKOT WMS' : 'LUNAR WMS';
+  const mfdBy = isJokot ? 'Jokot Footwear' : 'Lunar Rubbers Pvt Ltd - Thodupuzha, Kerala';
+  const mktdBy = isJokot ? 'Jokot Footwear' : 'Lunar Footwear - Customer Care: 1800-123-456';
+  const mfgDate = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+
+  return (
+    <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
+        @media print { body * { visibility: hidden; } .print-wrapper { background: white !important; padding: 0 !important; } .sticker-wrap, .sticker-wrap * { visibility: visible; } .sticker-wrap { position: absolute; left: 0; top: 0; } .no-print { display: none !important; } }
+        .pi-sticker { width:10cm; height:10cm; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
+        .pi-hdr { background:#000; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:4px 8px; flex-shrink:0; }
+        .pi-hdr .brand { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; letter-spacing:2px; text-transform:uppercase; }
+        .pi-hdr .badge { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:800; background:#fff; color:#000; padding:2px 6px; border-radius:2px; text-transform:uppercase; }
+        .pi-hdr .atag { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:900; background:#fff; color:#000; padding:1px 6px; border-radius:2px; text-transform:uppercase; }
+        .pi-body { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+        .pi-row { display:flex; align-items:stretch; border-bottom:1.5px solid #000; }
+        .pi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:3px 8px; min-width:60px; display:flex; align-items:center; border-right:1.5px solid #000; }
+        .pi-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; padding:3px 8px; display:flex; align-items:center; flex:1; }
+        .pi-val.art { font-size:22px; }
+        .pi-sizes { border-bottom:1.5px solid #000; flex-shrink:0; }
+        .pi-sh { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; padding:3px 0; text-align:center; border-right:1.5px solid #000; }
+        .pi-sh:first-child { text-align:left; padding-left:8px; min-width:60px; }
+        .pi-sh.tc { background:#000; color:#fff; border-right:none; min-width:45px; }
+        .pi-sc { font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:900; text-align:center; padding:3px 0; border-right:1.5px solid #000; }
+        .pi-sc.lc { font-size:10px; font-weight:800; text-transform:uppercase; text-align:left; padding-left:8px; }
+        .pi-sc.tc { font-size:18px; color:#fff; background:#000; border-right:none; min-width:45px; }
+        .pi-pkgs { display:flex; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1.5px solid #000; flex-shrink:0; }
+        .pi-pkgs-lbl { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; }
+        .pi-pkgs-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; }
+        .pi-pkgs-val span { font-size:10px; font-weight:800; margin-left:2px; text-transform:uppercase; }
+        .pi-bot { display:flex; align-items:stretch; border-bottom:1.5px solid #000; flex:1; }
+        .pi-origin { flex:1; display:flex; flex-direction:column; justify-content:center; padding:4px 8px; border-right:1.5px solid #000; gap:1px; }
+        .pi-origin .mil { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:900; text-transform:uppercase; }
+        .pi-origin .mfg { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; text-transform:uppercase; }
+        .pi-origin .fw { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:900; text-transform:uppercase; }
+        .pi-bc { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px; }
+        .pi-footer { padding:3px 8px; display:flex; flex-direction:column; gap:1px; flex-shrink:0; }
+        .pi-fl { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; line-height:1.2; text-transform:uppercase; }
+        .pi-fl strong { font-weight:900; }
+      `}</style>
+      <div className="no-print" style={{ display:'flex', gap:'12px', marginBottom:'24px' }}>
+        <button onClick={onClose} className="btn-corp" style={{ background:'#fff', color:'#475569', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'8px', fontWeight:700 }}>&larr; Back to Inventory</button>
+        <button onClick={() => window.print()} className="btn-corp" style={{ background:'#10b981', color:'white', border:'none', padding:'12px 24px', borderRadius:'8px', fontWeight:800 }}>Print Sticker</button>
+      </div>
+      <div className="sticker-wrap">
+        <div className="pi-sticker">
+          <div className="pi-hdr">
+            <div className="brand">{brandName}</div>
+            <div style={{ display:'flex', gap:'4px', alignItems:'center' }}>
+              <span className="atag">Assortment</span>
+              <span className="badge">Master Carton</span>
+            </div>
+          </div>
+          <div className="pi-body">
+            <div className="pi-row"><div className="pi-lbl">Art No.</div><div className="pi-val art">{article}</div></div>
+            <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
+            <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val" style={{ fontSize:'20px' }}>{aggregatedSizeStr}</div></div>
+            {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val">&#8377;{parseFloat(mrp).toFixed(2)}</div></div>)}
+            <div className="pi-sizes">
+              <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
+                <div className="pi-sh">Size</div>
+                {activeSizes.map((s) => <div key={s.size} className="pi-sh">{s.size}</div>)}
+                <div className="pi-sh tc">Total</div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px` }}>
+                <div className="pi-sc lc">Qty(pr)</div>
+                {activeSizes.map((s) => <div key={s.size} className="pi-sc">{s.scanned}</div>)}
+                <div className="pi-sc tc">{totalPairs}</div>
+              </div>
+            </div>
+            <div className="pi-pkgs">
+              <span className="pi-pkgs-lbl">No. of Packages</span>
+              <span className="pi-pkgs-val">{totalPairs} <span>Pairs</span></span>
+            </div>
+            <div className="pi-bot">
+              <div className="pi-origin">
+                <div className="mil">Made in India</div>
+                <div className="mfg">Mfg: {mfgDate}</div>
+                <div className="fw">Footwear</div>
+              </div>
+              <div className="pi-bc">
+                <Barcode value={barcodeValue} format="CODE128" width={1.6} height={22} displayValue={false} margin={0} background="#ffffff" />
+              </div>
+            </div>
+          </div>
+          <div className="pi-footer">
+            <div className="pi-fl"><strong>Mfd. &amp; Pkd. By:</strong> {mfdBy}</div>
+            <div className="pi-fl"><strong>Mktd. By:</strong> {mktdBy}</div>
+          </div>
         </div>
       </div>
     </div>
