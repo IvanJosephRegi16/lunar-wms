@@ -610,12 +610,12 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             <div className="pi-sizes">
               <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
                 <div className="pi-sh">Size</div>
-                {activeSizes.map((s) => <div key={s.size} className="pi-sh">{s.size}</div>)}
+                {activeSizes.map((s: any) => <div key={s.size} className="pi-sh">{s.size}</div>)}
                 <div className="pi-sh tc">Total</div>
               </div>
               <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px` }}>
                 <div className="pi-sc lc">Qty(pr)</div>
-                {activeSizes.map((s) => <div key={s.size} className="pi-sc">{s.scanned}</div>)}
+                {activeSizes.map((s: any) => <div key={s.size} className="pi-sc">{s.scanned}</div>)}
                 <div className="pi-sc tc">{totalPairs}</div>
               </div>
             </div>
