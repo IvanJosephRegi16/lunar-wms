@@ -39,13 +39,25 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
     
-    // 1. Validate Session
-    const session = await db.prepare(`
-      SELECT s.* 
-      FROM outward_scan_sessions s
-      JOIN carton_generation c ON s.carton_generation_id = c.id
-      WHERE s.id = ?
-    `).get(session_id) as any;
+    // 1. Concurrent Fetch: Session, ScannedCount, Pool
+    const invCol = `size_${scannedSize}`;
+    
+    const [session, scannedCount, pool] = await Promise.all([
+      db.prepare(`
+        SELECT s.* 
+        FROM outward_scan_sessions s
+        JOIN carton_generation c ON s.carton_generation_id = c.id
+        WHERE s.id = ?
+      `).get(session_id),
+      db.prepare(`
+        SELECT COUNT(*) as count FROM outward_scan_items 
+        WHERE session_id = ? AND size = ?
+      `).get(session_id, scannedSize),
+      db.prepare(`
+        SELECT ${invCol} as qty FROM inventory_pool 
+        WHERE article_code = ? AND colour = ?
+      `).get(scannedArticle, scannedColour)
+    ]) as any[];
 
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
@@ -61,18 +73,12 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // 3. Validate size still needs pairs and check +1 tolerance / Custom size
+    // 3. Fetch Rule Config
     const sizeConfig = await db.prepare(`
       SELECT quantity FROM carton_generation_sizes WHERE config_id = ? AND size = ?
     `).get(session.carton_generation_id, scannedSize) as any;
 
     const ruleQuantity = sizeConfig ? sizeConfig.quantity : 0;
-
-    const scannedCount = await db.prepare(`
-      SELECT COUNT(*) as count FROM outward_scan_items 
-      WHERE session_id = ? AND size = ?
-    `).get(session_id, scannedSize) as any;
-
     const currentCount = scannedCount.count;
 
     // Trigger approval warning for any scan that reaches or exceeds the required rule quantity
@@ -87,40 +93,30 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Validate inventory_pool has sufficient stock
-    const invCol = `size_${scannedSize}`;
-    
-    const pool = await db.prepare(`
-      SELECT ${invCol} as qty FROM inventory_pool 
-      WHERE article_code = ? AND colour = ?
-    `).get(scannedArticle, scannedColour) as any;
-
     if (!pool || pool.qty < 1) {
       return NextResponse.json({ 
         error: `Sorry, there is not enough stock in the staging inventory for size ${scannedSize}. Please resume scanning other items.` 
       }, { status: 400 });
     }
 
-    // Success! Perform DB updates
-    await db.transaction(async () => {
-      // Insert scan item
-      await db.prepare(`
+    // Success! Perform DB updates concurrently
+    await Promise.all([
+      db.prepare(`
         INSERT INTO outward_scan_items (session_id, article_code, colour, size)
         VALUES (?, ?, ?, ?)
-      `).run(session_id, scannedArticle, scannedColour, scannedSize);
-
-      // Decrement inventory pool
-      await db.prepare(`
+      `).run(session_id, scannedArticle, scannedColour, scannedSize),
+      
+      db.prepare(`
         UPDATE inventory_pool 
         SET ${invCol} = ${invCol} - 1, total_qty = total_qty - 1
         WHERE article_code = ? AND colour = ?
-      `).run(scannedArticle, scannedColour);
+      `).run(scannedArticle, scannedColour),
       
-      // Log to scan_history as well for audit
-      await db.prepare(`
+      db.prepare(`
         INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
         VALUES (?, ?, ?, ?, ?, 'success_outward', ?, 'outward')
-      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id, mrp);
-    });
+      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id, mrp)
+    ]);
 
     return NextResponse.json({
       success: true,

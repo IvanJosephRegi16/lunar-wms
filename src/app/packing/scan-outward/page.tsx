@@ -277,8 +277,19 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
       } else if (res.ok) {
         setScanResult({ success: true, message: data.message, data: data.article });
         
-        // Refresh grid
-        await fetchSessionData();
+        // Optimistic UI update for ultra-fast perceived performance (zero lag)
+        setProgress(prev => {
+          const newProgress = [...prev];
+          const idx = newProgress.findIndex(p => p.size === data.article.size);
+          if (idx >= 0) {
+            newProgress[idx] = { ...newProgress[idx], scanned: newProgress[idx].scanned + 1, remaining: Math.max(0, newProgress[idx].remaining - 1) };
+          } else {
+            newProgress.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
+            newProgress.sort((a, b) => parseInt(a.size) - parseInt(b.size));
+          }
+          return newProgress;
+        });
+        // We do NOT await fetchSessionData() here to ensure there are 0 milliseconds of frontend lag between scans
       } else {
         setScanResult({ success: false, message: data.error });
       }
@@ -745,44 +756,47 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         }
 
         .sticker {
-          width: 520px;
+          width: 10cm;
+          height: 10cm;
           background: #ffffff;
-          border: 3px solid #000;
-          border-radius: 6px;
+          border: 2px solid #000;
           font-family: 'Barlow', sans-serif;
           overflow: hidden;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
         }
-        .sticker-header { background: #000; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; }
-        .sticker-header .brand { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
-        .sticker-header .badge { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 800; letter-spacing: 2px; background: #fff; color: #000; padding: 3px 10px; border-radius: 2px; text-transform: uppercase; }
-        .info-row { display: flex; align-items: stretch; border-bottom: 2px solid #000; }
-        .info-label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #000; background: #fff; padding: 8px 14px; min-width: 90px; display: flex; align-items: center; border-right: 2px solid #000; }
-        .info-value { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 900; color: #000; padding: 6px 18px; display: flex; align-items: center; letter-spacing: 1px; flex: 1; }
-        .info-value.art { font-size: 36px; font-weight: 900; letter-spacing: 2px; }
-        .info-value.mrp-val { font-size: 32px; font-weight: 900; }
-        .info-value.mrp-val .rupee { font-size: 26px; margin-right: 3px; font-weight: 800; color: #000; }
-        .size-section { border-bottom: 2px solid #000; }
-        .size-col-header { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #000; background: #fff; padding: 6px 0; text-align: center; border-right: 2px solid #000; }
-        .size-col-header:first-child { text-align: left; padding-left: 14px; border-right: 2px solid #000; min-width: 90px; }
-        .size-col-header.total-col { background: #000; color: #fff; border-right: none; font-size: 14px; }
-        .size-cell { font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 900; color: #000; text-align: center; padding: 10px 0; border-right: 2px solid #000; }
-        .size-cell.label-cell { font-size: 14px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; color: #000; background: #fff; text-align: left; padding-left: 14px; border-right: 2px solid #000; }
-        .size-cell.total-cell { font-size: 30px; font-weight: 900; color: #fff; background: #000; border-right: none; }
-        .packages-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-bottom: 2px solid #000; }
-        .packages-label { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase; color: #000; }
-        .packages-value { font-family: 'Barlow Condensed', sans-serif; font-size: 32px; font-weight: 900; color: #000; letter-spacing: 1px; }
-        .packages-value span { font-size: 14px; font-weight: 800; color: #000; margin-left: 4px; letter-spacing: 1px; text-transform: uppercase; }
-        .bottom-section { display: flex; align-items: stretch; border-bottom: 2px solid #000; }
-        .made-india { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 10px 14px; border-right: 2px solid #000; gap: 2px; }
-        .made-india .mil { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #000; }
-        .made-india .mfg { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; color: #000; text-transform: uppercase; }
-        .made-india .fw { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; color: #000; }
-        .barcode-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px 14px; gap: 4px; }
-        .sticker-footer { background: #fff; padding: 8px 18px; display: flex; flex-direction: column; gap: 2px; }
-        .footer-line { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; color: #000; font-weight: 700; line-height: 1.5; text-transform: uppercase; }
+        .sticker-header { background: #000; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; }
+        .sticker-header .brand { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
+        .sticker-header .badge { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 800; letter-spacing: 1px; background: #fff; color: #000; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; }
+        .info-row { display: flex; align-items: stretch; border-bottom: 1.5px solid #000; flex: 1; }
+        .info-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 8px; min-width: 60px; display: flex; align-items: center; border-right: 1.5px solid #000; }
+        .info-value { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: #000; padding: 4px 8px; display: flex; align-items: center; letter-spacing: 1px; flex: 1; }
+        .info-value.art { font-size: 24px; font-weight: 900; letter-spacing: 1px; }
+        .info-value.mrp-val { font-size: 20px; font-weight: 900; }
+        .info-value.mrp-val .rupee { font-size: 16px; margin-right: 2px; font-weight: 800; color: #000; }
+        .size-section { border-bottom: 1.5px solid #000; }
+        .size-col-header { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 0; text-align: center; border-right: 1.5px solid #000; }
+        .size-col-header:first-child { text-align: left; padding-left: 8px; min-width: 60px; }
+        .size-col-header.total-col { background: #000; color: #fff; border-right: none; font-size: 10px; min-width: 45px;}
+        .size-cell { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: #000; text-align: center; padding: 4px 0; border-right: 1.5px solid #000; }
+        .size-cell.label-cell { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; text-align: left; padding-left: 8px; }
+        .size-cell.total-cell { font-size: 20px; font-weight: 900; color: #fff; background: #000; border-right: none; min-width: 45px;}
+        .packages-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1.5px solid #000; }
+        .packages-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; }
+        .packages-value { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: #000; letter-spacing: 1px; }
+        .packages-value span { font-size: 10px; font-weight: 800; color: #000; margin-left: 2px; letter-spacing: 1px; text-transform: uppercase; }
+        .bottom-section { display: flex; align-items: stretch; border-bottom: 1.5px solid #000; flex: 1.5; }
+        .made-india { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 8px; border-right: 1.5px solid #000; gap: 1px; }
+        .made-india .mil { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #000; }
+        .made-india .mfg { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 700; color: #000; text-transform: uppercase; }
+        .made-india .fw { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #000; }
+        .barcode-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; gap: 2px; }
+        .sticker-footer { background: #fff; padding: 4px 8px; display: flex; flex-direction: column; gap: 1px; }
+        .footer-line { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; color: #000; font-weight: 700; line-height: 1.2; text-transform: uppercase; }
         .footer-line strong { font-weight: 900; color: #000; }
-        .assortment-tag { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 900; letter-spacing: 2px; background: #000; color: #fff; padding: 2px 10px; border-radius: 2px; text-transform: uppercase; display: inline-block; margin-bottom: 2px; }
+        .assortment-tag { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 900; letter-spacing: 1px; background: #000; color: #fff; padding: 1px 6px; border-radius: 2px; text-transform: uppercase; display: inline-block; margin-bottom: 1px; }
       `}</style>
 
       <div className="no-print" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
@@ -798,13 +812,13 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         <div className="sticker">
           <div className="sticker-header">
             <div className="brand">{brandName}</div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               <div className="assortment-tag">Assortment</div>
               <div className="badge">Master Carton</div>
             </div>
           </div>
 
-          <div className="sticker-body">
+          <div className="sticker-body" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
             <div className="info-row">
               <div className="info-label">Art No.</div>
               <div className="info-value art">{article}</div>
@@ -812,12 +826,12 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
 
             <div className="info-row">
               <div className="info-label">Colour</div>
-              <div className="info-value" style={{ fontSize: '24px' }}>{colour}</div>
+              <div className="info-value" style={{ fontSize: '18px' }}>{colour}</div>
             </div>
 
             <div className="info-row">
               <div className="info-label">Size</div>
-              <div className="info-value" style={{ fontSize: '30px', fontWeight: 900, letterSpacing: '3px' }}>{aggregatedSizeStr.replace('x', ' × ')}</div>
+              <div className="info-value" style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '2px' }}>{aggregatedSizeStr.replace('x', ' × ')}</div>
             </div>
 
             {mrp && (
@@ -828,13 +842,13 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
             )}
 
             <div className="size-section">
-              <div style={{ display: 'grid', gridTemplateColumns: `90px repeat(${activeSizes.length}, 1fr) 72px`, borderBottom: '1px solid #ccc' }}>
-                <div className="size-col-header" style={{ textAlign: 'left', paddingLeft: '14px' }}>Size</div>
+              <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom: '1px solid #000' }}>
+                <div className="size-col-header" style={{ textAlign: 'left', paddingLeft: '8px' }}>Size</div>
                 {activeSizes.map((s: any) => <div key={s.size} className="size-col-header">{s.size}</div>)}
                 <div className="size-col-header total-col">Total</div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: `90px repeat(${activeSizes.length}, 1fr) 72px` }}>
-                <div className="size-cell label-cell">Qty (pair)</div>
+              <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${activeSizes.length}, 1fr) 45px` }}>
+                <div className="size-cell label-cell">Qty(pr)</div>
                 {activeSizes.map((s: any) => <div key={s.size} className="size-cell">{s.scanned}</div>)}
                 <div className="size-cell total-cell">{totalPairs}</div>
               </div>
@@ -852,7 +866,7 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
                 <div className="fw">Footwear</div>
               </div>
               <div className="barcode-area">
-                <Barcode value={barcodeValue} format="CODE128" width={2.2} height={45} displayValue={false} margin={0} background="#ffffff" />
+                <Barcode value={barcodeValue} format="CODE128" width={1.8} height={25} displayValue={false} margin={0} background="#ffffff" />
               </div>
             </div>
           </div>

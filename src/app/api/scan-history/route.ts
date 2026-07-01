@@ -66,6 +66,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only Admin, PM, or Supervisor can reset Scan History.' }, { status: 403 });
     }
 
+    const db = getDb();
     const body = await request.json();
     
     if (body.action === 'preview') {
@@ -77,7 +78,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid confirmation code' }, { status: 400 });
     }
 
-    const db = getDb();
     const result = await db.prepare(`UPDATE scan_history SET is_deleted = 1 WHERE is_deleted = 0`).run();
 
     return NextResponse.json({

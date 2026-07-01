@@ -529,7 +529,7 @@ export default function CartonGenerationPage() {
                       <input 
                         type="number" 
                         min="0"
-                        value={sizeInputs[size]} 
+                        value={sizeInputs[size] || ''} 
                         onChange={e => handleSizeInputChange(size, e.target.value)}
                       />
                     </div>
@@ -540,7 +540,7 @@ export default function CartonGenerationPage() {
               {/* Bottom controls */}
               <div className={styles.builderBottom}>
                 <div className={styles.builderTotalBox}>
-                  <div className={styles.builderTotalLabel}>Calculated Carton Density:</div>
+                  <div className={styles.builderTotalLabel}>Total:</div>
                   <div className={styles.builderTotalVal}>{totalRulePairs} Pair{totalRulePairs !== 1 ? 's' : ''}</div>
                 </div>
 
