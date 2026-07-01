@@ -531,8 +531,9 @@ export default function PackedInventoryPage() {
 // PACKED STICKER COMPONENT (10x10cm)
 // Works for both LUNAR and JOKOT brands
 // ==========================================
-function getAggregatedSizeStr(progress) {
-  const nums = progress.filter(p => p.scanned > 0).map(p => parseInt(p.size)).sort((a, b) => a - b);
+// ==========================================
+function getAggregatedSizeStr(progress: any[]) {
+  const nums = progress.filter((p: any) => p.scanned > 0).map((p: any) => parseInt(p.size)).sort((a: any, b: any) => a - b);
   if (nums.length === 0) return 'N/A';
   let consecutive = true;
   for (let i = 1; i < nums.length; i++) {
@@ -541,9 +542,9 @@ function getAggregatedSizeStr(progress) {
   return consecutive && nums.length > 1 ? `${nums[0]} \u00d7 ${nums[nums.length - 1]}` : nums.join(', ');
 }
 
-function PackedStickerView({ cartonData, totalPairs, onClose }) {
+function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: any, totalPairs: number, onClose: () => void }) {
   const { article, colour, mrp, progress, carton } = cartonData;
-  const activeSizes = progress.filter((p) => p.scanned > 0).sort((a, b) => parseInt(a.size) - parseInt(b.size));
+  const activeSizes = progress.filter((p: any) => p.scanned > 0).sort((a: any, b: any) => parseInt(a.size) - parseInt(b.size));
   const aggregatedSizeStr = getAggregatedSizeStr(progress);
   const barcodeValue = carton || 'UNKNOWN';
   const isJokot = article && article.toUpperCase().startsWith('J');
