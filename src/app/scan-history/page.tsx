@@ -32,6 +32,10 @@ export default function ScanHistoryPage() {
   const [toDate, setToDate] = useState('');
   const [copiedId, setCopiedId] = useState<number | null>(null);
 
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetCount, setResetCount] = useState(0);
+
   const fetchHistory = (start?: string, end?: string) => {
     setLoading(true);
     let url = '/api/scan-history';
@@ -147,6 +151,48 @@ export default function ScanHistoryPage() {
     document.body.removeChild(link);
   };
 
+  const handleResetClick = () => {
+    fetch('/api/scan-history?preview=1')
+      .then(res => res.json())
+      .then(data => {
+        if (data.count !== undefined) {
+          setResetCount(data.count);
+          setShowResetModal(true);
+        } else {
+          alert(data.error || 'Failed to fetch reset preview');
+        }
+      })
+      .catch(err => {
+        alert('Failed to check scan history count.');
+      });
+  };
+
+  const confirmReset = () => {
+    setIsResetting(true);
+    fetch('/api/scan-history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'CONFIRM_RESET' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setIsResetting(false);
+        if (data.success) {
+          setShowResetModal(false);
+          alert(data.message || 'Scan history reset successfully.');
+          fetchHistory(fromDate, toDate);
+        } else {
+          alert(data.error || 'Reset failed.');
+        }
+      })
+      .catch(err => {
+        setIsResetting(false);
+        alert('An error occurred while resetting.');
+      });
+  };
+
+  const canReset = user && ['admin', 'pm', 'supervisor'].includes(user.role);
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -154,9 +200,16 @@ export default function ScanHistoryPage() {
           <h1>Scan History Audit</h1>
           <p>Operational audit trail for all scanning activities</p>
         </div>
-        <button className={styles.exportBtn} onClick={exportCSV}>
-          ⬇ Export CSV
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {canReset && (
+            <button className={styles.resetBtn} onClick={handleResetClick}>
+              ⚠️ Reset History
+            </button>
+          )}
+          <button className={styles.exportBtn} onClick={exportCSV}>
+            ⬇ Export CSV
+          </button>
+        </div>
       </div>
 
       <div className={styles.filters} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -350,6 +403,35 @@ export default function ScanHistoryPage() {
           </table>
         )}
       </div>
+
+      {showResetModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h2>⚠️ Reset Scan History</h2>
+            <p>
+              Are you absolutely sure you want to reset the scan history? 
+              This will archive <strong>{resetCount}</strong> records. 
+              This action cannot be undone. Please ensure you have exported the data before proceeding.
+            </p>
+            <div className={styles.modalActions}>
+              <button 
+                className={styles.cancelBtn} 
+                onClick={() => setShowResetModal(false)}
+                disabled={isResetting}
+              >
+                Cancel
+              </button>
+              <button 
+                className={styles.confirmResetBtn} 
+                onClick={confirmReset}
+                disabled={isResetting}
+              >
+                {isResetting ? 'Resetting...' : 'Yes, Reset Data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
