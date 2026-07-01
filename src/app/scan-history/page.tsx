@@ -152,18 +152,22 @@ export default function ScanHistoryPage() {
   };
 
   const handleResetClick = () => {
-    fetch('/api/scan-history?preview=1')
+    fetch('/api/scan-history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'preview' })
+    })
       .then(res => res.json())
       .then(data => {
         if (data.count !== undefined) {
           setResetCount(data.count);
           setShowResetModal(true);
         } else {
-          alert(data.error || 'Failed to fetch reset preview');
+          alert(`Failed to fetch reset preview: ${data.error || JSON.stringify(data)}`);
         }
       })
       .catch(err => {
-        alert('Failed to check scan history count.');
+        alert('Failed to check scan history count. Network error.');
       });
   };
 
