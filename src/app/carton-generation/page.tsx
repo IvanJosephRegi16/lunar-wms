@@ -202,7 +202,14 @@ export default function CartonGenerationPage() {
         resetRuleForm();
         // Refetch configs
         const confRes = await fetch('/api/packing/configs').then(r => r.json());
-        if (confRes.configs) setConfigs(confRes.configs);
+        if (confRes.configs) {
+          setConfigs(confRes.configs);
+          // Auto-select new rule and switch to generate tab
+          if (!editMode && data.configId) {
+            setActiveConfigId(String(data.configId));
+            setActiveTab('generate');
+          }
+        }
       } else {
         alert(data.error || 'Failed to save configuration rule');
       }
