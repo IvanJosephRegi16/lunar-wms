@@ -13,7 +13,13 @@ export default function CompletedPOs() {
     fetch('/api/po')
       .then(res => res.json())
       .then(data => {
-        const completedList = (data.pos || []).filter((p: any) => p.status === 'completed');
+        const completedList = (data.pos || []).filter((p: any) => {
+          if (p.status === 'completed') return true;
+          if (p.status === 'supervisor_review' || p.status === 'accountant_processing') {
+            return Array.isArray(p.items) && p.items.some((i: any) => (i.received_qty || 0) > 0);
+          }
+          return false;
+        });
         setPos(completedList);
         setLoading(false);
       })
@@ -115,9 +121,9 @@ export default function CompletedPOs() {
                   <th>Date Verified</th>
                   <th>PO Number</th>
                   <th>Material Code & Name</th>
-                  <th>Req. Stock</th>
                   <th>Vendor Name</th>
-                  <th style={{ textAlign: 'right' }}>Amount</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Verified Amount</th>
                   <th>Action</th>
                 </tr>
               </thead>
@@ -140,12 +146,14 @@ export default function CompletedPOs() {
                             ? po.items.map((i: any) => `${i.material_code} - ${i.material_name}`).join(', ') 
                             : '-'}
                         </td>
-                        <td style={{ fontWeight: 600 }}>
-                          {Array.isArray(po.items) && po.items.length > 0 
-                            ? po.items.map((i: any) => `${i.required_qty} ${i.unit || 'Units'}`).join(', ') 
-                            : '-'}
-                        </td>
                         <td>{po.vendor}</td>
+                        <td>
+                          {po.status === 'completed' ? (
+                            <span style={{ color: '#16a34a', fontWeight: 800, background: '#dcfce7', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>Completed</span>
+                          ) : (
+                            <span style={{ color: '#d97706', fontWeight: 800, background: '#fef3c7', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', textTransform: 'uppercase' }}>Not Completed (Partial)</span>
+                          )}
+                        </td>
                         <td style={{ textAlign: 'right', fontWeight: 700, fontFamily: 'monospace' }}>₹{po.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                         <td>
                           <button className="btn-corp btn-primary-corp" onClick={() => setSelectedInvoice(po)} style={{ fontSize: '12px', padding: '6px 12px' }}>
@@ -240,10 +248,9 @@ export default function CompletedPOs() {
                     <th style={{ textAlign: 'left', padding: '12px', fontFamily: 'sans-serif' }}>Code</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontFamily: 'sans-serif' }}>Material Description</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontFamily: 'sans-serif' }}>Size / Thickness</th>
-                    <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Stock</th>
-                    <th style={{ textAlign: 'left', padding: '12px', fontFamily: 'sans-serif' }}>Stock Unit</th>
-                    <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Order Rate (₹)</th>
-                    <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Quantity</th>
+                    <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Rate (₹)</th>
+                    <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Req Qty</th>
+                    <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Recv Qty</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontFamily: 'sans-serif' }}>Unit</th>
                     <th style={{ textAlign: 'right', padding: '12px', fontFamily: 'sans-serif' }}>Total (₹)</th>
                     <th style={{ textAlign: 'left', padding: '12px', fontFamily: 'sans-serif' }}>Vendor</th>
@@ -255,10 +262,9 @@ export default function CompletedPOs() {
                       <td style={{ padding: '12px', fontWeight: 700 }}>{item.material_code}</td>
                       <td style={{ padding: '12px', fontWeight: 600 }}>{item.material_name}</td>
                       <td style={{ padding: '12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
-                      <td style={{ textAlign: 'right', padding: '12px', fontFamily: 'monospace' }}>{Number(item.current_stock || 0).toLocaleString()}</td>
-                      <td style={{ padding: '12px', fontWeight: 700, color: 'var(--text-ghost)', fontSize: '11px' }}>{item.current_stock_unit || '-'}</td>
                       <td style={{ textAlign: 'right', padding: '12px', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
-                      <td style={{ textAlign: 'right', padding: '12px', fontWeight: 700, fontFamily: 'monospace' }}>{Number(item.required_qty || 0).toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', padding: '12px', fontWeight: 600, fontFamily: 'monospace', color: 'var(--text-muted)' }}>{Number(item.required_qty || 0).toLocaleString()}</td>
+                      <td style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontFamily: 'monospace', color: '#16a34a' }}>{Number(item.received_qty || 0).toLocaleString()}</td>
                       <td style={{ padding: '12px', fontWeight: 700, color: 'var(--text-ghost)' }}>{item.unit || 'Pair'}</td>
                       <td style={{ textAlign: 'right', padding: '12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                       <td style={{ padding: '12px', fontWeight: 600 }}>{item.vendor || selectedInvoice.vendor}</td>

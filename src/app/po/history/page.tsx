@@ -17,6 +17,10 @@ export default function POHistory() {
   const [userRole, setUserRole] = useState('');
   const [selectedPo, setSelectedPo] = useState<any>(null);
   const [showPreview, setShowPreview] = useState(false);
+  // Force Edit state
+  const [forceEditMode, setForceEditMode] = useState(false);
+  const [forceEditItems, setForceEditItems] = useState<Record<number, { received_qty: string; order_rate: string }>>({});
+  const [isSavingForceEdit, setIsSavingForceEdit] = useState(false);
 
   const loadData = () => {
     setLoading(true);
@@ -35,6 +39,61 @@ export default function POHistory() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // ─── Force Edit Helpers ───────────────────────────────────────────────────
+  const canForceEdit = ['admin', 'supervisor', 'pm'].includes(userRole);
+
+  const enterForceEdit = () => {
+    if (!selectedPo) return;
+    const init: Record<number, { received_qty: string; order_rate: string }> = {};
+    (selectedPo.items || []).forEach((item: any) => {
+      init[item.id] = {
+        received_qty: String(item.received_qty ?? 0),
+        order_rate: String(item.order_rate ?? 0),
+      };
+    });
+    setForceEditItems(init);
+    setForceEditMode(true);
+  };
+
+  const cancelForceEdit = () => {
+    setForceEditMode(false);
+    setForceEditItems({});
+  };
+
+  const saveForceEdit = async () => {
+    if (!selectedPo) return;
+    setIsSavingForceEdit(true);
+    try {
+      const items = (selectedPo.items || []).map((item: any) => ({
+        id: item.id,
+        received_qty: Number(forceEditItems[item.id]?.received_qty ?? item.received_qty ?? 0),
+        order_rate: Number(forceEditItems[item.id]?.order_rate ?? item.order_rate ?? 0),
+      }));
+      const res = await fetch('/api/po/force-edit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ po_id: selectedPo.id, items }),
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error || 'Failed to save'); return; }
+      alert('✅ PO items updated successfully!');
+      setForceEditMode(false);
+      setForceEditItems({});
+      // Refresh data so modal shows updated values
+      await loadData();
+      // Re-select the updated PO so modal stays open
+      setSelectedPo((prev: any) => {
+        if (!prev) return null;
+        const updated = pos.find((p: any) => p.id === prev.id);
+        return updated || prev;
+      });
+    } catch (err: any) {
+      alert(err.message || 'Network error');
+    } finally {
+      setIsSavingForceEdit(false);
+    }
+  };
 
   // Map internal DB status values to human-readable display labels
   const getStatusLabel = (status: string) => {
@@ -458,29 +517,59 @@ export default function POHistory() {
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Size</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Current Stock</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Req Qty</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Received Qty</th>
+                    <th style={{ textAlign: 'right', padding: '10px 12px', color: forceEditMode ? '#7c3aed' : undefined }}>Received Qty {forceEditMode && '✏️'}</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Pending Qty</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Rate</th>
+                    <th style={{ textAlign: 'right', padding: '10px 12px', color: forceEditMode ? '#7c3aed' : undefined }}>Rate {forceEditMode && '✏️'}</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(selectedPo.items || []).map((item: any, i: number) => {
                     const reqQty = Number(item.required_qty || 0);
-                    const recQty = Number(item.received_qty || 0);
+                    const recQty = forceEditMode
+                      ? Number(forceEditItems[item.id]?.received_qty ?? item.received_qty ?? 0)
+                      : Number(item.received_qty || 0);
+                    const rate = forceEditMode
+                      ? Number(forceEditItems[item.id]?.order_rate ?? item.order_rate ?? 0)
+                      : Number(item.order_rate || 0);
                     const pendQty = Math.max(0, reqQty - recQty);
+                    const amount = recQty * rate;
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: forceEditMode ? '#faf5ff' : 'white' }}>
                         <td style={{ padding: '10px 12px', fontWeight: 600, color: 'var(--text-ghost)', fontSize: '11px' }}>{item.category || '—'}</td>
                         <td style={{ padding: '10px 12px', fontWeight: 700 }}>{item.material_code || '—'}</td>
                         <td style={{ padding: '10px 12px', fontWeight: 600 }}>{item.material_name || '—'}</td>
                         <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{item.size_thickness}</td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{Number(item.current_stock || 0).toLocaleString()} {item.current_stock_unit || ''}</td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace' }}>{reqQty.toLocaleString()} {item.unit || 'Pair'}</td>
-                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: '#16a34a' }}>{recQty.toLocaleString()} {item.unit || 'Pair'}</td>
+                        {/* Received Qty — editable in force edit mode */}
+                        <td style={{ textAlign: 'right', padding: '8px 12px', fontWeight: 700, fontFamily: 'monospace', color: '#16a34a' }}>
+                          {forceEditMode ? (
+                            <input
+                              type="number" min="0"
+                              value={forceEditItems[item.id]?.received_qty ?? ''}
+                              onChange={e => setForceEditItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], received_qty: e.target.value } }))}
+                              style={{ width: '80px', padding: '4px 6px', border: '1.5px solid #7c3aed', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', color: '#6d28d9', outline: 'none' }}
+                            />
+                          ) : (
+                            <>{recQty.toLocaleString()} {item.unit || 'Pair'}</>
+                          )}
+                        </td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: pendQty > 0 ? '#ef4444' : 'var(--text-muted)' }}>{pendQty.toLocaleString()} {item.unit || 'Pair'}</td>
-                        <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{Number(item.order_rate || 0).toFixed(2)}</td>
-                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{Number(item.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        {/* Rate — editable in force edit mode */}
+                        <td style={{ textAlign: 'right', padding: '8px 12px', fontFamily: 'monospace' }}>
+                          {forceEditMode ? (
+                            <input
+                              type="number" min="0" step="0.01"
+                              value={forceEditItems[item.id]?.order_rate ?? ''}
+                              onChange={e => setForceEditItems(prev => ({ ...prev, [item.id]: { ...prev[item.id], order_rate: e.target.value } }))}
+                              style={{ width: '90px', padding: '4px 6px', border: '1.5px solid #7c3aed', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', color: '#6d28d9', outline: 'none' }}
+                            />
+                          ) : (
+                            <>₹{rate.toFixed(2)}</>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                       </tr>
                     );
                   })}
@@ -494,8 +583,35 @@ export default function POHistory() {
               <div style={{ fontSize: '15px', color: 'var(--primary)', fontWeight: 800 }}>Net Total: <strong>₹{(selectedPo.net_amount ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</strong></div>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-              <button className="btn-corp" onClick={() => setSelectedPo(null)}>Close Tracker Details</button>
+            {/* Force Edit Controls */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                {canForceEdit && !forceEditMode && (
+                  <button
+                    onClick={enterForceEdit}
+                    style={{ background: 'linear-gradient(135deg, #7c3aed, #a78bfa)', color: 'white', border: 'none', padding: '9px 20px', borderRadius: '10px', fontWeight: 800, fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 12px rgba(124,58,237,0.25)' }}
+                  >
+                    ✏️ Force Edit Received Qty & Rate
+                  </button>
+                )}
+                {forceEditMode && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={saveForceEdit} disabled={isSavingForceEdit}
+                      style={{ background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: 'white', border: 'none', padding: '9px 22px', borderRadius: '10px', fontWeight: 800, fontSize: '13px', cursor: isSavingForceEdit ? 'wait' : 'pointer', opacity: isSavingForceEdit ? 0.6 : 1, boxShadow: '0 4px 12px rgba(34,197,94,0.25)' }}
+                    >
+                      {isSavingForceEdit ? '⏳ Saving...' : '💾 Save Changes'}
+                    </button>
+                    <button
+                      onClick={cancelForceEdit}
+                      style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', padding: '9px 18px', borderRadius: '10px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', color: '#475569' }}
+                    >
+                      ✕ Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+              <button className="btn-corp" onClick={() => { setSelectedPo(null); setForceEditMode(false); setForceEditItems({}); }}>Close Tracker Details</button>
             </div>
           </div>
         </div>

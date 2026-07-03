@@ -42,6 +42,26 @@ export async function POST(request: Request) {
 
   try {
     const result = await db.transaction(async () => {
+      // ─── DUPLICATE SCAN GUARD ────────────────────────────────────────────────
+      // Reject if this exact barcode was already successfully scanned in the
+      // last 10 minutes to protect against accidental double-scans.
+      const recentDuplicate = await db.prepare(`
+        SELECT id FROM scan_history
+        WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
+          AND created_at >= NOW() - INTERVAL '10 minutes'
+        LIMIT 1
+      `).get(barcode) as any;
+
+      if (recentDuplicate) {
+        // Log the duplicate attempt in scan_history for forensic visibility
+        await db.prepare(`
+          INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+          VALUES (?, ?, ?, ?, ?, 'error_duplicate', ?, 'intake')
+        `).run(barcode, article, colour, size, user.id, mrp);
+        throw Object.assign(new Error(`DUPLICATE_SCAN: Barcode "${barcode}" was already scanned recently. Duplicate scan rejected.`), { isDuplicate: true });
+      }
+      // ────────────────────────────────────────────────────────────────────────
+
       // Upsert inventory pool safely – column name already validated
       const existing = await db.prepare(`SELECT id, ${sizeColumn}, mrp FROM inventory_pool WHERE article_code = ? AND colour = ?`).get(article, colour) as any;
       if (existing) {
@@ -89,23 +109,29 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, message: 'Stock Added to Inventory', product: result });
   } catch (error: any) {
-    // Log error audit for traceability
-    await logAudit({
-      userId: user.id,
-      username: user.username,
-      action: 'INWARD_SCAN_ERROR',
-      module: 'inventory_pool',
-      recordId: 0,
-      description: `Error scanning barcode ${barcode}: ${error.message}`
-    });
-    // Record failed scan in history for forensic analysis
-    try {
-      await db.prepare(`
-        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'intake')
-      `).run(barcode, '-', '-', '-', user.id, `error: ${error.message}`, null);
-    } catch {}
+    const isDuplicate = error.isDuplicate === true;
+    // Log error audit for traceability (skip if already logged as duplicate)
+    if (!isDuplicate) {
+      await logAudit({
+        userId: user.id,
+        username: user.username,
+        action: 'INWARD_SCAN_ERROR',
+        module: 'inventory_pool',
+        recordId: 0,
+        description: `Error scanning barcode ${barcode}: ${error.message}`
+      });
+      // Record failed scan in history for forensic analysis
+      try {
+        await db.prepare(`
+          INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+          VALUES (?, ?, ?, ?, ?, ?, ?, 'intake')
+        `).run(barcode, '-', '-', '-', user.id, `error: ${error.message}`, null);
+      } catch {}
+    }
     console.error('Error scanning barcode:', error);
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json(
+      { error: error.message, isDuplicate },
+      { status: isDuplicate ? 409 : 400 }
+    );
   }
 }

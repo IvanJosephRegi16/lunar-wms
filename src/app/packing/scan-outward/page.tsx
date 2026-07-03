@@ -199,7 +199,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 
   const [barcode, setBarcode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [scanResult, setScanResult] = useState<{ success: boolean; message: string; data?: any } | null>(null);
+  const [scanResult, setScanResult] = useState<{ success: boolean; message: string; data?: any; isDuplicate?: boolean } | null>(null);
   
   // Custom Approval Modal State
   const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; message: string; pendingBarcode: string } | null>(null);
@@ -291,6 +291,9 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           return newProgress;
         });
         // We do NOT await fetchSessionData() here to ensure there are 0 milliseconds of frontend lag between scans
+      } else if (res.status === 409 && data.isDuplicate) {
+        // Duplicate scan — show as a distinctive warning, not an error
+        setScanResult({ success: false, message: data.error, isDuplicate: true });
       } else {
         setScanResult({ success: false, message: data.error });
       }
@@ -667,8 +670,8 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 
             {/* SCAN RESULT FEEDBACK */}
             <div style={{ 
-              background: scanResult?.success ? '#f0fdf4' : scanResult ? '#fef2f2' : '#f8fafc',
-              border: `2px dashed ${scanResult?.success ? '#86efac' : scanResult ? '#fca5a5' : '#cbd5e1'}`,
+              background: scanResult?.success ? '#f0fdf4' : scanResult?.isDuplicate ? '#fffbeb' : scanResult ? '#fef2f2' : '#f8fafc',
+              border: `2px dashed ${scanResult?.success ? '#86efac' : scanResult?.isDuplicate ? '#fcd34d' : scanResult ? '#fca5a5' : '#cbd5e1'}`,
               borderRadius: '20px', 
               padding: '32px', 
               display: 'flex', 
@@ -688,6 +691,12 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   <div style={{ fontSize: '56px', marginBottom: '16px', animation: 'scale-up 0.3s ease' }}>✅</div>
                   <h3 style={{ margin: '0 0 8px 0', fontSize: '22px', color: '#16a34a', fontWeight: 900 }}>Scan Successful</h3>
                   <p style={{ margin: 0, fontWeight: 600, color: '#15803d', fontSize: '15px' }}>{scanResult.message}</p>
+                </>
+              ) : scanResult.isDuplicate ? (
+                <>
+                  <div style={{ fontSize: '56px', marginBottom: '16px' }}>⚠️</div>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '22px', color: '#d97706', fontWeight: 900 }}>Duplicate Scan Blocked</h3>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#92400e', fontSize: '15px', textAlign: 'center' }}>{scanResult.message}</p>
                 </>
               ) : (
                 <>
@@ -744,17 +753,22 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
-      
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
 
+        @page {
+          size: 100mm 100mm;
+          margin: 0;
+        }
+
         @media print {
+          html, body { margin: 0 !important; padding: 0 !important; }
           body * { visibility: hidden; }
-          .print-wrapper { background: white !important; padding: 0 !important; }
+          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: absolute; left: 0; top: 0; padding: 0 !important; margin: 0 !important; }
+          .sticker-wrap { position: fixed; left: 0; top: 0; width: 100mm; height: 100mm; padding: 0 !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          .sticker { box-shadow: none !important; margin: 0 !important; border: 3px solid #000 !important; }
+          .sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 100mm !important; height: 100mm !important; }
         }
 
         .sticker {
@@ -767,17 +781,14 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
           box-sizing: border-box;
           display: flex;
           flex-direction: column;
-          justify-content: space-between;
         }
-        .sticker-header { background: #000; color: #fff; display: flex; align-items: center; justify-content: space-between; padding: 4px 8px; }
-        .sticker-header .brand { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 900; letter-spacing: 2px; text-transform: uppercase; }
-        .sticker-header .badge { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 800; letter-spacing: 1px; background: #fff; color: #000; padding: 2px 6px; border-radius: 2px; text-transform: uppercase; }
         .info-row { display: flex; align-items: stretch; border-bottom: 1.5px solid #000; flex: 1; }
         .info-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 8px; min-width: 60px; display: flex; align-items: center; border-right: 1.5px solid #000; }
         .info-value { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: #000; padding: 4px 8px; display: flex; align-items: center; letter-spacing: 1px; flex: 1; }
         .info-value.art { font-size: 24px; font-weight: 900; letter-spacing: 1px; }
         .info-value.mrp-val { font-size: 20px; font-weight: 900; }
         .info-value.mrp-val .rupee { font-size: 16px; margin-right: 2px; font-weight: 800; color: #000; }
+        .info-value.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 32px; font-weight: 900; letter-spacing: 2px; color: #000; }
         .size-section { border-bottom: 1.5px solid #000; }
         .size-col-header { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 0; text-align: center; border-right: 1.5px solid #000; }
         .size-col-header:first-child { text-align: left; padding-left: 8px; min-width: 60px; }
@@ -789,16 +800,7 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         .packages-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; }
         .packages-value { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: #000; letter-spacing: 1px; }
         .packages-value span { font-size: 10px; font-weight: 800; color: #000; margin-left: 2px; letter-spacing: 1px; text-transform: uppercase; }
-        .bottom-section { display: flex; align-items: stretch; border-bottom: 1.5px solid #000; flex: 1.5; }
-        .made-india { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 4px 8px; border-right: 1.5px solid #000; gap: 1px; }
-        .made-india .mil { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #000; }
-        .made-india .mfg { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 700; color: #000; text-transform: uppercase; }
-        .made-india .fw { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; color: #000; }
-        .barcode-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px; gap: 2px; }
-        .sticker-footer { background: #fff; padding: 4px 8px; display: flex; flex-direction: column; gap: 1px; }
-        .footer-line { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; color: #000; font-weight: 700; line-height: 1.2; text-transform: uppercase; }
-        .footer-line strong { font-weight: 900; color: #000; }
-        .assortment-tag { font-family: 'Barlow Condensed', sans-serif; font-size: 9px; font-weight: 900; letter-spacing: 1px; background: #000; color: #fff; padding: 1px 6px; border-radius: 2px; text-transform: uppercase; display: inline-block; margin-bottom: 1px; }
+        .barcode-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; flex: 1; }
       `}</style>
 
       <div className="no-print" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
@@ -812,20 +814,13 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
 
       <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="sticker">
-          <div className="sticker-header">
-            <div className="brand">{brandName}</div>
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-              <div className="assortment-tag">Assortment</div>
-              <div className="badge">Master Carton</div>
-            </div>
+          {/* Compact header: Article + Master Carton badge */}
+          <div style={{ background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px' }}>
+            <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '20px', fontWeight: 900, letterSpacing: '2px' }}>{article}</span>
+            <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '9px', fontWeight: 800, letterSpacing: '1px', background: '#fff', color: '#000', padding: '2px 6px', borderRadius: '2px', textTransform: 'uppercase' }}>Master Carton</span>
           </div>
 
           <div className="sticker-body" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div className="info-row">
-              <div className="info-label">Art No.</div>
-              <div className="info-value art">{article}</div>
-            </div>
-
             <div className="info-row">
               <div className="info-label">Colour</div>
               <div className="info-value" style={{ fontSize: '18px' }}>{colour}</div>
@@ -833,7 +828,7 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
 
             <div className="info-row">
               <div className="info-label">Size</div>
-              <div className="info-value" style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '2px', color: '#000' }}>{aggregatedSizeStr.replace('x', ' × ')}</div>
+              <div className="info-value size-roman">{aggregatedSizeStr.replace('x', ' × ')}</div>
             </div>
 
             {mrp && (
@@ -861,21 +856,10 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
               <div className="packages-value">{totalPairs} <span>Pairs</span></div>
             </div>
 
-            <div className="bottom-section">
-              <div className="made-india">
-                <div className="mil">Made in India</div>
-                <div className="mfg">Month of Mfg: {new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()}</div>
-                <div className="fw">Footwear</div>
-              </div>
-              <div className="barcode-area">
-                <Barcode value={barcodeValue} format="CODE128" width={1.8} height={25} displayValue={false} margin={0} background="#ffffff" />
-              </div>
+            {/* Barcode only — no branding text */}
+            <div className="barcode-area">
+              <Barcode value={barcodeValue} format="CODE128" width={1.8} height={30} displayValue={false} margin={0} background="#ffffff" />
             </div>
-          </div>
-
-          <div className="sticker-footer">
-            <div className="footer-line"><strong>Mfd. &amp; Pkd. By:</strong> {mfdBy}</div>
-            <div className="footer-line"><strong>Mktd. By:</strong> {mktdBy}</div>
           </div>
         </div>
       </div>

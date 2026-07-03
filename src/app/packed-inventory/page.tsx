@@ -557,17 +557,23 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
-        @media print { body * { visibility: hidden; } .print-wrapper { background: white !important; padding: 0 !important; } .sticker-wrap, .sticker-wrap * { visibility: visible; } .sticker-wrap { position: absolute; left: 0; top: 0; } .no-print { display: none !important; } }
+        @page { size: 100mm 100mm; margin: 0; }
+        @media print {
+          html, body { margin: 0 !important; padding: 0 !important; }
+          body * { visibility: hidden; }
+          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; }
+          .sticker-wrap, .sticker-wrap * { visibility: visible; }
+          .sticker-wrap { position: fixed; left: 0; top: 0; width: 100mm; height: 100mm; padding: 0 !important; margin: 0 !important; }
+          .no-print { display: none !important; }
+          .pi-sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 100mm !important; height: 100mm !important; }
+        }
         .pi-sticker { width:10cm; height:10cm; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
-        .pi-hdr { background:#000; color:#fff; display:flex; align-items:center; justify-content:space-between; padding:4px 8px; flex-shrink:0; }
-        .pi-hdr .brand { font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:900; letter-spacing:2px; text-transform:uppercase; }
-        .pi-hdr .badge { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:800; background:#fff; color:#000; padding:2px 6px; border-radius:2px; text-transform:uppercase; }
-        .pi-hdr .atag { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:900; background:#fff; color:#000; padding:1px 6px; border-radius:2px; text-transform:uppercase; }
         .pi-body { display:flex; flex-direction:column; flex:1; overflow:hidden; }
         .pi-row { display:flex; align-items:stretch; border-bottom:1.5px solid #000; }
         .pi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:3px 8px; min-width:60px; display:flex; align-items:center; border-right:1.5px solid #000; }
         .pi-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; padding:3px 8px; display:flex; align-items:center; flex:1; }
         .pi-val.art { font-size:22px; }
+        .pi-val.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size:32px; font-weight:900; letter-spacing:2px; color:#000; }
         .pi-sizes { border-bottom:1.5px solid #000; flex-shrink:0; }
         .pi-sh { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; padding:3px 0; text-align:center; border-right:1.5px solid #000; }
         .pi-sh:first-child { text-align:left; padding-left:8px; min-width:60px; }
@@ -579,15 +585,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         .pi-pkgs-lbl { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; }
         .pi-pkgs-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; }
         .pi-pkgs-val span { font-size:10px; font-weight:800; margin-left:2px; text-transform:uppercase; }
-        .pi-bot { display:flex; align-items:stretch; border-bottom:1.5px solid #000; flex:1; }
-        .pi-origin { flex:1; display:flex; flex-direction:column; justify-content:center; padding:4px 8px; border-right:1.5px solid #000; gap:1px; }
-        .pi-origin .mil { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:900; text-transform:uppercase; }
-        .pi-origin .mfg { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; text-transform:uppercase; }
-        .pi-origin .fw { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:900; text-transform:uppercase; }
-        .pi-bc { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px; }
-        .pi-footer { padding:3px 8px; display:flex; flex-direction:column; gap:1px; flex-shrink:0; }
-        .pi-fl { font-family:'Barlow Condensed',sans-serif; font-size:9px; font-weight:700; line-height:1.2; text-transform:uppercase; }
-        .pi-fl strong { font-weight:900; }
+        .pi-bc { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px; flex:1; }
       `}</style>
       <div className="no-print" style={{ display:'flex', gap:'12px', marginBottom:'24px' }}>
         <button onClick={onClose} className="btn-corp" style={{ background:'#fff', color:'#475569', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'8px', fontWeight:700 }}>&larr; Back to Inventory</button>
@@ -595,17 +593,14 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
       </div>
       <div className="sticker-wrap">
         <div className="pi-sticker">
-          <div className="pi-hdr">
-            <div className="brand">{brandName}</div>
-            <div style={{ display:'flex', gap:'4px', alignItems:'center' }}>
-              <span className="atag">Assortment</span>
-              <span className="badge">Master Carton</span>
-            </div>
+          {/* Compact header: Article + Master Carton badge — no brand name */}
+          <div style={{ background:'#000', color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px', flexShrink:0 }}>
+            <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'20px', fontWeight:900, letterSpacing:'2px' }}>{article}</span>
+            <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'9px', fontWeight:800, background:'#fff', color:'#000', padding:'2px 6px', borderRadius:'2px', textTransform:'uppercase' }}>Master Carton</span>
           </div>
           <div className="pi-body">
-            <div className="pi-row"><div className="pi-lbl">Art No.</div><div className="pi-val art">{article}</div></div>
             <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
-            <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val" style={{ fontSize:'32px', fontWeight: 900, letterSpacing: '2px', color: '#000' }}>{aggregatedSizeStr}</div></div>
+            <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val size-roman">{aggregatedSizeStr}</div></div>
             {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val">&#8377;{parseFloat(mrp).toFixed(2)}</div></div>)}
             <div className="pi-sizes">
               <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
@@ -623,20 +618,10 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
               <span className="pi-pkgs-lbl">No. of Packages</span>
               <span className="pi-pkgs-val">{totalPairs} <span>Pairs</span></span>
             </div>
-            <div className="pi-bot">
-              <div className="pi-origin">
-                <div className="mil">Made in India</div>
-                <div className="mfg">Mfg: {mfgDate}</div>
-                <div className="fw">Footwear</div>
-              </div>
-              <div className="pi-bc">
-                <Barcode value={barcodeValue} format="CODE128" width={1.6} height={22} displayValue={false} margin={0} background="#ffffff" />
-              </div>
+            {/* Barcode only — no branding/footer text */}
+            <div className="pi-bc">
+              <Barcode value={barcodeValue} format="CODE128" width={1.6} height={28} displayValue={false} margin={0} background="#ffffff" />
             </div>
-          </div>
-          <div className="pi-footer">
-            <div className="pi-fl"><strong>Mfd. &amp; Pkd. By:</strong> {mfdBy}</div>
-            <div className="pi-fl"><strong>Mktd. By:</strong> {mktdBy}</div>
           </div>
         </div>
       </div>
