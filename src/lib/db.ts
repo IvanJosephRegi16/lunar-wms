@@ -855,6 +855,10 @@ ON CONFLICT (username) DO NOTHING;
       { table: 'materials',           column: 'size_thickness',          type: 'TEXT' },
       { table: 'materials',           column: 'rate',                    type: 'REAL DEFAULT 0' },
       { table: 'leave_applications',  column: 'pm_remarks',              type: 'TEXT' },
+      { table: 'carton_generation',   column: 'is_deleted',              type: 'INTEGER DEFAULT 0' },
+      { table: 'carton_generation',   column: 'article_code',            type: 'TEXT' },
+      { table: 'carton_generation',   column: 'colour',                  type: 'TEXT' },
+      { table: 'carton_generation',   column: 'created_by',              type: 'INTEGER' },
     ];
 
     for (const m of columnMigrations) {
@@ -866,6 +870,11 @@ ON CONFLICT (username) DO NOTHING;
         // Column already exists or table not created yet — safe to ignore
       }
     }
+
+    // Backfill NULL is_deleted values to 0 for carton_generation
+    try {
+      await client.query(`UPDATE carton_generation SET is_deleted = 0 WHERE is_deleted IS NULL`);
+    } catch { /* table may not exist yet */ }
 
     // ── Constraint migrations (fix CHECK constraints for new status values) ──
     try {
