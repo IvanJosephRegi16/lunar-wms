@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     
     // 1. Get session details
     const session = await db.prepare(`
-      SELECT s.*, c.total_pairs 
+      SELECT s.*, c.total_pairs, c.name as rule_name 
       FROM outward_scan_sessions s
       JOIN carton_generation c ON s.carton_generation_id = c.id
       WHERE s.id = ?
@@ -71,8 +71,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Calculate how many cartons have been packed for this config
+      const txCountRes = await db.prepare(`
+        SELECT COUNT(*) as count FROM outward_transactions WHERE config_id = ?
+      `).get(session.carton_generation_id) as any;
+      const seq = ((txCountRes?.count || 0) + 1).toString().padStart(4, '0');
+      const safeRuleName = (session.rule_name || 'RULE').replace(/[^a-zA-Z0-9_-]/g, '');
+      const cartonIdStr = `${safeRuleName}_${seq}`;
+
       // Create packed_carton
-      const cartonIdStr = `CRT-${Date.now()}`;
       await db.prepare(`
         INSERT INTO packed_cartons (carton_id, transaction_id, status)
         VALUES (?, ?, 'pending')

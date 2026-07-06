@@ -335,8 +335,8 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const proceedToSeal = () => {
     setEarlySealWarning(false);
     if (session?.mrp) {
-      const totalPairs = progress.reduce((acc, curr) => acc + curr.scanned, 0);
-      const computedMrp = (session.mrp * totalPairs).toFixed(2);
+      // Show the MRP for 1 pair only, not multiplied by total pairs
+      const computedMrp = Number(session.mrp).toFixed(2);
       setEnteredMrp(computedMrp);
     } else {
       setEnteredMrp('');
@@ -757,7 +757,7 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
 
         @page {
-          size: 100mm 100mm;
+          size: 90mm 90mm;
           margin: 0;
         }
 
@@ -766,14 +766,14 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
           body * { visibility: hidden; }
           .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: fixed; left: 0; top: 0; width: 100mm; height: 100mm; padding: 0 !important; margin: 0 !important; }
+          .sticker-wrap { position: fixed; left: 0; top: 0; width: 90mm; height: 90mm; padding: 0 !important; margin: 0 !important; }
           .no-print { display: none !important; }
-          .sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 100mm !important; height: 100mm !important; }
+          .sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 90mm !important; height: 90mm !important; }
         }
 
         .sticker {
-          width: 10cm;
-          height: 10cm;
+          width: 9cm;
+          height: 9cm;
           background: #ffffff;
           border: 2px solid #000;
           font-family: 'Barlow', sans-serif;

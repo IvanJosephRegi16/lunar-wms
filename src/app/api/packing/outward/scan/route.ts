@@ -66,25 +66,44 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Session is ${session.status}` }, { status: 400 });
     }
 
-    // ─── DUPLICATE SCAN GUARD (per-session) ──────────────────────────────────
-    // Check if this exact barcode string was already scanned in this session
-    const existingInSession = await db.prepare(`
+    // ─── DUPLICATE SCAN GUARD (Global Outward) ──────────────────────────────────
+    // Check if this exact barcode string was already scanned outward successfully
+    const existingOutward = await db.prepare(`
       SELECT id FROM scan_history
       WHERE barcode = ? AND scan_type = 'outward' AND status = 'success_outward'
-        AND created_at >= NOW() - INTERVAL '30 minutes'
       LIMIT 1
     `).get(barcode) as any;
 
-    if (existingInSession && !force) {
+    if (existingOutward && !force) {
       // Log the duplicate attempt visibly in scan_history
       await db.prepare(`
         INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, scan_type)
         VALUES (?, ?, ?, ?, ?, 'error_duplicate', 'outward')
       `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id);
       return NextResponse.json({
-        error: `⚠️ DUPLICATE SCAN: Barcode "${barcode}" was already scanned in this session. Duplicate rejected.`,
+        error: `⚠️ DUPLICATE SCAN: Barcode "${barcode}" was already scanned outward. Duplicate rejected.`,
         isDuplicate: true
       }, { status: 409 });
+    }
+    // ──────────────────────────────────────────────────────────────────
+
+    // ─── INTAKE EXISTENCE GUARD ───────────────────────────────────────────────
+    // Check if this exact barcode string exists in intake history successfully
+    const existingIntake = await db.prepare(`
+      SELECT id FROM scan_history
+      WHERE barcode = ? AND scan_type = 'intake' AND status = 'success_intake'
+      LIMIT 1
+    `).get(barcode) as any;
+
+    if (!existingIntake) {
+      // Log the invalid attempt visibly in scan_history
+      await db.prepare(`
+        INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, scan_type)
+        VALUES (?, ?, ?, ?, ?, 'error_not_in_intake', 'outward')
+      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id);
+      return NextResponse.json({
+        error: `⚠️ NOT FOUND IN INTAKE: Barcode "${barcode}" was never successfully scanned during intake. Only items scanned intake can be scanned outward.`
+      }, { status: 400 });
     }
     // ──────────────────────────────────────────────────────────────────
 
