@@ -115,14 +115,46 @@ function ScanOutwardHistoryDashboard() {
         </div>
       </div>
 
-      <div className="card-clean" style={{ padding: '24px', overflowX: 'auto' }}>
+      <style>{`
+        .scan-history-table {
+          width: 100%;
+          border-collapse: collapse;
+          border: 2px solid #1e293b;
+          font-family: 'Inter', system-ui, sans-serif;
+          background: white;
+          margin: 0;
+        }
+        .scan-history-table th {
+          background: #f1f5f9;
+          color: #0f172a;
+          font-weight: 800;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          padding: 12px 16px;
+          border: 1px solid #cbd5e1;
+          border-bottom: 2px solid #1e293b;
+          text-align: left;
+        }
+        .scan-history-table td {
+          padding: 14px 16px;
+          font-size: 14px;
+          color: #334155;
+          border: 1px solid #e2e8f0;
+          vertical-align: middle;
+        }
+        .scan-history-table tbody tr:hover td {
+          background-color: #f8fafc;
+        }
+      `}</style>
+
+      <div className="card-clean" style={{ padding: '24px', overflowX: 'auto', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)' }}>
         {loading ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-ghost)' }}>Loading history...</div>
         ) : (
-          <table className="corporate-table" style={{ margin: 0 }}>
+          <table className="scan-history-table">
             <thead>
               <tr>
-                <th>Session ID</th>
                 <th>Brand</th>
                 <th>Article Code</th>
                 <th>Colour</th>
@@ -137,7 +169,6 @@ function ScanOutwardHistoryDashboard() {
             <tbody>
               {history.map(session => (
                 <tr key={session.session_id}>
-                  <td><strong>#{session.session_id}</strong></td>
                   <td>
                     <span style={{ 
                       padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
@@ -178,7 +209,7 @@ function ScanOutwardHistoryDashboard() {
               ))}
               {history.length === 0 && (
                 <tr>
-                  <td colSpan={10} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-ghost)' }}>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-ghost)' }}>
                     No outward scan history found.
                   </td>
                 </tr>

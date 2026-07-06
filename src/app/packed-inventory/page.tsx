@@ -167,7 +167,7 @@ export default function PackedInventoryPage() {
       item.article_code,
       item.colour,
       item.config_name,
-      item.total_pairs,
+      Number(item.total_pairs) || 0,
       formatIST(item.created_at),
       item.scanned_at ? formatIST(item.scanned_at) : 'Pending Verification',
       item.status === 'completed' ? 'Completed' : 'Pending',
@@ -183,7 +183,7 @@ export default function PackedInventoryPage() {
 
   // Calculate live stats based on search
   const totalCartons = filteredInventory.length;
-  const totalPairs = filteredInventory.reduce((acc, curr) => acc + curr.total_pairs, 0);
+  const totalPairs = filteredInventory.reduce((acc, curr) => acc + (Number(curr.total_pairs) || 0), 0);
   
   const uniqueModels = new Set(
     filteredInventory.map(item => `${item.article_code}-${item.colour}`)
@@ -191,12 +191,14 @@ export default function PackedInventoryPage() {
 
   // Format Date layout cleanly
   const formatDateTime = (dateStr: string) => {
+    if (!dateStr) return '-';
     try {
       let parsedStr = dateStr;
       if (dateStr && !dateStr.includes('T') && !dateStr.includes('Z') && dateStr.includes(' ')) {
         parsedStr = dateStr.replace(' ', 'T') + 'Z';
       }
       const date = new Date(parsedStr);
+      if (isNaN(date.getTime())) return dateStr;
       return date.toLocaleString('en-IN', {
         timeZone: 'Asia/Kolkata',
         day: '2-digit',
