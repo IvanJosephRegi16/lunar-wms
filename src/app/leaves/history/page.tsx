@@ -16,7 +16,12 @@ export default function LeaveHistoryPage() {
       try {
         const res = await fetch('/api/leaves/history');
         if (!res.ok) {
-          throw new Error('Failed to load leave history. You may not be authorized.');
+          let errMsg = 'Failed to load leave history.';
+          try {
+            const errData = await res.json();
+            errMsg = errData.error || errMsg;
+          } catch {}
+          throw new Error(errMsg);
         }
         const data = await res.json();
         setUsers(data.users || []);

@@ -12,14 +12,14 @@ export async function GET(req: NextRequest) {
   try {
     const db = getDb();
     
-    // Aggregate total approved days this month per user (SQLite-compatible strftime)
+    // Aggregate total approved days this month per user (PostgreSQL TO_CHAR)
     const usersList = await db.prepare(`
       SELECT u.id as user_id, u.full_name as emp_name, u.role,
              COALESCE((
                SELECT SUM(total_days) FROM leave_applications l 
                WHERE l.user_id = u.id 
                AND l.status = 'approved' 
-               AND strftime('%Y-%m', l.start_date) = strftime('%Y-%m', 'now')
+               AND TO_CHAR(l.start_date::date, 'YYYY-MM') = TO_CHAR(CURRENT_DATE, 'YYYY-MM')
              ), 0) as this_month_taken
       FROM users u
       WHERE u.is_active = 1
