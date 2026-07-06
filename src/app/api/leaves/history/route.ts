@@ -4,9 +4,10 @@ import { getAuthUser } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   const user = await getAuthUser();
-  if (!user || (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor')) {
-    return NextResponse.json({ error: 'Unauthorized. Only Admin, PM, and Supervisor can view history.' }, { status: 401 });
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized. Please log in.' }, { status: 401 });
   }
+  // All authenticated users can view leave history
 
   try {
     const db = getDb();

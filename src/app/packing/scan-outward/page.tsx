@@ -229,7 +229,9 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const [loading, setLoading] = useState(true);
 
   const [barcode, setBarcode] = useState('');
-  const [isScanning, setIsScanning] = useState(false);
+  // Use a REF lock (not state) so the UI is never blocked between scans
+  const isScanningRef = useRef(false);
+  const scanQueue = useRef<string[]>([]);
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; data?: any; isDuplicate?: boolean } | null>(null);
   
   // Custom Approval Modal State
@@ -248,12 +250,10 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
     fetchSessionData();
   }, [sessionId]);
 
-  // Keep input focused for scanner
+  // Focus once on mount — do NOT re-run on every render (causes re-render storms during scanning)
   useEffect(() => {
-    if (barcodeInputRef.current) {
-      barcodeInputRef.current.focus();
-    }
-  });
+    barcodeInputRef.current?.focus();
+  }, []);
 
   const fetchSessionData = async () => {
     try {
@@ -281,61 +281,104 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
     }
   };
 
-  const handleScan = async (e?: React.FormEvent, force: boolean = false, overrideBarcode?: string) => {
+  // ─── SUPER-FAST SCAN ENGINE ──────────────────────────────────────────────────
+  // Uses a ref-lock + queue so the input is NEVER blocked. Workers can scan as
+  // fast as the hardware allows; queued barcodes are processed sequentially.
+  const processScanQueue = async () => {
+    if (isScanningRef.current) return; // already running
+    while (scanQueue.current.length > 0) {
+      const codeToScan = scanQueue.current.shift()!;
+      isScanningRef.current = true;
+      try {
+        const res = await fetch('/api/packing/outward/scan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, barcode: codeToScan, force: false })
+        });
+        const data = await res.json();
+
+        if (res.status === 200 && data.requireApproval) {
+          setApprovalModal({
+            isOpen: true,
+            message: data.message,
+            pendingBarcode: codeToScan
+          });
+          setScanResult(null);
+          // Pause queue until user responds to approval modal
+          isScanningRef.current = false;
+          return;
+        } else if (res.ok) {
+          setScanResult({ success: true, message: data.message, data: data.article });
+          // Optimistic UI update — zero perceived lag
+          setProgress(prev => {
+            const next = [...prev];
+            const idx = next.findIndex(p => p.size === data.article.size);
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], scanned: next[idx].scanned + 1, remaining: Math.max(0, next[idx].remaining - 1) };
+            } else {
+              next.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
+              next.sort((a, b) => parseInt(a.size) - parseInt(b.size));
+            }
+            return next;
+          });
+        } else if (res.status === 409 && data.isDuplicate) {
+          setScanResult({ success: false, message: data.error, isDuplicate: true });
+        } else {
+          setScanResult({ success: false, message: data.error });
+        }
+      } catch (err: any) {
+        setScanResult({ success: false, message: err.message || 'Network error' });
+      } finally {
+        isScanningRef.current = false;
+      }
+    }
+    // Re-focus after queue drains
+    barcodeInputRef.current?.focus();
+  };
+
+  const handleScan = (e?: React.FormEvent, force: boolean = false, overrideBarcode?: string) => {
     if (e) e.preventDefault();
     const codeToScan = overrideBarcode || barcode.trim();
-    // Always clear input immediately so hardware scanner can type the next code instantly
     if (!overrideBarcode) setBarcode('');
     if (!codeToScan) return;
 
-    setIsScanning(true);
-
-    try {
-      const res = await fetch('/api/packing/outward/scan', {
+    if (force) {
+      // Force-scan (approval confirmed) — runs immediately and re-opens queue
+      setApprovalModal(null);
+      fetch('/api/packing/outward/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId, barcode: codeToScan, force })
-      });
-      const data = await res.json();
-      
-      if (res.status === 200 && data.requireApproval) {
-        // Show our professional custom modal
-        setApprovalModal({
-          isOpen: true,
-          message: data.message,
-          pendingBarcode: codeToScan
-        });
-        setScanResult(null);
-      } else if (res.ok) {
-        setScanResult({ success: true, message: data.message, data: data.article });
-        
-        // Optimistic UI update for ultra-fast perceived performance (zero lag)
-        setProgress(prev => {
-          const newProgress = [...prev];
-          const idx = newProgress.findIndex(p => p.size === data.article.size);
-          if (idx >= 0) {
-            newProgress[idx] = { ...newProgress[idx], scanned: newProgress[idx].scanned + 1, remaining: Math.max(0, newProgress[idx].remaining - 1) };
-          } else {
-            newProgress.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
-            newProgress.sort((a, b) => parseInt(a.size) - parseInt(b.size));
-          }
-          return newProgress;
-        });
-        // We do NOT await fetchSessionData() here to ensure there are 0 milliseconds of frontend lag between scans
-      } else if (res.status === 409 && data.isDuplicate) {
-        // Duplicate scan — show as a distinctive warning, not an error
-        setScanResult({ success: false, message: data.error, isDuplicate: true });
-      } else {
-        setScanResult({ success: false, message: data.error });
-      }
-    } catch (err: any) {
-      setScanResult({ success: false, message: err.message || 'Error scanning barcode' });
-    } finally {
-      setIsScanning(false);
-      if (!approvalModal?.isOpen) {
+        body: JSON.stringify({ session_id: sessionId, barcode: codeToScan, force: true })
+      }).then(async forceRes => {
+        const data = await forceRes.json();
+        if (forceRes.ok) {
+          setScanResult({ success: true, message: data.message, data: data.article });
+          setProgress(prev => {
+            const next = [...prev];
+            const idx = next.findIndex(p => p.size === data.article.size);
+            if (idx >= 0) {
+              next[idx] = { ...next[idx], scanned: next[idx].scanned + 1, remaining: Math.max(0, next[idx].remaining - 1) };
+            } else {
+              next.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
+              next.sort((a, b) => parseInt(a.size) - parseInt(b.size));
+            }
+            return next;
+          });
+        } else {
+          setScanResult({ success: false, message: data.error });
+        }
+        processScanQueue();
         barcodeInputRef.current?.focus();
-      }
+      }).catch(err => {
+        setScanResult({ success: false, message: err.message || 'Network error' });
+        processScanQueue();
+      });
+      return;
     }
+
+    // Normal path: push to queue and process
+    scanQueue.current.push(codeToScan);
+    processScanQueue();
   };
 
   const confirmApproval = () => {
@@ -651,7 +694,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               <input 
                 ref={barcodeInputRef}
                 type="text" 
-                placeholder={isScanning ? '⚡ Processing...' : 'Scan barcode (e.g. 2222|GREEN|5|499.00)'}
+                placeholder='Scan barcode (e.g. 2222|GREEN|5|499.00)'
                 value={barcode}
                 onChange={e => setBarcode(e.target.value)}
                 autoFocus
@@ -662,26 +705,25 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   fontSize: '18px', 
                   padding: '20px 24px', 
                   fontWeight: 700, 
-                  border: `2px solid ${isScanning ? '#a78bfa' : '#cbd5e1'}`,
+                  border: '2px solid #cbd5e1',
                   borderRadius: '16px',
-                  backgroundColor: isScanning ? '#faf5ff' : '#f8fafc',
+                  backgroundColor: '#f8fafc',
                   transition: 'border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease',
-                  boxShadow: isScanning ? '0 0 0 4px rgba(124, 58, 237, 0.08)' : 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
-                  outline: 'none'
+                  boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)',
                 }}
                 onFocus={(e) => {
                   e.target.style.borderColor = 'var(--neon-violet)';
                   e.target.style.boxShadow = '0 0 0 4px rgba(124, 58, 237, 0.1)';
                 }}
                 onBlur={(e) => {
-                  e.target.style.borderColor = isScanning ? '#a78bfa' : '#cbd5e1';
-                  e.target.style.boxShadow = isScanning ? '0 0 0 4px rgba(124, 58, 237, 0.08)' : 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)';
+                  e.target.style.borderColor = '#cbd5e1';
+                  e.target.style.boxShadow = 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)';
                 }}
               />
               <button 
                 type="submit" 
                 className="btn-corp" 
-                disabled={isScanning || !barcode.trim()}
+                disabled={!barcode.trim()}
                 style={{ 
                   background: 'var(--neon-violet)', 
                   color: 'white', 
@@ -691,11 +733,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   fontWeight: 800,
                   borderRadius: '16px',
                   boxShadow: '0 10px 15px -3px rgba(124, 58, 237, 0.3)',
-                  opacity: (isScanning || !barcode.trim()) ? 0.7 : 1,
-                  cursor: (isScanning || !barcode.trim()) ? 'not-allowed' : 'pointer'
+                  opacity: !barcode.trim() ? 0.7 : 1,
+                  cursor: !barcode.trim() ? 'not-allowed' : 'pointer'
                 }}
               >
-                {isScanning ? 'Processing...' : 'Process Scan'}
+                Process Scan
               </button>
             </form>
 

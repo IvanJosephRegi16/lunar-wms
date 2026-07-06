@@ -45,7 +45,7 @@ export async function GET(request: Request) {
       params.push(startDate);
     }
     
-    query += ` ORDER BY s.created_at DESC LIMIT 2000`;
+    query += ` ORDER BY s.created_at DESC`;
     
     const history = await db.prepare(query).all(...params);
 
