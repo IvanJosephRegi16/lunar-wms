@@ -109,6 +109,9 @@ function ScanOutwardHistoryDashboard() {
           <button onClick={exportCSV} className="btn-corp" style={{ background: '#10b981', color: 'white', border: 'none' }}>
             📊 Export CSV
           </button>
+          <button onClick={() => router.push('/packing/verify')} className="btn-corp" style={{ background: '#3b82f6', color: 'white', border: 'none' }}>
+            🔍 Verify Barcode
+          </button>
           <button onClick={() => router.push('/carton-generation')} className="btn-corp" style={{ background: 'var(--neon-violet)', color: 'white', border: 'none' }}>
             ➕ New Scan Session
           </button>

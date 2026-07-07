@@ -91,7 +91,7 @@ export async function POST(req: NextRequest) {
     // Check if this exact barcode string exists in intake history successfully
     const existingIntake = await db.prepare(`
       SELECT id FROM scan_history
-      WHERE barcode = ? AND scan_type = 'intake' AND status = 'success_intake'
+      WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
       LIMIT 1
     `).get(barcode) as any;
 
