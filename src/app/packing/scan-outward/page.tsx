@@ -838,13 +838,13 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         }
 
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: 90mm; height: 90mm; overflow: hidden; }
           body * { visibility: hidden; }
-          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; }
+          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; overflow: hidden; width: 90mm; height: 90mm; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: fixed; left: 0; top: 0; width: 90mm; height: 90mm; padding: 0 !important; margin: 0 !important; }
+          .sticker-wrap { position: absolute; left: 0; top: 0; width: 90mm; height: 90mm; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
           .no-print { display: none !important; }
-          .sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 90mm !important; height: 90mm !important; }
+          .sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 90mm !important; height: 90mm !important; overflow: hidden; }
         }
 
         .sticker {
@@ -868,10 +868,10 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         .size-section { border-bottom: 1.5px solid #000; }
         .size-col-header { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 0; text-align: center; border-right: 1.5px solid #000; }
         .size-col-header:first-child { text-align: left; padding-left: 8px; min-width: 60px; }
-        .size-col-header.total-col { background: #000; color: #fff; border-right: none; font-size: 10px; min-width: 45px;}
+        .size-col-header.total-col { background: #fff; color: #000; border-right: none; font-size: 10px; min-width: 45px;}
         .size-cell { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: #000; text-align: center; padding: 4px 0; border-right: 1.5px solid #000; }
         .size-cell.label-cell { font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; text-align: left; padding-left: 8px; }
-        .size-cell.total-cell { font-size: 20px; font-weight: 900; color: #fff; background: #000; border-right: none; min-width: 45px;}
+        .size-cell.total-cell { font-size: 20px; font-weight: 900; color: #000; background: #fff; border-right: none; min-width: 45px;}
         .packages-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1.5px solid #000; }
         .packages-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; }
         .packages-value { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: #000; letter-spacing: 1px; }
@@ -891,9 +891,9 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
       <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <div className="sticker">
           {/* Compact header: Article + Master Carton badge */}
-          <div style={{ background: '#000', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px' }}>
+          <div style={{ background: '#fff', color: '#000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px' }}>
             <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '20px', fontWeight: 900, letterSpacing: '2px' }}>{article}</span>
-            <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '9px', fontWeight: 800, letterSpacing: '1px', background: '#fff', color: '#000', padding: '2px 6px', borderRadius: '2px', textTransform: 'uppercase' }}>Master Carton</span>
+            <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '9px', fontWeight: 800, letterSpacing: '1px', background: '#fff', color: '#000', padding: '2px 6px', borderRadius: '2px', border: '1px solid #000', textTransform: 'uppercase' }}>Master Carton</span>
           </div>
 
           <div className="sticker-body" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
