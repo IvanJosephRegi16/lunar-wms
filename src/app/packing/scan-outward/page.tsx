@@ -98,10 +98,10 @@ function ScanOutwardHistoryDashboard() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <button 
-            onClick={handleResetHistory} 
+          <button
+            onClick={handleResetHistory}
             disabled={isResetting}
-            className="btn-corp" 
+            className="btn-corp"
             style={{ background: '#ef4444', color: 'white', border: 'none', opacity: isResetting ? 0.7 : 1, cursor: isResetting ? 'wait' : 'pointer' }}
           >
             {isResetting ? '⏳ Resetting...' : '🛑 Reset History'}
@@ -173,7 +173,7 @@ function ScanOutwardHistoryDashboard() {
               {history.map(session => (
                 <tr key={session.session_id}>
                   <td>
-                    <span style={{ 
+                    <span style={{
                       padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
                       background: session.article_code?.toUpperCase().startsWith('J') ? '#fef3c7' : '#e0e7ff',
                       color: session.article_code?.toUpperCase().startsWith('J') ? '#d97706' : '#4338ca'
@@ -187,7 +187,7 @@ function ScanOutwardHistoryDashboard() {
                   <td>{session.total_pairs}</td>
                   <td>{session.operator_name || 'System'}</td>
                   <td>
-                    <span style={{ 
+                    <span style={{
                       padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 700,
                       background: session.status === 'completed' ? '#dcfce7' : session.status === 'in_progress' ? '#fef3c7' : '#fee2e2',
                       color: session.status === 'completed' ? '#16a34a' : session.status === 'in_progress' ? '#d97706' : '#ef4444'
@@ -200,7 +200,7 @@ function ScanOutwardHistoryDashboard() {
                   </td>
                   <td>
                     {session.status === 'in_progress' && (
-                      <button 
+                      <button
                         onClick={() => router.push(`/packing/scan-outward?session_id=${session.session_id}`)}
                         style={{ padding: '4px 12px', background: 'var(--neon-violet)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 700 }}
                       >
@@ -236,7 +236,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const isScanningRef = useRef(false);
   const scanQueue = useRef<string[]>([]);
   const [scanResult, setScanResult] = useState<{ success: boolean; message: string; data?: any; isDuplicate?: boolean } | null>(null);
-  
+
   // Custom Approval Modal State
   const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; message: string; pendingBarcode: string } | null>(null);
 
@@ -265,7 +265,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
       if (res.ok) {
         setSession(data.session);
         setProgress(data.progress);
-        
+
         if (data.session.status === 'completed') {
           alert('This session is already completed!');
           router.push('/packed-inventory');
@@ -401,7 +401,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const handleManualSealClick = () => {
     const totalPairsScanned = progress.reduce((acc, curr) => acc + curr.scanned, 0);
     const totalPairsRequired = progress.reduce((acc, curr) => acc + curr.required, 0);
-    
+
     if (totalPairsScanned < totalPairsRequired) {
       setEarlySealWarning(true);
       return;
@@ -484,7 +484,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="fade-up" style={{ padding: '24px', maxWidth: '1280px', margin: '0 auto', position: 'relative' }}>
-      
+
       {/* MRP POPUP */}
       {mrpPopup && (
         <div style={{
@@ -500,9 +500,9 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             </p>
             <div style={{ position: 'relative', width: '100%', marginBottom: '24px' }}>
               <span style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '24px', fontWeight: 'bold', color: '#333' }}>₹</span>
-              <input 
-                type="number" 
-                placeholder="e.g. 499.00" 
+              <input
+                type="number"
+                placeholder="e.g. 499.00"
                 value={enteredMrp}
                 onChange={e => setEnteredMrp(e.target.value)}
                 className="corporate-input"
@@ -560,7 +560,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             <div style={{ fontSize: '56px', marginBottom: '20px', animation: 'bounce 2s infinite' }}>⚠️</div>
             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '0 0 16px 0', color: '#0f172a', letterSpacing: '-0.5px' }}>Warning: Incomplete Carton</h2>
             <p style={{ margin: '0 0 32px 0', color: '#475569', fontSize: '16px', lineHeight: '1.6', fontWeight: 500 }}>
-              You have only scanned <strong>{progress.reduce((acc, curr) => acc + curr.scanned, 0)}</strong> pairs (Rule requires {progress.reduce((acc, curr) => acc + curr.required, 0)} pairs).<br/>Are you sure you want to process and seal this carton early?
+              You have only scanned <strong>{progress.reduce((acc, curr) => acc + curr.scanned, 0)}</strong> pairs (Rule requires {progress.reduce((acc, curr) => acc + curr.required, 0)} pairs).<br />Are you sure you want to process and seal this carton early?
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <button onClick={() => setEarlySealWarning(false)} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '2px solid #fecaca', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px' }}>
@@ -573,7 +573,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           </div>
         </div>
       )}
-      
+
       {/* HEADER SECTION */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', padding: '24px', borderRadius: '20px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         <div>
@@ -582,13 +582,13 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             <h1 style={{ margin: 0, fontSize: '28px', fontWeight: 900, color: '#0f172a', letterSpacing: '-0.5px' }}>Scan Outward</h1>
           </div>
           <p style={{ margin: 0, color: '#475569', fontSize: '16px', fontWeight: 500 }}>
-            Article: <span style={{ color: '#0f172a', fontWeight: 800 }}>{session.article_code}</span> &nbsp;•&nbsp; 
+            Article: <span style={{ color: '#0f172a', fontWeight: 800 }}>{session.article_code}</span> &nbsp;•&nbsp;
             Colour: <span style={{ color: '#0f172a', fontWeight: 800 }}>{session.colour}</span>
           </p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {canSeal && (
-            <button 
+            <button
               onClick={handleManualSealClick}
               className="btn-corp"
               style={{ background: '#10b981', color: 'white', border: 'none', padding: '14px 24px', fontSize: '15px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(16, 185, 129, 0.3)' }}
@@ -596,7 +596,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               📦 Finalize & Seal Carton
             </button>
           )}
-          <button 
+          <button
             onClick={handleCancelSession}
             className="btn-corp"
             style={{ background: '#ffffff', color: '#ef4444', border: '2px solid #fecaca', padding: '14px 24px', fontSize: '15px', borderRadius: '12px' }}
@@ -607,7 +607,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px' }}>
-        
+
         {/* LEFT PANEL: CONFIG REQUIREMENTS GRID */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -616,13 +616,13 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               Total Progress: {totalScanned} / {totalRequired} Pairs
             </div>
           </div>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
             {progress.map(row => {
               const isCustom = row.required === 0;
               const isComplete = row.remaining === 0 && !isCustom;
               const isOver = row.scanned > row.required && !isCustom;
-              
+
               let cardBg = '#ffffff';
               let borderColor = '#e2e8f0';
               let accentColor = '#3b82f6'; // default blue
@@ -646,10 +646,10 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               }
 
               return (
-                <div key={row.size} style={{ 
-                  background: cardBg, 
-                  border: `2px solid ${borderColor}`, 
-                  borderRadius: '20px', 
+                <div key={row.size} style={{
+                  background: cardBg,
+                  border: `2px solid ${borderColor}`,
+                  borderRadius: '20px',
                   padding: '20px',
                   display: 'flex',
                   flexDirection: 'column',
@@ -663,11 +663,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   <div style={{ fontSize: '36px', fontWeight: 900, color: '#0f172a', lineHeight: '1', marginBottom: '16px' }}>
                     {row.size}
                   </div>
-                  
+
                   <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginBottom: '16px', overflow: 'hidden' }}>
-                    <div style={{ 
-                      height: '100%', 
-                      background: accentColor, 
+                    <div style={{
+                      height: '100%',
+                      background: accentColor,
                       width: row.required > 0 ? `${Math.min(100, (row.scanned / row.required) * 100)}%` : '100%',
                       transition: 'width 0.3s ease'
                     }} />
@@ -692,22 +692,22 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px', fontWeight: 500 }}>
               Scan the article barcode to seamlessly deduct from the inventory pool and pack into this carton.
             </p>
-            
+
             <form onSubmit={handleScan} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
-              <input 
+              <input
                 ref={barcodeInputRef}
-                type="text" 
+                type="text"
                 placeholder='Scan barcode (e.g. 2222|GREEN|5|499.00)'
                 value={barcode}
                 onChange={e => setBarcode(e.target.value)}
                 autoFocus
                 autoComplete="off"
                 className="corporate-input"
-                style={{ 
-                  width: '100%', 
-                  fontSize: '18px', 
-                  padding: '20px 24px', 
-                  fontWeight: 700, 
+                style={{
+                  width: '100%',
+                  fontSize: '18px',
+                  padding: '20px 24px',
+                  fontWeight: 700,
                   border: '2px solid #cbd5e1',
                   borderRadius: '16px',
                   backgroundColor: '#f8fafc',
@@ -723,16 +723,16 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   e.target.style.boxShadow = 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)';
                 }}
               />
-              <button 
-                type="submit" 
-                className="btn-corp" 
+              <button
+                type="submit"
+                className="btn-corp"
                 disabled={!barcode.trim()}
-                style={{ 
-                  background: 'var(--neon-violet)', 
-                  color: 'white', 
-                  border: 'none', 
-                  padding: '18px', 
-                  fontSize: '18px', 
+                style={{
+                  background: 'var(--neon-violet)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '18px',
+                  fontSize: '18px',
                   fontWeight: 800,
                   borderRadius: '16px',
                   boxShadow: '0 10px 15px -3px rgba(124, 58, 237, 0.3)',
@@ -745,13 +745,13 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             </form>
 
             {/* SCAN RESULT FEEDBACK */}
-            <div style={{ 
+            <div style={{
               background: scanResult?.success ? '#f0fdf4' : scanResult?.isDuplicate ? '#fffbeb' : scanResult ? '#fef2f2' : '#f8fafc',
               border: `2px dashed ${scanResult?.success ? '#86efac' : scanResult?.isDuplicate ? '#fcd34d' : scanResult ? '#fca5a5' : '#cbd5e1'}`,
-              borderRadius: '20px', 
-              padding: '32px', 
-              display: 'flex', 
-              flexDirection: 'column', 
+              borderRadius: '20px',
+              padding: '32px',
+              display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               minHeight: '200px',
@@ -782,7 +782,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                 </>
               )}
             </div>
-            
+
           </div>
         </div>
 
@@ -798,10 +798,10 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 function getAggregatedSizes(progress: any[]) {
   const activeSizes = progress.filter(p => p.scanned > 0).map(p => parseInt(p.size)).sort((a, b) => a - b);
   if (activeSizes.length === 0) return 'N/A';
-  
+
   let isConsecutive = true;
   for (let i = 1; i < activeSizes.length; i++) {
-    if (activeSizes[i] !== activeSizes[i-1] + 1) {
+    if (activeSizes[i] !== activeSizes[i - 1] + 1) {
       isConsecutive = false;
       break;
     }
@@ -816,7 +816,7 @@ function getAggregatedSizes(progress: any[]) {
 
 function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose: () => void }) {
   const { article, colour, mrp, progress, carton } = cartonData;
-  const activeSizes = progress.filter((p: any) => p.scanned > 0).sort((a:any, b:any) => parseInt(a.size) - parseInt(b.size));
+  const activeSizes = progress.filter((p: any) => p.scanned > 0).sort((a: any, b: any) => parseInt(a.size) - parseInt(b.size));
   const aggregatedSizeStr = getAggregatedSizes(progress);
   const totalPairs = activeSizes.reduce((acc: number, curr: any) => acc + curr.scanned, 0);
 

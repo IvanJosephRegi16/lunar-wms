@@ -877,6 +877,10 @@ export default function AppLayout({ children, user }: { children: React.ReactNod
           <div style={{ fontSize: '11px', color: 'var(--text-ghost)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px', marginLeft: '16px' }}>Overview</div>
           <NavLink href="/" icon="📊" label="Dashboard" exact permissionKey="dashboard" />
           
+          {(isAdmin || isSupervisor) && (
+            <NavLink href="/matching-files" icon="🧩" label="Matching Files" exact />
+          )}
+          
           {(isAdmin || isPM) && (
             <>
               <NavLink href="/pm/live-sheet" icon="📖" label="Live Ledger" exact permissionKey="pm_live_sheet" />
