@@ -54,18 +54,31 @@ function detectColumnType(normalizedKey: string): 'article' | 'colour' | 'size' 
     'count', 'amount', 'balance', 'total', 'totalqty'
   ];
 
-  if (articlePatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+  const exactOrStarts = (patterns: string[], key: string) => patterns.some(p => key === p || key.startsWith(p));
+
+  if (exactOrStarts(articlePatterns, normalizedKey)) {
+    // Avoid false positives like "part qty" matching "part"
+    if (normalizedKey.includes('qty') || normalizedKey.includes('quant')) return 'quantity';
     return 'article';
   }
-  if (colourPatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+  if (exactOrStarts(colourPatterns, normalizedKey)) {
     return 'colour';
   }
-  if (sizePatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+  if (exactOrStarts(sizePatterns, normalizedKey)) {
     return 'size';
   }
-  if (quantityPatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+  
+  if (
+    exactOrStarts(quantityPatterns, normalizedKey) ||
+    normalizedKey.includes('qty') ||
+    normalizedKey.includes('quantity') ||
+    normalizedKey.includes('stock') ||
+    normalizedKey.includes('pcs') ||
+    normalizedKey.includes('pairs')
+  ) {
     return 'quantity';
   }
+  
   return null;
 }
 
@@ -80,7 +93,7 @@ function buildParsedRow(
   let article = '';
   let colour = '';
   let size = '';
-  let quantity = 0;
+  let quantity: number | null = null;
 
   for (const [rawKey, val] of Object.entries(rawRow)) {
     // Get the normalized version of this column header
@@ -91,8 +104,9 @@ function buildParsedRow(
     if (colType === 'article' && !article) article = strVal;
     else if (colType === 'colour' && !colour) colour = strVal;
     else if (colType === 'size' && !size) size = strVal;
-    else if (colType === 'quantity' && !quantity) {
-      const parsedQty = parseFloat(strVal);
+    else if (colType === 'quantity' && quantity === null) {
+      // Strip commas from numbers like "1,000" before parsing
+      const parsedQty = parseFloat(strVal.replace(/,/g, ''));
       if (!isNaN(parsedQty)) {
         quantity = parsedQty;
       }
@@ -104,7 +118,7 @@ function buildParsedRow(
     article,
     colour,
     size,
-    quantity,
+    quantity: quantity || 0,
     ...rawRow,  // keep ALL original fields for expanded row display
   };
 }

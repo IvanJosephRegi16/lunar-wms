@@ -116,12 +116,29 @@ export default function ComparisonTable({ results, totalResults }: Props) {
     <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
 
       <style>{`
-        @keyframes flipDown {
-          0% { opacity: 0; transform: perspective(1000px) rotateX(-90deg); transform-origin: top; }
-          100% { opacity: 1; transform: perspective(1000px) rotateX(0deg); transform-origin: top; }
+        @keyframes shuffleRotate {
+          0% { 
+            opacity: 0; 
+            transform: perspective(1200px) rotateX(-90deg) rotateY(15deg) scale(0.8) translateY(-30px); 
+            transform-origin: top; 
+          }
+          40% { 
+            opacity: 0.5; 
+            transform: perspective(1200px) rotateX(10deg) rotateY(-5deg) scale(1.05) translateY(10px); 
+          }
+          70% { 
+            opacity: 0.9; 
+            transform: perspective(1200px) rotateX(-5deg) rotateY(2deg) scale(0.98) translateY(-5px); 
+          }
+          100% { 
+            opacity: 1; 
+            transform: perspective(1200px) rotateX(0deg) rotateY(0deg) scale(1) translateY(0); 
+            transform-origin: top; 
+          }
         }
         .expanded-row-animation {
-          animation: flipDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+          animation: shuffleRotate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+          transform-style: preserve-3d;
         }
       `}</style>
 
