@@ -2,36 +2,95 @@ import Papa from 'papaparse';
 import * as ExcelJS from 'exceljs';
 import { ParsedRow } from './types';
 
+// ─── Normalize a header string for matching ────────────────────────────────
+// Strips all spaces, dots, underscores, hyphens and lowercases.
+// e.g. "Art No." → "artno", "COLOUR CODE" → "colourcode", "Sz" → "sz"
 export function normalizeHeader(header: string): string {
   if (!header) return '';
   return header.toString().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export function extractImportantFields(row: any, normalizedHeaders: Record<string, string>): ParsedRow {
+// ─── Fuzzy column type detection ──────────────────────────────────────────
+// Returns 'article' | 'colour' | 'size' | null for a given normalized header.
+// Covers all common real-world variants found in warehouse/packing Excel sheets.
+function detectColumnType(normalizedKey: string): 'article' | 'colour' | 'size' | null {
+  // ── Article / Item / Art No variants ──
+  const articlePatterns = [
+    'artno', 'art', 'article', 'articleno', 'articlecode', 'articlenum',
+    'artnumber', 'artn', 'artcode', 'artnum',
+    'item', 'itemno', 'itemcode', 'itemname', 'itemnum',
+    'product', 'productno', 'productcode', 'productname',
+    'sku', 'skucode', 'skuno',
+    'model', 'modelno', 'modelcode',
+    'style', 'styleno', 'stylecode',
+    'design', 'designno', 'designcode',
+    'ref', 'refno', 'reference',
+    'partno', 'partcode', 'part',
+    'code', 'itemid', 'productid',
+  ];
+
+  // ── Colour / Color variants ──
+  const colourPatterns = [
+    'colour', 'colourno', 'colourcode', 'colourname',
+    'color', 'colorcode', 'colorname', 'colorno',
+    'col', 'colcode',
+    'shade', 'shadecode', 'shadeno', 'shadename',
+    'finish', 'finishcode',
+    'hue',
+  ];
+
+  // ── Size variants ──
+  const sizePatterns = [
+    'size', 'sizeno', 'sizecode', 'sizename',
+    'sz', 'szno', 'szcode',
+    'siz',
+  ];
+
+  if (articlePatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+    return 'article';
+  }
+  if (colourPatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+    return 'colour';
+  }
+  if (sizePatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+    return 'size';
+  }
+  return null;
+}
+
+// ─── Build a unified ParsedRow from a raw data object and its header mapping ──
+// headerMapping: { originalKey → normalizedKey } for CSV
+//                { normalizedKey → normalizedKey } for Excel (keys are already normalized)
+function buildParsedRow(
+  rawRow: Record<string, any>,
+  headerMapping: Record<string, string>,
+  rowIndex: number
+): ParsedRow {
   let article = '';
   let colour = '';
   let size = '';
 
-  for (const [originalKey, val] of Object.entries(row)) {
-    const key = normalizedHeaders[originalKey];
-    if (key === 'article' || key === 'articlecode' || key === 'item') {
-      article = String(val || '');
-    } else if (key === 'colour' || key === 'color') {
-      colour = String(val || '');
-    } else if (key === 'size') {
-      size = String(val || '');
-    }
+  for (const [rawKey, val] of Object.entries(rawRow)) {
+    // Get the normalized version of this column header
+    const normalizedKey = headerMapping[rawKey] ?? normalizeHeader(rawKey);
+    const colType = detectColumnType(normalizedKey);
+    const strVal = String(val ?? '').trim();
+
+    if (colType === 'article' && !article) article = strVal;
+    else if (colType === 'colour' && !colour) colour = strVal;
+    else if (colType === 'size' && !size) size = strVal;
   }
 
   return {
-    _originalRowIndex: -1, // will be assigned in loop
-    article: article.trim(),
-    colour: colour.trim(),
-    size: size.trim(),
-    ...row
+    _originalRowIndex: rowIndex,
+    article,
+    colour,
+    size,
+    ...rawRow,  // keep ALL original fields for expanded row display
   };
 }
 
+// ─── CSV Parser ────────────────────────────────────────────────────────────
 export async function parseCsvFile(file: File): Promise<ParsedRow[]> {
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
@@ -40,65 +99,118 @@ export async function parseCsvFile(file: File): Promise<ParsedRow[]> {
       worker: true,
       complete: (results) => {
         if (!results.meta.fields) {
-          return reject(new Error('CSV does not have headers.'));
+          return reject(new Error('CSV file has no header row.'));
         }
-        const headers = results.meta.fields.reduce((acc: any, h: string) => {
-          acc[h] = normalizeHeader(h);
-          return acc;
-        }, {});
 
-        const parsed: ParsedRow[] = results.data.map((row: any, index) => {
-          const r = extractImportantFields(row, headers);
-          r._originalRowIndex = index + 1;
-          return r;
+        // Build a mapping: originalHeader → normalizedHeader
+        const headerMapping: Record<string, string> = {};
+        results.meta.fields.forEach((h: string) => {
+          headerMapping[h] = normalizeHeader(h);
         });
+
+        const parsed: ParsedRow[] = (results.data as Record<string, any>[]).map(
+          (row, index) => buildParsedRow(row, headerMapping, index + 1)
+        );
+
         resolve(parsed);
       },
-      error: (error) => reject(error)
+      error: (error) => reject(error),
     });
   });
 }
 
+// ─── Excel Parser ──────────────────────────────────────────────────────────
 export async function parseExcelFile(file: File): Promise<ParsedRow[]> {
   const arrayBuffer = await file.arrayBuffer();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(arrayBuffer);
 
   const worksheet = workbook.worksheets[0];
-  if (!worksheet) throw new Error('Excel file has no worksheets');
+  if (!worksheet) throw new Error('Excel file contains no worksheets.');
 
-  const rows: any[] = [];
-  let headerRow: any = null;
-  const headersMap: Record<string, string> = {};
+  const rows: ParsedRow[] = [];
+
+  // --- Step 1: Find the header row ---
+  // We scan the first 10 rows to find the one that contains article/colour/size-like headers.
+  // This handles Excel files where data doesn't start at row 1.
+  let headerRowNumber = -1;
+  const headerNormalizedMap: Record<string, string> = {}; // columnIndex → normalizedHeader
+  const headerOriginalMap: Record<string, string> = {};   // columnIndex → originalHeader
 
   worksheet.eachRow((row, rowNumber) => {
-    if (!headerRow) {
-      headerRow = row.values;
-      if (Array.isArray(headerRow)) {
-        headerRow.forEach((h: any, idx: number) => {
-          if (h) headersMap[idx.toString()] = normalizeHeader(h.toString());
-        });
-      }
-      return;
-    }
+    if (headerRowNumber !== -1) return; // already found
+    if (rowNumber > 15) return;         // don't scan too far
 
-    const rowData: any = {};
+    let articleFound = false;
+    let colourFound = false;
+    let sizeFound = false;
+
     if (Array.isArray(row.values)) {
-      row.values.forEach((val: any, idx: number) => {
-        const header = headersMap[idx.toString()];
-        if (header) {
-          if (val && typeof val === 'object' && 'result' in val) {
-            rowData[header] = val.result;
-          } else {
-            rowData[header] = val;
-          }
-        }
+      row.values.forEach((cellVal: any, idx: number) => {
+        if (!cellVal) return;
+        const raw = String(cellVal).trim();
+        const norm = normalizeHeader(raw);
+        const type = detectColumnType(norm);
+        if (type === 'article') articleFound = true;
+        if (type === 'colour') colourFound = true;
+        if (type === 'size') sizeFound = true;
+        headerNormalizedMap[idx.toString()] = norm;
+        headerOriginalMap[idx.toString()] = raw;
       });
     }
 
-    const parsed = extractImportantFields(rowData, Object.fromEntries(Object.entries(headersMap).map(([k, v]) => [v, v])));
-    parsed._originalRowIndex = rowNumber;
-    rows.push(parsed);
+    // Accept this as header row if we found at least article or (colour + size)
+    if (articleFound || (colourFound && sizeFound)) {
+      headerRowNumber = rowNumber;
+    }
+  });
+
+  // Fallback: treat row 1 as header if nothing detected
+  if (headerRowNumber === -1) {
+    const firstRow = worksheet.getRow(1);
+    if (Array.isArray(firstRow.values)) {
+      firstRow.values.forEach((cellVal: any, idx: number) => {
+        if (!cellVal) return;
+        const raw = String(cellVal).trim();
+        headerNormalizedMap[idx.toString()] = normalizeHeader(raw);
+        headerOriginalMap[idx.toString()] = raw;
+      });
+    }
+    headerRowNumber = 1;
+  }
+
+  // --- Step 2: Parse data rows ---
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber <= headerRowNumber) return; // skip header row(s)
+
+    const rawRow: Record<string, any> = {};
+    if (Array.isArray(row.values)) {
+      row.values.forEach((val: any, idx: number) => {
+        const origHeader = headerOriginalMap[idx.toString()];
+        if (!origHeader) return;
+
+        // Handle ExcelJS formula cells
+        let cellValue = val;
+        if (val && typeof val === 'object') {
+          if ('result' in val) cellValue = val.result;
+          else if ('text' in val) cellValue = val.text;
+        }
+
+        rawRow[origHeader] = cellValue;
+      });
+    }
+
+    // Skip completely empty rows
+    const hasData = Object.values(rawRow).some(v => v !== null && v !== undefined && String(v).trim() !== '');
+    if (!hasData) return;
+
+    // Build a mapping: originalHeader → normalizedHeader for this row
+    const headerMapping: Record<string, string> = {};
+    Object.entries(headerOriginalMap).forEach(([_idx, orig]) => {
+      headerMapping[orig] = normalizeHeader(orig);
+    });
+
+    rows.push(buildParsedRow(rawRow, headerMapping, rowNumber));
   });
 
   return rows;

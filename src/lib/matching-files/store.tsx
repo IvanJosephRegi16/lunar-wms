@@ -33,16 +33,38 @@ export function MatchingProvider({ children }: { children: ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Hydrate session from IndexedDB on mount
+  // PARSER_VERSION: bump this whenever the parser logic changes significantly
+  // so that stale parsed data with wrong article/colour/size is discarded automatically.
+  const PARSER_VERSION = 'v2';
+
   useEffect(() => {
     async function load() {
       try {
         const storedFiles = await getFilesMetadata();
+        const storedVersion = localStorage.getItem('matching_parser_version');
+
+        // If parser version has changed, all existing parsed data is stale — clear everything
+        if (storedVersion !== PARSER_VERSION && storedFiles.length > 0) {
+          await clearAllDB();
+          localStorage.setItem('matching_parser_version', PARSER_VERSION);
+          localStorage.removeItem('matching_baseFileId');
+          // Show files as needing re-upload with a clear message
+          setFiles(storedFiles.map(f => ({
+            ...f,
+            status: 'error' as const,
+            errorMessage: '⚠️ Parser updated — please re-upload this file to refresh results.'
+          })));
+          setIsHydrated(true);
+          return;
+        }
+
+        localStorage.setItem('matching_parser_version', PARSER_VERSION);
         setFiles(storedFiles.sort((a, b) => b.uploadDate - a.uploadDate));
-        
+
         // Restore session states from localStorage
         const storedBase = localStorage.getItem('matching_baseFileId');
         if (storedBase) setBaseFileId(storedBase);
-        
+
         setSearchArticle(localStorage.getItem('matching_searchArticle') || '');
         setSearchColour(localStorage.getItem('matching_searchColour') || '');
         setSearchSize(localStorage.getItem('matching_searchSize') || '');
