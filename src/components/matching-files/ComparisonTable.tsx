@@ -8,7 +8,7 @@ interface Props {
   totalResults?: number;
 }
 
-type SortKey = 'article' | 'colour' | 'size' | 'status';
+type SortKey = 'article' | 'colour' | 'size' | 'status' | 'totalQuantity';
 
 export default function ComparisonTable({ results, totalResults }: Props) {
   const [page, setPage] = useState(1);
@@ -63,15 +63,15 @@ export default function ComparisonTable({ results, totalResults }: Props) {
   };
 
   const badgeStyle = (status: string): React.CSSProperties => {
-    const map: Record<string, { bg: string; color: string }> = {
-      'Perfect Match': { bg: '#dcfce7', color: '#16a34a' },
-      'Partial Match': { bg: '#fef3c7', color: '#d97706' },
-      'Missing':       { bg: '#f1f5f9', color: '#64748b' },
-      'Conflict':      { bg: '#fee2e2', color: '#dc2626' },
-      'Duplicate':     { bg: '#fce7f3', color: '#db2777' },
-      'Unique':        { bg: '#eff6ff', color: '#3b82f6' },
+    const map: Record<string, { bg: string; color: string; label: string }> = {
+      'Perfect Match': { bg: '#dcfce7', color: '#16a34a', label: 'Perfect Match' },
+      'Partial Match': { bg: '#fef3c7', color: '#d97706', label: 'Partial Match' },
+      'Missing':       { bg: '#f1f5f9', color: '#64748b', label: 'Missing in Base' },
+      'Conflict':      { bg: '#fee2e2', color: '#dc2626', label: 'Conflict' },
+      'Duplicate':     { bg: '#fce7f3', color: '#db2777', label: 'Duplicate' },
+      'Unique':        { bg: '#eff6ff', color: '#3b82f6', label: 'Unique' },
     };
-    const s = map[status] || { bg: '#f8fafc', color: '#475569' };
+    const s = map[status] || { bg: '#f8fafc', color: '#475569', label: status };
     return { padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 700, background: s.bg, color: s.color, whiteSpace: 'nowrap' as const };
   };
 
@@ -115,6 +115,16 @@ export default function ComparisonTable({ results, totalResults }: Props) {
   return (
     <div style={{ background: '#fff', borderRadius: '20px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.04)' }}>
 
+      <style>{`
+        @keyframes flipDown {
+          0% { opacity: 0; transform: perspective(1000px) rotateX(-90deg); transform-origin: top; }
+          100% { opacity: 1; transform: perspective(1000px) rotateX(0deg); transform-origin: top; }
+        }
+        .expanded-row-animation {
+          animation: flipDown 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+      `}</style>
+
       {/* Controls bar */}
       <div style={{ padding: '14px 20px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', flexWrap: 'wrap', gap: '8px' }}>
         <div style={{ fontSize: '13px', fontWeight: 600, color: '#475569' }}>
@@ -147,6 +157,7 @@ export default function ComparisonTable({ results, totalResults }: Props) {
                 { key: 'article', label: 'Article' },
                 { key: 'colour',  label: 'Colour' },
                 { key: 'size',    label: 'Size' },
+                { key: 'totalQuantity', label: 'Total Qty' },
                 { key: 'status',  label: 'Status' },
               ] as { key: SortKey; label: string }[]).map(col => (
                 <th key={col.key} style={thStyle} onClick={() => toggleSort(col.key)}>
@@ -162,31 +173,38 @@ export default function ComparisonTable({ results, totalResults }: Props) {
             </tr>
           </thead>
           <tbody>
-            {paginated.map((row, idx) => (
+            {paginated.map((row, idx) => {
+              const isExpanded = expandedRows.has(row.id);
+              return (
               <React.Fragment key={row.id}>
                 <tr
                   onClick={() => toggleExpand(row.id)}
                   style={{
                     borderBottom: '1px solid #f1f5f9',
                     cursor: 'pointer',
-                    background: expandedRows.has(row.id) ? '#f8fafc' : (idx % 2 === 0 ? '#fff' : '#fafafa'),
+                    background: isExpanded ? '#f8fafc' : (idx % 2 === 0 ? '#fff' : '#fafafa'),
                     transition: 'background 0.15s ease',
                   }}
                 >
                   <td style={{ padding: '14px 8px 14px 16px', color: '#94a3b8', fontSize: '14px' }}>
-                    {expandedRows.has(row.id) ? '▼' : '▶'}
+                    {isExpanded ? '▼' : '▶'}
                   </td>
-                  <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a', fontSize: '14px' }}>
+                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#0f172a', fontSize: '15px' }}>
                     {row.article || <span style={{ color: '#cbd5e1' }}>—</span>}
                   </td>
                   <td style={{ padding: '14px 16px', fontWeight: 600, color: '#334155', fontSize: '14px' }}>
                     {row.colour || <span style={{ color: '#cbd5e1' }}>—</span>}
                   </td>
-                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#334155', fontSize: '14px' }}>
+                  <td style={{ padding: '14px 16px', fontWeight: 800, color: '#334155', fontSize: '15px' }}>
                     {row.size || <span style={{ color: '#cbd5e1' }}>—</span>}
                   </td>
+                  <td style={{ padding: '14px 16px', fontWeight: 900, color: '#0f172a', fontSize: '15px' }}>
+                    {row.totalQuantity > 0 ? row.totalQuantity.toLocaleString() : <span style={{ color: '#cbd5e1' }}>0</span>}
+                  </td>
                   <td style={{ padding: '14px 16px' }}>
-                    <span style={badgeStyle(row.status)}>{row.status}</span>
+                    <span style={badgeStyle(row.status)}>
+                      {row.status === 'Missing' ? 'Missing in Base' : row.status}
+                    </span>
                   </td>
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -201,39 +219,59 @@ export default function ComparisonTable({ results, totalResults }: Props) {
                 </tr>
 
                 {/* Expanded Detail Panel */}
-                {expandedRows.has(row.id) && (
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <td colSpan={6} style={{ padding: '20px 40px' }}>
-                      <div style={{ fontWeight: 800, fontSize: '13px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>
-                        Source Breakdown — {row.sources.length} occurrence{row.sources.length !== 1 ? 's' : ''}
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {row.sources.map((src, i) => (
-                          <div key={i} style={{ background: '#fff', padding: '14px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                            <div style={{ minWidth: '140px' }}>
-                              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>File</div>
-                              <div style={{ fontSize: '14px', fontWeight: 800, color: src.displayHeading === 'Base File' ? '#1d4ed8' : '#15803d' }}>
-                                {src.displayHeading === 'Base File' ? '📌 ' : '📄 '}{src.displayHeading}
+                {isExpanded && (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 0 }}>
+                      <div className="expanded-row-animation" style={{ background: '#f8fafc', padding: '24px 40px', borderBottom: '2px solid #e2e8f0', boxShadow: 'inset 0 4px 6px -4px rgba(0,0,0,0.05)' }}>
+                        <div style={{ fontWeight: 800, fontSize: '13px', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '16px' }}>
+                          Source Breakdown — Found in {row.sources.length} place{row.sources.length !== 1 ? 's' : ''}
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                          {row.sources.map((src, i) => {
+                            // Extract just the extra data that isn't article/colour/size/qty for a cleaner display
+                            const { _originalRowIndex, article, colour, size, quantity, ...extraData } = src.rowData;
+                            const hasExtraData = Object.keys(extraData).length > 0;
+                            
+                            return (
+                              <div key={i} style={{ background: '#fff', padding: '20px', borderRadius: '16px', border: '1px solid #e2e8f0', display: 'flex', gap: '32px', alignItems: 'flex-start', flexWrap: 'wrap', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                                <div style={{ minWidth: '160px' }}>
+                                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Found In File</div>
+                                  <div style={{ fontSize: '15px', fontWeight: 800, color: src.displayHeading === 'Base File' ? '#1d4ed8' : '#15803d' }}>
+                                    {src.displayHeading === 'Base File' ? '📌 ' : '📄 '}{src.displayHeading}
+                                  </div>
+                                  <div style={{ fontSize: '12px', color: '#64748b', marginTop: '6px', fontWeight: 600 }}>Row #{src.originalRowIndex}</div>
+                                </div>
+                                
+                                <div style={{ minWidth: '120px' }}>
+                                  <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Stock / Qty</div>
+                                  <div style={{ fontSize: '24px', fontWeight: 900, color: '#0f172a', lineHeight: '1' }}>
+                                    {src.quantity > 0 ? src.quantity.toLocaleString() : '0'}
+                                  </div>
+                                </div>
+
+                                {hasExtraData && (
+                                  <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>Additional Data</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                      {Object.entries(extraData).map(([key, val]) => (
+                                        <div key={key} style={{ background: '#f1f5f9', padding: '6px 12px', borderRadius: '8px', fontSize: '13px' }}>
+                                          <span style={{ color: '#64748b', fontWeight: 600, marginRight: '6px' }}>{key}:</span>
+                                          <span style={{ color: '#0f172a', fontWeight: 700 }}>{String(val)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            </div>
-                            <div style={{ minWidth: '80px' }}>
-                              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Row #</div>
-                              <div style={{ fontSize: '14px', fontWeight: 700, color: '#475569' }}>{src.originalRowIndex}</div>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Raw Data</div>
-                              <pre style={{ margin: 0, fontSize: '11px', fontFamily: 'monospace', background: '#f1f5f9', padding: '8px 12px', borderRadius: '8px', color: '#334155', overflowX: 'auto', maxHeight: '80px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                                {JSON.stringify(src.rowData, (key, val) => key.startsWith('_') ? undefined : val, 2)}
-                              </pre>
-                            </div>
-                          </div>
-                        ))}
+                            );
+                          })}
+                        </div>
                       </div>
                     </td>
                   </tr>
                 )}
               </React.Fragment>
-            ))}
+            )})}
           </tbody>
         </table>
       </div>

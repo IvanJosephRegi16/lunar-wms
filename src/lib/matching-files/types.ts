@@ -31,6 +31,7 @@ export interface ComparisonResultRow {
   article: string;
   colour: string;
   size: string;
+  totalQuantity: number;   // sum of quantity across ALL sources
   
   // Array of files that contain this exact composite key
   sources: {
@@ -38,6 +39,7 @@ export interface ComparisonResultRow {
     displayHeading: string;
     originalRowIndex: number;
     rowData: ParsedRow;
+    quantity: number;
   }[];
 
   status: MatchStatus;

@@ -11,9 +11,9 @@ export function normalizeHeader(header: string): string {
 }
 
 // ─── Fuzzy column type detection ──────────────────────────────────────────
-// Returns 'article' | 'colour' | 'size' | null for a given normalized header.
+// Returns 'article' | 'colour' | 'size' | 'quantity' | null for a given normalized header.
 // Covers all common real-world variants found in warehouse/packing Excel sheets.
-function detectColumnType(normalizedKey: string): 'article' | 'colour' | 'size' | null {
+function detectColumnType(normalizedKey: string): 'article' | 'colour' | 'size' | 'quantity' | null {
   // ── Article / Item / Art No variants ──
   const articlePatterns = [
     'artno', 'art', 'article', 'articleno', 'articlecode', 'articlenum',
@@ -46,6 +46,14 @@ function detectColumnType(normalizedKey: string): 'article' | 'colour' | 'size' 
     'siz',
   ];
 
+  // ── Quantity / Stock variants ──
+  const quantityPatterns = [
+    'qty', 'quantity', 'stock', 'stockqty', 'stockquantity',
+    'pairs', 'pr', 'prs',
+    'pcs', 'pieces',
+    'count', 'amount', 'balance', 'total', 'totalqty'
+  ];
+
   if (articlePatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
     return 'article';
   }
@@ -54,6 +62,9 @@ function detectColumnType(normalizedKey: string): 'article' | 'colour' | 'size' 
   }
   if (sizePatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
     return 'size';
+  }
+  if (quantityPatterns.some(p => normalizedKey === p || normalizedKey.startsWith(p))) {
+    return 'quantity';
   }
   return null;
 }
@@ -69,6 +80,7 @@ function buildParsedRow(
   let article = '';
   let colour = '';
   let size = '';
+  let quantity = 0;
 
   for (const [rawKey, val] of Object.entries(rawRow)) {
     // Get the normalized version of this column header
@@ -79,6 +91,12 @@ function buildParsedRow(
     if (colType === 'article' && !article) article = strVal;
     else if (colType === 'colour' && !colour) colour = strVal;
     else if (colType === 'size' && !size) size = strVal;
+    else if (colType === 'quantity' && !quantity) {
+      const parsedQty = parseFloat(strVal);
+      if (!isNaN(parsedQty)) {
+        quantity = parsedQty;
+      }
+    }
   }
 
   return {
@@ -86,6 +104,7 @@ function buildParsedRow(
     article,
     colour,
     size,
+    quantity,
     ...rawRow,  // keep ALL original fields for expanded row display
   };
 }

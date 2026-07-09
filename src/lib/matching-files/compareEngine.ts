@@ -27,6 +27,7 @@ export function compareFiles(
           article: row.article,
           colour: row.colour,
           size: row.size,
+          totalQuantity: 0,
           sources: [],
           status: 'Missing' // default to missing until matched
         });
@@ -37,8 +38,10 @@ export function compareFiles(
         fileId: baseFile.fileId,
         displayHeading: 'Base File',
         originalRowIndex: row._originalRowIndex,
-        rowData: row
+        rowData: row,
+        quantity: row.quantity
       });
+      entry.totalQuantity += row.quantity;
     });
   }
 
@@ -55,6 +58,7 @@ export function compareFiles(
           article: row.article,
           colour: row.colour,
           size: row.size,
+          totalQuantity: 0,
           sources: [],
           status: baseFile ? 'Conflict' : 'Unique' // If no base, default unique
         });
@@ -65,8 +69,10 @@ export function compareFiles(
         fileId: comp.fileId,
         displayHeading: comp.displayHeading,
         originalRowIndex: row._originalRowIndex,
-        rowData: row
+        rowData: row,
+        quantity: row.quantity
       });
+      entry.totalQuantity += row.quantity;
     });
   });
 
