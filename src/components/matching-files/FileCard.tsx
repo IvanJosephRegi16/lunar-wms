@@ -66,7 +66,7 @@ export default function FileCard({ file }: { file: UploadedFile }) {
             background: file.status === 'ready' ? '#dcfce7' : file.status === 'error' || file.status === 'unsupported' ? '#fee2e2' : '#fef3c7',
             color: file.status === 'ready' ? '#16a34a' : file.status === 'error' || file.status === 'unsupported' ? '#dc2626' : '#d97706'
           }}>
-            {file.status}
+            {file.status === 'parsing' ? '⏳ Parsing...' : file.status}
           </span>
         </div>
       </div>
@@ -85,26 +85,36 @@ export default function FileCard({ file }: { file: UploadedFile }) {
       )}
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '12px', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
-        <button 
+      <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+        <button
           className="btn-corp"
           onClick={() => {
             if (confirm('Delete this file permanently?')) {
               store.removeFile(file.id);
             }
           }}
-          style={{ flex: 1, background: '#fff', color: '#ef4444', border: '1px solid #fecaca', padding: '10px' }}
+          style={{ flex: 1, minWidth: '100px', background: '#fff', color: '#ef4444', border: '1px solid #fecaca', padding: '10px', fontWeight: 700 }}
         >
           🗑️ Delete
         </button>
 
         {file.status === 'ready' && !isBaseFile && (
-          <button 
+          <button
             className="btn-corp"
             onClick={() => store.setBaseFileId(file.id)}
-            style={{ flex: 1, background: '#3b82f6', color: 'white', border: 'none', padding: '10px' }}
+            style={{ flex: 2, minWidth: '120px', background: '#3b82f6', color: 'white', border: 'none', padding: '10px', fontWeight: 700 }}
           >
-            🔍 Compare
+            📌 Set as Base
+          </button>
+        )}
+
+        {isBaseFile && (
+          <button
+            className="btn-corp"
+            onClick={() => store.setBaseFileId(null)}
+            style={{ flex: 2, minWidth: '120px', background: '#eff6ff', color: '#1d4ed8', border: '1.5px solid #93c5fd', padding: '10px', fontWeight: 700 }}
+          >
+            ✖ Unset Base
           </button>
         )}
       </div>

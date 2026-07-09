@@ -23,7 +23,7 @@ export interface ParsedFileData {
   rows: ParsedRow[];
 }
 
-export type MatchStatus = 'Perfect Match' | 'Partial Match' | 'Conflict' | 'Missing' | 'Duplicate';
+export type MatchStatus = 'Perfect Match' | 'Partial Match' | 'Conflict' | 'Missing' | 'Duplicate' | 'Unique';
 
 export interface ComparisonResultRow {
   id: string; // Unique row ID

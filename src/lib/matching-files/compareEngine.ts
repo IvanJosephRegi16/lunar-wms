@@ -9,45 +9,46 @@ function createCompositeKey(article: string, colour: string, size: string): stri
 }
 
 export function compareFiles(
-  baseFile: ParsedFileData,
+  baseFile: ParsedFileData | null,
   comparisonFiles: { fileId: string; displayHeading: string; data: ParsedFileData }[]
 ): ComparisonResultRow[] {
   const resultsMap = new Map<string, ComparisonResultRow>();
 
-  // 1. Build Base File Map
-  baseFile.rows.forEach(row => {
-    const key = createCompositeKey(row.article, row.colour, row.size);
-    if (!key || key === '||') return; // skip empty rows
+  // 1. Build Base File Map (if provided)
+  if (baseFile) {
+    baseFile.rows.forEach(row => {
+      const key = createCompositeKey(row.article, row.colour, row.size);
+      if (!key || key === '||') return;
 
-    if (!resultsMap.has(key)) {
-      resultsMap.set(key, {
-        id: `row_${key}`,
-        compositeKey: key,
-        article: row.article,
-        colour: row.colour,
-        size: row.size,
-        sources: [],
-        status: 'Missing' // default to missing until matched
+      if (!resultsMap.has(key)) {
+        resultsMap.set(key, {
+          id: `row_${key}`,
+          compositeKey: key,
+          article: row.article,
+          colour: row.colour,
+          size: row.size,
+          sources: [],
+          status: 'Missing' // default to missing until matched
+        });
+      }
+
+      const entry = resultsMap.get(key)!;
+      entry.sources.push({
+        fileId: baseFile.fileId,
+        displayHeading: 'Base File',
+        originalRowIndex: row._originalRowIndex,
+        rowData: row
       });
-    }
-
-    const entry = resultsMap.get(key)!;
-    entry.sources.push({
-      fileId: baseFile.fileId,
-      displayHeading: 'Base File', // Generic label, can be mapped in UI
-      originalRowIndex: row._originalRowIndex,
-      rowData: row
     });
-  });
+  }
 
-  // 2. Scan Comparison Files
+  // 2. Scan Comparison Files (or ALL files if no base is provided)
   comparisonFiles.forEach(comp => {
     comp.data.rows.forEach(row => {
       const key = createCompositeKey(row.article, row.colour, row.size);
       if (!key || key === '||') return;
 
       if (!resultsMap.has(key)) {
-        // Exists in comparison file, but NOT in base file
         resultsMap.set(key, {
           id: `row_${key}_${comp.fileId}_${row._originalRowIndex}`,
           compositeKey: key,
@@ -55,7 +56,7 @@ export function compareFiles(
           colour: row.colour,
           size: row.size,
           sources: [],
-          status: 'Conflict' // Or "Extra", user requirement says Missing/Conflict/Duplicate
+          status: baseFile ? 'Conflict' : 'Unique' // If no base, default unique
         });
       }
 
@@ -71,29 +72,41 @@ export function compareFiles(
 
   // 3. Resolve Statuses
   const finalResults = Array.from(resultsMap.values());
-  const expectedFileCount = comparisonFiles.length + 1; // Base + Comparisons
+  const expectedFileCount = baseFile ? comparisonFiles.length + 1 : comparisonFiles.length;
 
   finalResults.forEach(res => {
-    // Determine status based on source occurrences
     const sourceIds = new Set(res.sources.map(s => s.fileId));
     
-    if (sourceIds.size === expectedFileCount) {
-      res.status = 'Perfect Match';
-    } else if (sourceIds.size === 1 && sourceIds.has(baseFile.fileId)) {
-      res.status = 'Missing'; // Only in base
-    } else if (!sourceIds.has(baseFile.fileId)) {
-      res.status = 'Conflict'; // Not in base
-    } else {
-      res.status = 'Partial Match'; // In base and SOME but not ALL comparison files
-    }
-
     // Check for intra-file duplicates
     const countsPerFile: Record<string, number> = {};
     res.sources.forEach(s => {
       countsPerFile[s.fileId] = (countsPerFile[s.fileId] || 0) + 1;
     });
-    if (Object.values(countsPerFile).some(count => count > 1)) {
-      res.status = 'Duplicate'; // Found multiple times in the same file
+    const hasDuplicates = Object.values(countsPerFile).some(count => count > 1);
+
+    if (baseFile) {
+      if (hasDuplicates) {
+        res.status = 'Duplicate';
+      } else if (sourceIds.size === expectedFileCount) {
+        res.status = 'Perfect Match';
+      } else if (sourceIds.size === 1 && sourceIds.has(baseFile.fileId)) {
+        res.status = 'Missing';
+      } else if (!sourceIds.has(baseFile.fileId)) {
+        res.status = 'Conflict';
+      } else {
+        res.status = 'Partial Match';
+      }
+    } else {
+      // Global Search Mode (No Base File)
+      if (hasDuplicates) {
+        res.status = 'Duplicate';
+      } else if (sourceIds.size === expectedFileCount && expectedFileCount > 1) {
+        res.status = 'Perfect Match';
+      } else if (sourceIds.size > 1) {
+        res.status = 'Partial Match';
+      } else {
+        res.status = 'Unique'; // Only exists in 1 file
+      }
     }
   });
 
