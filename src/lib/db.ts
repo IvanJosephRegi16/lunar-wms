@@ -209,6 +209,16 @@ CREATE TABLE IF NOT EXISTS scan_history (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS intake_barcode_pool (
+  barcode TEXT PRIMARY KEY,
+  article_code TEXT NOT NULL,
+  colour TEXT NOT NULL,
+  size TEXT NOT NULL,
+  status TEXT DEFAULT 'available',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  outward_scanned_at TIMESTAMPTZ
+);
+
 CREATE TABLE IF NOT EXISTS outward_scan_sessions (
   id SERIAL PRIMARY KEY,
   carton_generation_id INTEGER REFERENCES carton_generation(id),

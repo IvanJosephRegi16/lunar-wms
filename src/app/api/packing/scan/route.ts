@@ -94,6 +94,12 @@ export async function POST(request: Request) {
         VALUES (?, ?, ?, ?, ?, 'success', ?, 'intake')
       `).run(barcode, article, colour, size, user.id, mrp);
 
+      // Add to unique barcode pool for outward matching
+      await db.prepare(`
+        INSERT INTO intake_barcode_pool (barcode, article_code, colour, size, status)
+        VALUES (?, ?, ?, ?, 'available')
+      `).run(barcode, article, colour, size);
+
       return { article, colour, size, mrp };
     });
 
