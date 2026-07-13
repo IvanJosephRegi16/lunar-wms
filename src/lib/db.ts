@@ -1064,8 +1064,9 @@ runOneTimePasswordMigration().catch(console.error);
 //    appends RETURNING id to INSERT statements so callers can get lastInsertRowid.
 // ─────────────────────────────────────────────────────────────────────────────
 // Tables that do NOT have a serial 'id' column – never append RETURNING id
+// intake_barcode_pool uses barcode TEXT PRIMARY KEY (no id column)
 const NO_ID_TABLES = new Set([
-  'system_settings', 'daily_sheets',
+  'system_settings', 'daily_sheets', 'intake_barcode_pool',
 ]);
 
 function translateToPg(sql: string): { text: string; needsReturning: boolean } {
