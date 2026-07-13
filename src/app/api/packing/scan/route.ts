@@ -91,20 +91,22 @@ export async function POST(request: Request) {
       }
       // ────────────────────────────────────────────────────────────────────────
 
-      // Upsert inventory pool safely – column name already validated
-      const existing = await db.prepare(`SELECT id, ${sizeColumn}, mrp FROM inventory_pool WHERE article_code = ? AND colour = ?`).get(article, colour) as any;
+      // Upsert inventory pool safely – article_code+colour is the natural key
+      const existing = await db.prepare(
+        `SELECT article_code, ${sizeColumn}, mrp FROM inventory_pool WHERE article_code = ? AND colour = ?`
+      ).get(article, colour) as any;
+
       if (existing) {
-        // If an MRP is provided in this scan and it differs from the existing, we update it (or set if null).
-        // Optionally you could average it, but standard is latest MRP overrides.
+        // Update existing row – use article_code+colour as the WHERE key (no id column)
         const mrpUpdate = mrp !== null ? `, mrp = ${mrp}` : '';
         await db.prepare(`
           UPDATE inventory_pool
           SET ${sizeColumn} = ${sizeColumn} + 1, total_qty = total_qty + 1 ${mrpUpdate}
-          WHERE id = ?
-        `).run(existing.id);
+          WHERE article_code = ? AND colour = ?
+        `).run(article, colour);
       } else {
-        const cols = validSizes.map(s => `size_${s}`).join(', ');
-        const vals = validSizes.map(s => (s === size ? '1' : '0')).join(', ');
+        const cols = validSizes.map((s: string) => `size_${s}`).join(', ');
+        const vals = validSizes.map((s: string) => (s === size ? '1' : '0')).join(', ');
         await db.prepare(`
           INSERT INTO inventory_pool (article_code, colour, total_qty, ${cols}, mrp)
           VALUES (?, ?, 1, ${vals}, ?)
