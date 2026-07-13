@@ -14,26 +14,55 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Barcode is required' }, { status: 400 });
   }
 
-  // Expected format "ARTICLE|COLOUR|SIZE" or "ARTICLE|COLOUR|SIZE|MRP"
-  // JOKOT format "ARTICLE COLOUR SIZE" (starts with J)
+  // ─── BARCODE FORMAT ───────────────────────────────────────────────────────
+  // Pipe-delimited:  ARTICLE|COLOUR|SIZE[|MRP]
+  // Space-delimited: ARTICLE COLOUR SIZE [MRP_OR_UNIQUECODE]
+  //   • Jokot barcodes start with 'J'  (e.g. JF-3713 VIOLET 5 399.00 JF-6)
+  //   • Lunar barcodes start with digit (e.g. 3713 VIOLET 5 399.00 L-6)
+  //   • 4th token is MRP only when it ends with ".00" (e.g. "399.00");
+  //     otherwise it is a unique/serial code and MRP stays null.
+  // ─────────────────────────────────────────────────────────────────────────
   let parts: string[] = [];
   if (barcode.includes('|')) {
-    parts = barcode.split('|');
-  } else if (barcode.startsWith('J') || barcode.startsWith('j')) {
-    parts = barcode.split(' ');
+    parts = barcode.split('|').map((p: string) => p.trim()).filter(Boolean) as string[];
+  } else {
+    // Space-separated: works for both Jokot (J prefix) and Lunar (digit prefix)
+    const firstChar = barcode.trimStart()[0];
+    if (
+      firstChar === 'J' || firstChar === 'j' ||
+      (firstChar >= '0' && firstChar <= '9')
+    ) {
+      parts = barcode.trim().split(/\s+/);
+    }
   }
 
   if (parts.length < 3) {
-    return NextResponse.json({ error: 'Invalid barcode format. Expected ARTICLE|COLOUR|SIZE or ARTICLE COLOUR SIZE (for Jokot)' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Invalid barcode format. Expected ARTICLE COLOUR SIZE [MRP] (space-separated for Jokot/Lunar) or ARTICLE|COLOUR|SIZE[|MRP]' },
+      { status: 400 }
+    );
   }
 
   const article = parts[0].toUpperCase();
-  const colour = parts[1].toUpperCase();
-  const size = parts[2];
-  const mrp = parts.length >= 4 ? parseFloat(parts[3]) || null : null;
+  const colour  = parts[1].toUpperCase();
+  const size    = parts[2];
+
+  // Determine MRP: 4th token is MRP only when it ends with ".00"
+  let mrp: number | null = null;
+  if (parts.length >= 4) {
+    const candidate = parts[3];
+    if (candidate.endsWith('.00') || /^\d+(\.\d+)?$/.test(candidate)) {
+      const parsed = parseFloat(candidate);
+      if (!isNaN(parsed) && candidate.endsWith('.00')) {
+        mrp = parsed;
+      }
+      // else: it's a unique/serial code – mrp stays null
+    }
+  }
+
   const sizeColumn = `size_${size}`;
 
-  const validSizes = ['5','6','7','8','9','10','11','12'];
+  const validSizes = ['5','6','7','8','9','10','11','12','13'];
   if (!validSizes.includes(size)) {
     return NextResponse.json({ error: `Unsupported size: ${size}` }, { status: 400 });
   }
@@ -46,7 +75,7 @@ export async function POST(request: Request) {
       // Reject if this exact barcode was already successfully scanned in the
       // last 10 minutes to protect against accidental double-scans.
       const recentDuplicate = await db.prepare(`
-        SELECT id FROM scan_history
+        SELECT barcode FROM scan_history
         WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
           AND created_at >= NOW() - INTERVAL '10 minutes'
         LIMIT 1
