@@ -53,7 +53,12 @@ export default function ScanHistoryPage() {
         if (data.history) {
           const enhanced = data.history.map((item: any) => ({
             ...item,
-            brand: item.article_code?.toUpperCase().startsWith('J') ? 'JOKOT' : 'LUNAR'
+            brand: (() => {
+              const first = item.article_code?.charAt(0) ?? '';
+              if (first.toUpperCase() === 'J') return 'JOKOT';
+              if (first >= '0' && first <= '9') return 'LUNAR';
+              return '-'; // error / unparsed entries – no brand
+            })()
           }));
           setHistory(enhanced);
         }
@@ -358,10 +363,10 @@ export default function ScanHistoryPage() {
                   <td>
                     <span style={{ 
                       padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
-                      background: scan.brand === 'JOKOT' ? '#fef3c7' : '#e0e7ff',
-                      color: scan.brand === 'JOKOT' ? '#d97706' : '#4338ca'
+                      background: scan.brand === 'JOKOT' ? '#fef3c7' : scan.brand === 'LUNAR' ? '#e0e7ff' : '#f1f5f9',
+                      color: scan.brand === 'JOKOT' ? '#d97706' : scan.brand === 'LUNAR' ? '#4338ca' : '#94a3b8'
                     }}>
-                      {scan.brand}
+                      {scan.brand === '-' ? '—' : scan.brand}
                     </span>
                   </td>
                   <td>
