@@ -5,6 +5,7 @@ import styles from './page.module.css';
 import { downloadCSV, formatIST } from '@/lib/exportCSV';
 import ExportDropdown from '@/components/ExportDropdown';
 import Barcode from 'react-barcode';
+import { QRCodeSVG } from 'qrcode.react';
 
 interface PackedCarton {
   id: number;
@@ -550,82 +551,174 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
   const aggregatedSizeStr = getAggregatedSizeStr(progress);
   const barcodeValue = carton || 'UNKNOWN';
   const isJokot = article && article.toUpperCase().startsWith('J');
-  const brandName = isJokot ? 'JOKOT WMS' : 'LUNAR WMS';
-  const mfdBy = isJokot ? 'Jokot Footwear' : 'Lunar Rubbers Pvt Ltd - Thodupuzha, Kerala';
-  const mktdBy = isJokot ? 'Jokot Footwear' : 'Lunar Footwear - Customer Care: 1800-123-456';
-  const mfgDate = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase();
+  
+  const defaultMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ');
+  const [mfgMonth, setMfgMonth] = useState(defaultMonthYear);
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
-        @page { size: 100mm 100mm; margin: 0; }
+        @page { size: 90mm 90mm; margin: 0; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; }
+          html, body { margin: 0 !important; padding: 0 !important; width: 90mm; height: 90mm; overflow: hidden; }
           body * { visibility: hidden; }
-          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; }
+          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; overflow: hidden; width: 90mm; height: 90mm; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: fixed; left: 0; top: 0; width: 100mm; height: 100mm; padding: 0 !important; margin: 0 !important; }
+          .sticker-wrap { position: absolute; left: 0; top: 0; width: 90mm; height: 90mm; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
           .no-print { display: none !important; }
-          .pi-sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 100mm !important; height: 100mm !important; }
+          .pi-sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: 90mm !important; height: 90mm !important; overflow: hidden; }
+          .jokot-sticker { border: 2px solid #000 !important; }
         }
-        .pi-sticker { width:10cm; height:10cm; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
+        
+        .pi-sticker { width:9cm; height:9cm; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
         .pi-body { display:flex; flex-direction:column; flex:1; overflow:hidden; }
-        .pi-row { display:flex; align-items:stretch; border-bottom:1.5px solid #000; }
-        .pi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:3px 8px; min-width:60px; display:flex; align-items:center; border-right:1.5px solid #000; }
-        .pi-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; padding:3px 8px; display:flex; align-items:center; flex:1; }
-        .pi-val.art { font-size:22px; }
+        .pi-row { display:flex; align-items:stretch; border-bottom:1.5px solid #000; flex:1; }
+        .pi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:4px 8px; min-width:60px; display:flex; align-items:center; border-right:1.5px solid #000; }
+        .pi-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; padding:4px 8px; display:flex; align-items:center; flex:1; }
+        .pi-val.art { font-size:24px; }
         .pi-val.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size:32px; font-weight:900; letter-spacing:2px; color:#000; }
-        .pi-sizes { border-bottom:1.5px solid #000; flex-shrink:0; }
-        .pi-sh { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; padding:3px 0; text-align:center; border-right:1.5px solid #000; }
+        .pi-sizes { border-bottom:1.5px solid #000; }
+        .pi-sh { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; padding:4px 0; text-align:center; border-right:1.5px solid #000; }
         .pi-sh:first-child { text-align:left; padding-left:8px; min-width:60px; }
-        .pi-sh.tc { background:#000; color:#fff; border-right:none; min-width:45px; }
-        .pi-sc { font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:900; text-align:center; padding:3px 0; border-right:1.5px solid #000; }
-        .pi-sc.lc { font-size:10px; font-weight:800; text-transform:uppercase; text-align:left; padding-left:8px; }
-        .pi-sc.tc { font-size:18px; color:#fff; background:#000; border-right:none; min-width:45px; }
-        .pi-pkgs { display:flex; align-items:center; justify-content:space-between; padding:4px 8px; border-bottom:1.5px solid #000; flex-shrink:0; }
-        .pi-pkgs-lbl { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; }
-        .pi-pkgs-val { font-family:'Barlow Condensed',sans-serif; font-size:20px; font-weight:900; }
+        .pi-sh.tc { background:#fff; color:#000; border-right:none; min-width:45px; }
+        .pi-sc { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; text-align:center; padding:4px 0; border-right:1.5px solid #000; }
+        .pi-sc.lc { font-size:11px; font-weight:800; text-transform:uppercase; text-align:left; padding-left:8px; }
+        .pi-sc.tc { font-size:20px; color:#000; background:#fff; border-right:none; min-width:45px; }
+        .pi-pkgs { display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-bottom:1.5px solid #000; }
+        .pi-pkgs-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; }
+        .pi-pkgs-val { font-family:'Barlow Condensed',sans-serif; font-size:22px; font-weight:900; }
         .pi-pkgs-val span { font-size:10px; font-weight:800; margin-left:2px; text-transform:uppercase; }
         .pi-bc { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:6px; flex:1; }
+
+        /* JOKOT STYLES */
+        .jokot-sticker {
+          width: 9cm;
+          height: 9cm;
+          background: #ffffff;
+          border: 2px solid #000;
+          font-family: Arial, Helvetica, sans-serif;
+          overflow: hidden;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          color: #000;
+        }
+        .jk-row { display: flex; border-bottom: 1.5px solid #000; align-items: stretch; }
+        .jk-label { font-size: 14px; font-weight: 900; padding: 4px 8px; border-right: 1.5px solid #000; display: flex; align-items: center; text-transform: uppercase; }
+        .jk-val { font-size: 22px; font-weight: 900; padding: 4px 8px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
+        .jk-input { border: none; font-size: 13px; font-weight: 900; width: 80px; text-transform: uppercase; outline: none; background: transparent; }
       `}</style>
       <div className="no-print" style={{ display:'flex', gap:'12px', marginBottom:'24px' }}>
         <button onClick={onClose} className="btn-corp" style={{ background:'#fff', color:'#475569', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'8px', fontWeight:700 }}>&larr; Back to Inventory</button>
         <button onClick={() => window.print()} className="btn-corp" style={{ background:'#10b981', color:'white', border:'none', padding:'12px 24px', borderRadius:'8px', fontWeight:800 }}>Print Sticker</button>
       </div>
-      <div className="sticker-wrap">
-        <div className="pi-sticker">
-          {/* Compact header: Article + Master Carton badge — no brand name */}
-          <div style={{ background:'#000', color:'#fff', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px', flexShrink:0 }}>
-            <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'20px', fontWeight:900, letterSpacing:'2px' }}>{article}</span>
-            <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'9px', fontWeight:800, background:'#fff', color:'#000', padding:'2px 6px', borderRadius:'2px', textTransform:'uppercase' }}>Master Carton</span>
-          </div>
-          <div className="pi-body">
-            <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
-            <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val size-roman">{aggregatedSizeStr}</div></div>
-            {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val">&#8377;{parseFloat(mrp).toFixed(2)}</div></div>)}
-            <div className="pi-sizes">
-              <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
-                <div className="pi-sh">Size</div>
-                {activeSizes.map((s: any) => <div key={s.size} className="pi-sh">{s.size}</div>)}
-                <div className="pi-sh tc">Total</div>
+      <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {isJokot ? (
+          <div className="jokot-sticker">
+            <div className="jk-row" style={{ flex: 1.2 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>ART NO:</div>
+              <div className="jk-val" style={{ flex: 1, fontSize: '28px', justifyContent: 'center' }}>{article}</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>COLOR</div>
+              <div className="jk-val" style={{ flex: 1 }}>{colour}</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>SIZE</div>
+              <div className="jk-val" style={{ flex: 1, fontSize: '24px' }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>MRP</div>
+              <div className="jk-val" style={{ flex: 1, fontSize: '24px' }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+            </div>
+
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>SIZE</div>
+              {activeSizes.map((s: any) => (
+                <div key={s.size} style={{ flex: 1, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '20px' }}>
+                  {s.size}
+                </div>
+              ))}
+              <div style={{ flex: '0 0 60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '13px' }}>Total</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px', fontSize: '12px' }}>QTY (pair)</div>
+              {activeSizes.map((s: any) => (
+                <div key={s.size} style={{ flex: 1, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '20px' }}>
+                  {s.scanned}
+                </div>
+              ))}
+              <div style={{ flex: '0 0 60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '22px' }}>{totalPairs}</div>
+            </div>
+
+            <div className="jk-row" style={{ flex: 2 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="jk-row" style={{ flex: 1, borderRight: 'none' }}>
+                  <div className="jk-label" style={{ flex: '0 0 120px', borderRight: 'none', fontSize: '11px' }}>NO OF PACKAGES</div>
+                  <div className="jk-val" style={{ flex: 1 }}>{totalPairs}</div>
+                </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+                  <div className="jk-label" style={{ flex: '0 0 120px', borderRight: 'none', fontSize: '11px', padding: 0 }}>MADE IN INDIA</div>
+                  <div style={{ flex: 1, fontSize: '12px', fontWeight: 900, textAlign: 'center' }}>
+                    Month of mF-
+                    <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} className="jk-input" />
+                  </div>
+                </div>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px` }}>
-                <div className="pi-sc lc">Qty(pr)</div>
-                {activeSizes.map((s: any) => <div key={s.size} className="pi-sc">{s.scanned}</div>)}
-                <div className="pi-sc tc">{totalPairs}</div>
+              <div style={{ flex: '0 0 90px', borderLeft: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+                <QRCodeSVG value={barcodeValue} size={76} level="M" />
               </div>
             </div>
-            <div className="pi-pkgs">
-              <span className="pi-pkgs-lbl">No. of Packages</span>
-              <span className="pi-pkgs-val">{totalPairs} <span>Pairs</span></span>
-            </div>
-            {/* Barcode only — no branding/footer text */}
-            <div className="pi-bc">
-              <Barcode value={barcodeValue} format="CODE128" width={1.6} height={28} displayValue={false} margin={0} background="#ffffff" />
+
+            <div style={{ display: 'flex', flexDirection: 'column', padding: '6px 8px', flex: 1.5, justifyContent: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, marginBottom: '2px' }}>Mfd.& Pkd. By : MATHEW RUBBERS</div>
+              <div style={{ fontSize: '10px', fontWeight: 800 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '6px' }}>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 800 }}>Mktd.By : JOKOT INTERNATIONAL</div>
+                  <div style={{ fontSize: '9px', fontWeight: 800, marginTop: '2px' }}>Phone : +91 8867915043, E-mail : jokot.international@gmail.com</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 900 }}>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid #000', display: 'inline-block' }}></div>
+                  JOKOT
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="pi-sticker">
+            <div style={{ background:'#fff', color:'#000', borderBottom:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px' }}>
+              <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'20px', fontWeight:900, letterSpacing:'2px' }}>{article}</span>
+              <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'9px', fontWeight:800, letterSpacing:'1px', background:'#fff', color:'#000', padding:'2px 6px', borderRadius:'2px', border:'1px solid #000', textTransform:'uppercase' }}>Master Carton</span>
+            </div>
+            <div className="pi-body">
+              <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
+              <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val size-roman">{aggregatedSizeStr.replace('x', ' × ')}</div></div>
+              {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val"><span style={{fontSize:'16px',marginRight:'2px'}}>₹</span>{parseFloat(mrp).toFixed(2)}</div></div>)}
+              <div className="pi-sizes">
+                <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
+                  <div className="pi-sh">Size</div>
+                  {activeSizes.map((s: any) => <div key={s.size} className="pi-sh">{s.size}</div>)}
+                  <div className="pi-sh tc">Total</div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px` }}>
+                  <div className="pi-sc lc">Qty(pr)</div>
+                  {activeSizes.map((s: any) => <div key={s.size} className="pi-sc">{s.scanned}</div>)}
+                  <div className="pi-sc tc">{totalPairs}</div>
+                </div>
+              </div>
+              <div className="pi-pkgs">
+                <span className="pi-pkgs-lbl">No. of Packages</span>
+                <span className="pi-pkgs-val">{totalPairs} <span>Pairs</span></span>
+              </div>
+              <div className="pi-bc">
+                <Barcode value={barcodeValue} format="CODE128" width={1.8} height={30} displayValue={false} margin={0} background="#ffffff" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

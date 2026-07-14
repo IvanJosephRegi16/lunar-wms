@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Barcode from 'react-barcode';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function ScanOutwardPage() {
   const searchParams = useSearchParams();
@@ -245,6 +246,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const [earlySealWarning, setEarlySealWarning] = useState(false);
   const [enteredMrp, setEnteredMrp] = useState('');
   const [sealedCartonData, setSealedCartonData] = useState<any>(null);
+  const [mrpWarningMsg, setMrpWarningMsg] = useState('');
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -311,6 +313,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           isScanningRef.current = false;
           return;
         } else if (res.ok) {
+          if (session.mrp && data.article.mrp && Number(session.mrp) !== Number(data.article.mrp)) {
+             setMrpWarningMsg(`⚠️ MRP Mismatch Detected! Expected: ₹${Number(session.mrp).toFixed(2)}, Scanned: ₹${Number(data.article.mrp).toFixed(2)}`);
+          } else {
+             setMrpWarningMsg('');
+          }
           setScanResult({ success: true, message: data.message, data: data.article });
           // Optimistic UI update — zero perceived lag
           setProgress(prev => {
@@ -355,6 +362,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
       }).then(async forceRes => {
         const data = await forceRes.json();
         if (forceRes.ok) {
+          if (session.mrp && data.article.mrp && Number(session.mrp) !== Number(data.article.mrp)) {
+             setMrpWarningMsg(`⚠️ MRP Mismatch Detected! Expected: ₹${Number(session.mrp).toFixed(2)}, Scanned: ₹${Number(data.article.mrp).toFixed(2)}`);
+          } else {
+             setMrpWarningMsg('');
+          }
           setScanResult({ success: true, message: data.message, data: data.article });
           setProgress(prev => {
             const next = [...prev];
@@ -697,6 +709,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             </p>
 
             <form onSubmit={handleScan} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
+              {mrpWarningMsg && (
+                <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', color: '#b45309', padding: '12px 16px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', animation: 'shake 0.4s ease' }}>
+                  {mrpWarningMsg}
+                </div>
+              )}
               <input
                 ref={barcodeInputRef}
                 type="text"
@@ -826,9 +843,10 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
   const barcodeValue = carton || '';
 
   const isJokot = article && article.toUpperCase().startsWith('J');
-  const brandName = isJokot ? 'JOKOT WMS' : 'LUNAR WMS';
-  const mfdBy = isJokot ? 'Jokot Footwear' : 'Lunar Rubbers Pvt Ltd — Thodupuzha, Kerala';
-  const mktdBy = isJokot ? 'Jokot Footwear' : 'Lunar Footwear — Customer Care: 1800-123-456';
+  
+  // State for editable month/year
+  const defaultMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ');
+  const [mfgMonth, setMfgMonth] = useState(defaultMonthYear);
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
@@ -847,7 +865,8 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
           .sticker-wrap { position: absolute; left: 0; top: 0; width: 90mm; height: 90mm; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
           .no-print { display: none !important; }
-          .sticker { box-shadow: none !important; margin: 0 !important; border: 2px solid #000 !important; width: 90mm !important; height: 90mm !important; overflow: hidden; }
+          .sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: 90mm !important; height: 90mm !important; overflow: hidden; }
+          .jokot-sticker { border: 2px solid #000 !important; }
         }
 
         .sticker {
@@ -861,6 +880,8 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
           display: flex;
           flex-direction: column;
         }
+
+        /* LUNAR STYLES */
         .info-row { display: flex; align-items: stretch; border-bottom: 1.5px solid #000; flex: 1; }
         .info-label { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 8px; min-width: 60px; display: flex; align-items: center; border-right: 1.5px solid #000; }
         .info-value { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 900; color: #000; padding: 4px 8px; display: flex; align-items: center; letter-spacing: 1px; flex: 1; }
@@ -880,6 +901,24 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
         .packages-value { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 900; color: #000; letter-spacing: 1px; }
         .packages-value span { font-size: 10px; font-weight: 800; color: #000; margin-left: 2px; letter-spacing: 1px; text-transform: uppercase; }
         .barcode-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; flex: 1; }
+
+        /* JOKOT STYLES */
+        .jokot-sticker {
+          width: 9cm;
+          height: 9cm;
+          background: #ffffff;
+          border: 2px solid #000;
+          font-family: Arial, Helvetica, sans-serif;
+          overflow: hidden;
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          color: #000;
+        }
+        .jk-row { display: flex; border-bottom: 1.5px solid #000; align-items: stretch; }
+        .jk-label { font-size: 14px; font-weight: 900; padding: 4px 8px; border-right: 1.5px solid #000; display: flex; align-items: center; text-transform: uppercase; }
+        .jk-val { font-size: 22px; font-weight: 900; padding: 4px 8px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
+        .jk-input { border: none; font-size: 13px; font-weight: 900; width: 80px; text-transform: uppercase; outline: none; background: transparent; }
       `}</style>
 
       <div className="no-print" style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
@@ -892,55 +931,133 @@ function MasterCartonSticker({ cartonData, onClose }: { cartonData: any, onClose
       </div>
 
       <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <div className="sticker">
-          {/* Compact header: Article + Master Carton badge */}
-          <div style={{ background: '#fff', color: '#000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px' }}>
-            <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '20px', fontWeight: 900, letterSpacing: '2px' }}>{article}</span>
-            <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '9px', fontWeight: 800, letterSpacing: '1px', background: '#fff', color: '#000', padding: '2px 6px', borderRadius: '2px', border: '1px solid #000', textTransform: 'uppercase' }}>Master Carton</span>
+        {isJokot ? (
+          <div className="jokot-sticker">
+            <div className="jk-row" style={{ flex: 1.2 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>ART NO:</div>
+              <div className="jk-val" style={{ flex: 1, fontSize: '28px', justifyContent: 'center' }}>{article}</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>COLOR</div>
+              <div className="jk-val" style={{ flex: 1 }}>{colour}</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>SIZE</div>
+              <div className="jk-val" style={{ flex: 1, fontSize: '24px' }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>MRP</div>
+              <div className="jk-val" style={{ flex: 1, fontSize: '24px' }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+            </div>
+
+            {/* SIZES GRID */}
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px' }}>SIZE</div>
+              {activeSizes.map((s: any) => (
+                <div key={s.size} style={{ flex: 1, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '20px' }}>
+                  {s.size}
+                </div>
+              ))}
+              <div style={{ flex: '0 0 60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '13px' }}>Total</div>
+            </div>
+            <div className="jk-row" style={{ flex: 1 }}>
+              <div className="jk-label" style={{ flex: '0 0 100px', fontSize: '12px' }}>QTY (pair)</div>
+              {activeSizes.map((s: any) => (
+                <div key={s.size} style={{ flex: 1, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '20px' }}>
+                  {s.scanned}
+                </div>
+              ))}
+              <div style={{ flex: '0 0 60px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '22px' }}>{totalPairs}</div>
+            </div>
+
+            {/* PACKAGES & QR */}
+            <div className="jk-row" style={{ flex: 2 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div className="jk-row" style={{ flex: 1, borderRight: 'none' }}>
+                  <div className="jk-label" style={{ flex: '0 0 120px', borderRight: 'none', fontSize: '11px' }}>NO OF PACKAGES</div>
+                  <div className="jk-val" style={{ flex: 1 }}>{totalPairs}</div>
+                </div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', padding: '0 8px' }}>
+                  <div className="jk-label" style={{ flex: '0 0 120px', borderRight: 'none', fontSize: '11px', padding: 0 }}>MADE IN INDIA</div>
+                  <div style={{ flex: 1, fontSize: '12px', fontWeight: 900, textAlign: 'center' }}>
+                    Month of mF-
+                    <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} className="jk-input" />
+                  </div>
+                </div>
+              </div>
+              <div style={{ flex: '0 0 90px', borderLeft: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+                <QRCodeSVG value={barcodeValue} size={76} level="M" />
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div style={{ display: 'flex', flexDirection: 'column', padding: '6px 8px', flex: 1.5, justifyContent: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, marginBottom: '2px' }}>Mfd.& Pkd. By : MATHEW RUBBERS</div>
+              <div style={{ fontSize: '10px', fontWeight: 800 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '6px' }}>
+                <div>
+                  <div style={{ fontSize: '10px', fontWeight: 800 }}>Mktd.By : JOKOT INTERNATIONAL</div>
+                  <div style={{ fontSize: '9px', fontWeight: 800, marginTop: '2px' }}>Phone : +91 8867915043, E-mail : jokot.international@gmail.com</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '14px', fontWeight: 900 }}>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid #000', display: 'inline-block' }}></div>
+                  JOKOT
+                </div>
+              </div>
+            </div>
           </div>
-
-          <div className="sticker-body" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div className="info-row">
-              <div className="info-label">Colour</div>
-              <div className="info-value" style={{ fontSize: '18px' }}>{colour}</div>
+        ) : (
+          <div className="sticker">
+            {/* Compact header: Article + Master Carton badge */}
+            <div style={{ background: '#fff', color: '#000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px' }}>
+              <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '20px', fontWeight: 900, letterSpacing: '2px' }}>{article}</span>
+              <span style={{ fontFamily: 'Barlow Condensed, sans-serif', fontSize: '9px', fontWeight: 800, letterSpacing: '1px', background: '#fff', color: '#000', padding: '2px 6px', borderRadius: '2px', border: '1px solid #000', textTransform: 'uppercase' }}>Master Carton</span>
             </div>
 
-            <div className="info-row">
-              <div className="info-label">Size</div>
-              <div className="info-value size-roman">{aggregatedSizeStr.replace('x', ' × ')}</div>
-            </div>
-
-            {mrp && (
+            <div className="sticker-body" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
               <div className="info-row">
-                <div className="info-label">MRP</div>
-                <div className="info-value mrp-val"><span className="rupee">₹</span>{parseFloat(mrp).toFixed(2)}</div>
+                <div className="info-label">Colour</div>
+                <div className="info-value" style={{ fontSize: '18px' }}>{colour}</div>
               </div>
-            )}
 
-            <div className="size-section">
-              <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom: '1px solid #000' }}>
-                <div className="size-col-header" style={{ textAlign: 'left', paddingLeft: '8px' }}>Size</div>
-                {activeSizes.map((s: any) => <div key={s.size} className="size-col-header">{s.size}</div>)}
-                <div className="size-col-header total-col">Total</div>
+              <div className="info-row">
+                <div className="info-label">Size</div>
+                <div className="info-value size-roman">{aggregatedSizeStr.replace('x', ' × ')}</div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${activeSizes.length}, 1fr) 45px` }}>
-                <div className="size-cell label-cell">Qty(pr)</div>
-                {activeSizes.map((s: any) => <div key={s.size} className="size-cell">{s.scanned}</div>)}
-                <div className="size-cell total-cell">{totalPairs}</div>
+
+              {mrp && (
+                <div className="info-row">
+                  <div className="info-label">MRP</div>
+                  <div className="info-value mrp-val"><span className="rupee">₹</span>{parseFloat(mrp).toFixed(2)}</div>
+                </div>
+              )}
+
+              <div className="size-section">
+                <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom: '1px solid #000' }}>
+                  <div className="size-col-header" style={{ textAlign: 'left', paddingLeft: '8px' }}>Size</div>
+                  {activeSizes.map((s: any) => <div key={s.size} className="size-col-header">{s.size}</div>)}
+                  <div className="size-col-header total-col">Total</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: `60px repeat(${activeSizes.length}, 1fr) 45px` }}>
+                  <div className="size-cell label-cell">Qty(pr)</div>
+                  {activeSizes.map((s: any) => <div key={s.size} className="size-cell">{s.scanned}</div>)}
+                  <div className="size-cell total-cell">{totalPairs}</div>
+                </div>
               </div>
-            </div>
 
-            <div className="packages-row">
-              <div className="packages-label">No. of Packages</div>
-              <div className="packages-value">{totalPairs} <span>Pairs</span></div>
-            </div>
+              <div className="packages-row">
+                <div className="packages-label">No. of Packages</div>
+                <div className="packages-value">{totalPairs} <span>Pairs</span></div>
+              </div>
 
-            {/* Barcode only — no branding text */}
-            <div className="barcode-area">
-              <Barcode value={barcodeValue} format="CODE128" width={1.8} height={30} displayValue={false} margin={0} background="#ffffff" />
+              {/* Barcode only — no branding text */}
+              <div className="barcode-area">
+                <Barcode value={barcodeValue} format="CODE128" width={1.8} height={30} displayValue={false} margin={0} background="#ffffff" />
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
     </div>

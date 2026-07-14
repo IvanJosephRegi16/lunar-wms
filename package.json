@@ -26,6 +26,7 @@
     "nodemailer": "^8.0.7",
     "papaparse": "^5.5.3",
     "pg": "^8.20.0",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-barcode": "^1.6.1",
     "react-chartjs-2": "^5.3.1",

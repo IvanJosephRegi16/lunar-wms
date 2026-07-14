@@ -162,7 +162,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: `Scanned ${scannedArticle} (${scannedSize})`,
-      article: { article_code: scannedArticle, size: scannedSize, colour: scannedColour }
+      article: { article_code: scannedArticle, size: scannedSize, colour: scannedColour, mrp }
     });
   } catch (error: any) {
     console.error('Error in outward scan:', error);
