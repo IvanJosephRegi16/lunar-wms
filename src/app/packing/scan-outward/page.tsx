@@ -317,7 +317,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             const next = [...prev];
             const idx = next.findIndex(p => p.size === data.article.size);
             if (idx >= 0) {
-              next[idx] = { ...next[idx], scanned: next[idx].scanned + 1, remaining: Math.max(0, next[idx].remaining - 1) };
+              next[idx] = { ...next[idx], scanned: Number(next[idx].scanned) + 1, remaining: Math.max(0, Number(next[idx].remaining) - 1) };
             } else {
               next.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
               next.sort((a, b) => parseInt(a.size) - parseInt(b.size));
@@ -360,7 +360,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             const next = [...prev];
             const idx = next.findIndex(p => p.size === data.article.size);
             if (idx >= 0) {
-              next[idx] = { ...next[idx], scanned: next[idx].scanned + 1, remaining: Math.max(0, next[idx].remaining - 1) };
+              next[idx] = { ...next[idx], scanned: Number(next[idx].scanned) + 1, remaining: Math.max(0, Number(next[idx].remaining) - 1) };
             } else {
               next.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
               next.sort((a, b) => parseInt(a.size) - parseInt(b.size));
@@ -399,8 +399,8 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   };
 
   const handleManualSealClick = () => {
-    const totalPairsScanned = progress.reduce((acc, curr) => acc + curr.scanned, 0);
-    const totalPairsRequired = progress.reduce((acc, curr) => acc + curr.required, 0);
+    const totalPairsScanned = progress.reduce((acc, curr) => acc + Number(curr.scanned), 0);
+    const totalPairsRequired = progress.reduce((acc, curr) => acc + Number(curr.required), 0);
 
     if (totalPairsScanned < totalPairsRequired) {
       setEarlySealWarning(true);
@@ -474,9 +474,9 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
     return <div className="fade-up" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-ghost)' }}>Loading Session...</div>;
   }
 
-  const totalRequired = progress.reduce((acc, curr) => acc + curr.required, 0);
-  const totalScanned = progress.reduce((acc, curr) => acc + curr.scanned, 0);
-  const canSeal = progress.length > 0 && progress.every(p => p.scanned >= p.required - 1);
+  const totalRequired = progress.reduce((acc, curr) => acc + Number(curr.required), 0);
+  const totalScanned = progress.reduce((acc, curr) => acc + Number(curr.scanned), 0);
+  const canSeal = progress.length > 0 && progress.every(p => Number(p.scanned) >= Number(p.required) - 1);
 
   if (sealedCartonData) {
     return <MasterCartonSticker cartonData={sealedCartonData} onClose={() => router.push('/packed-inventory')} />;
@@ -560,7 +560,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             <div style={{ fontSize: '56px', marginBottom: '20px', animation: 'bounce 2s infinite' }}>⚠️</div>
             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '0 0 16px 0', color: '#0f172a', letterSpacing: '-0.5px' }}>Warning: Incomplete Carton</h2>
             <p style={{ margin: '0 0 32px 0', color: '#475569', fontSize: '16px', lineHeight: '1.6', fontWeight: 500 }}>
-              You have only scanned <strong>{progress.reduce((acc, curr) => acc + curr.scanned, 0)}</strong> pairs (Rule requires {progress.reduce((acc, curr) => acc + curr.required, 0)} pairs).<br />Are you sure you want to process and seal this carton early?
+              You have only scanned <strong>{progress.reduce((acc, curr) => acc + Number(curr.scanned), 0)}</strong> pairs (Rule requires {progress.reduce((acc, curr) => acc + Number(curr.required), 0)} pairs).<br />Are you sure you want to process and seal this carton early?
             </p>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
               <button onClick={() => setEarlySealWarning(false)} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '2px solid #fecaca', flex: 1, padding: '16px', fontSize: '16px', borderRadius: '12px' }}>
@@ -619,9 +619,12 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px' }}>
             {progress.map(row => {
-              const isCustom = row.required === 0;
-              const isComplete = row.remaining === 0 && !isCustom;
-              const isOver = row.scanned > row.required && !isCustom;
+              const req = Number(row.required);
+              const scan = Number(row.scanned);
+              const rem = Number(row.remaining);
+              const isCustom = req === 0;
+              const isComplete = rem === 0 && !isCustom;
+              const isOver = scan > req && !isCustom;
 
               let cardBg = '#ffffff';
               let borderColor = '#e2e8f0';
@@ -639,7 +642,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                 cardBg = '#fffbeb';
                 borderColor = '#fde68a';
                 accentColor = '#f59e0b'; // amber
-              } else if (row.scanned > 0) {
+              } else if (scan > 0) {
                 cardBg = '#f8fafc';
                 borderColor = '#cbd5e1';
                 accentColor = 'var(--neon-violet)';
@@ -668,7 +671,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                     <div style={{
                       height: '100%',
                       background: accentColor,
-                      width: row.required > 0 ? `${Math.min(100, (row.scanned / row.required) * 100)}%` : '100%',
+                      width: req > 0 ? `${Math.min(100, (scan / req) * 100)}%` : '100%',
                       transition: 'width 0.3s ease'
                     }} />
                   </div>
@@ -676,7 +679,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', fontSize: '14px', fontWeight: 700 }}>
                     <div style={{ color: '#64748b' }}>Scanned</div>
                     <div style={{ color: accentColor, fontSize: '16px', fontWeight: 900 }}>
-                      {row.scanned} {isCustom ? <span style={{ color: '#a855f7', fontSize: '12px' }}>Custom</span> : <span style={{ color: '#94a3b8', fontSize: '12px' }}>/ {row.required}</span>}
+                      {scan} {isCustom ? <span style={{ color: '#a855f7', fontSize: '12px' }}>Custom</span> : <span style={{ color: '#94a3b8', fontSize: '12px' }}>/ {req}</span>}
                     </div>
                   </div>
                 </div>
