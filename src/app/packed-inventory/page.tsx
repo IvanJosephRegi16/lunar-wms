@@ -559,15 +559,15 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
-        @page { size: 90mm 90mm; margin: 0; }
+        @page { size: 100mm 100mm; margin: 0; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: 90mm; height: 90mm; overflow: hidden; }
+          html, body { margin: 0 !important; padding: 0 !important; width: 100mm; height: 100mm; overflow: hidden; }
           body * { visibility: hidden; }
-          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; overflow: hidden; width: 90mm; height: 90mm; }
+          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; overflow: hidden; width: 100mm; height: 100mm; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: absolute; left: 0; top: 0; width: 90mm; height: 90mm; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
+          .sticker-wrap { position: absolute; left: 0; top: 0; width: 100mm; height: 100mm; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
           .no-print { display: none !important; }
-          .pi-sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: 90mm !important; height: 90mm !important; overflow: hidden; }
+          .pi-sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: 100mm !important; height: 100mm !important; overflow: hidden; }
           .jokot-sticker { border: 2px solid #000 !important; }
         }
         
@@ -593,8 +593,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
 
         /* JOKOT STYLES */
         .jokot-sticker {
-          width: 9cm;
-          height: 9cm;
+          width: 10cm;
+          height: 10cm;
           background: #ffffff;
           border: 2px solid #000;
           font-family: Arial, Helvetica, sans-serif;
