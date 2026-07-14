@@ -75,19 +75,23 @@ export async function POST(request: Request) {
       // Reject if this exact barcode was already successfully scanned in the
       // last 10 minutes to protect against accidental double-scans.
       const recentDuplicate = await db.prepare(`
-        SELECT barcode FROM scan_history
+        SELECT barcode, created_at FROM scan_history
         WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
-          AND created_at >= NOW() - INTERVAL '10 minutes'
         LIMIT 1
       `).get(barcode) as any;
 
       if (recentDuplicate) {
+        let scanTime = '';
+        try {
+          scanTime = new Date(recentDuplicate.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        } catch(e) { scanTime = recentDuplicate.created_at; }
+        
         // Log the duplicate attempt in scan_history for forensic visibility
         await db.prepare(`
           INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
           VALUES (?, ?, ?, ?, ?, 'error_duplicate', ?, 'intake')
         `).run(barcode, article, colour, size, user.id, mrp);
-        throw Object.assign(new Error(`DUPLICATE_SCAN: Barcode "${barcode}" was already scanned recently. Duplicate scan rejected.`), { isDuplicate: true });
+        throw Object.assign(new Error(`Duplicate Entry which you already scanned. Scanned on: ${scanTime}`), { isDuplicate: true });
       }
       // ────────────────────────────────────────────────────────────────────────
 

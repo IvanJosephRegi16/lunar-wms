@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
     // ─── UNIQUE BARCODE POOL GUARD ──────────────────────────────────────────
     // Check if the unique barcode exists and is available in the intake pool
     const poolRecord = await db.prepare(`
-      SELECT status FROM intake_barcode_pool
+      SELECT status, outward_scanned_at FROM intake_barcode_pool
       WHERE barcode = ?
     `).get(barcode) as any;
 
@@ -85,13 +85,17 @@ export async function POST(req: NextRequest) {
     }
 
     if (poolRecord.status === 'scanned_outward' && !force) {
+      let scanTime = '';
+      try {
+        scanTime = poolRecord.outward_scanned_at ? new Date(poolRecord.outward_scanned_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'recently';
+      } catch(e) { scanTime = 'recently'; }
       // Log the duplicate attempt visibly in scan_history
       await db.prepare(`
         INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, scan_type)
         VALUES (?, ?, ?, ?, ?, 'error_duplicate', 'outward')
       `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id);
       return NextResponse.json({
-        error: `⚠️ DUPLICATE SCAN: Barcode "${barcode}" was already scanned outward. Duplicate rejected.`,
+        error: `Duplicate Entry which you already scanned outward. Scanned on: ${scanTime}`,
         isDuplicate: true
       }, { status: 409 });
     }
@@ -133,9 +137,9 @@ export async function POST(req: NextRequest) {
     // Success! Perform DB updates concurrently
     await Promise.all([
       db.prepare(`
-        INSERT INTO outward_scan_items (session_id, article_code, colour, size)
-        VALUES (?, ?, ?, ?)
-      `).run(session_id, scannedArticle, scannedColour, scannedSize),
+        INSERT INTO outward_scan_items (session_id, article_code, colour, size, barcode)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(session_id, scannedArticle, scannedColour, scannedSize, barcode),
       
       db.prepare(`
         UPDATE inventory_pool 

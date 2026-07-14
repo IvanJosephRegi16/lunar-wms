@@ -869,6 +869,7 @@ ON CONFLICT (username) DO NOTHING;
       { table: 'carton_generation',   column: 'article_code',            type: 'TEXT' },
       { table: 'carton_generation',   column: 'colour',                  type: 'TEXT' },
       { table: 'carton_generation',   column: 'created_by',              type: 'INTEGER' },
+      { table: 'outward_scan_items',  column: 'barcode',                 type: 'TEXT' },
     ];
 
     for (const m of columnMigrations) {

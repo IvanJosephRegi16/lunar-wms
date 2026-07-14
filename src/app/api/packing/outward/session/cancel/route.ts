@@ -41,6 +41,27 @@ export async function POST(req: NextRequest) {
         `).run(item.count, item.count, item.article_code, item.colour);
       }
 
+      // Get all scanned items to restore inventory and barcodes
+      const itemsToRestore = await db.prepare(`
+        SELECT barcode FROM outward_scan_items
+        WHERE session_id = ? AND barcode IS NOT NULL
+      `).all(session_id);
+
+      for (const item of itemsToRestore) {
+        // Revert intake pool status
+        await db.prepare(`
+          UPDATE intake_barcode_pool
+          SET status = 'available', outward_scanned_at = NULL
+          WHERE barcode = ?
+        `).run(item.barcode);
+
+        // Delete successful outward scan history records so they don't show up in logs as successfully scanned outward
+        await db.prepare(`
+          DELETE FROM scan_history 
+          WHERE barcode = ? AND scan_type = 'outward' AND status = 'success_outward'
+        `).run(item.barcode);
+      }
+
       // Delete scan items
       await db.prepare(`
         DELETE FROM outward_scan_items WHERE session_id = ?
