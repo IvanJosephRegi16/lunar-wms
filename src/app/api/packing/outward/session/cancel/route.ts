@@ -21,10 +21,29 @@ export async function POST(req: NextRequest) {
     `).get(session_id) as any;
 
     if (!session) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    if (session.status !== 'in_progress') return NextResponse.json({ error: `Cannot cancel ${session.status} session` }, { status: 400 });
+    if (session.status !== 'in_progress' && session.status !== 'completed') {
+      return NextResponse.json({ error: `Cannot cancel a ${session.status} session` }, { status: 400 });
+    }
 
     await db.transaction(async () => {
-      // Get all scanned items to restore inventory
+      // ── For COMPLETED sessions: undo the seal (delete packed_carton + outward_transaction) ──
+      if (session.status === 'completed') {
+        // Find the latest outward_transaction for this session's config
+        const latestTxn = await db.prepare(`
+          SELECT ot.id as txn_id
+          FROM outward_transactions ot
+          WHERE ot.config_id = ? AND ot.article_code = ? AND ot.colour = ?
+          ORDER BY ot.id DESC LIMIT 1
+        `).get(session.carton_generation_id, session.article_code, session.colour) as any;
+
+        if (latestTxn) {
+          await db.prepare(`DELETE FROM packed_cartons WHERE transaction_id = ?`).run(latestTxn.txn_id);
+          await db.prepare(`DELETE FROM outward_items WHERE transaction_id = ?`).run(latestTxn.txn_id);
+          await db.prepare(`DELETE FROM outward_transactions WHERE id = ?`).run(latestTxn.txn_id);
+        }
+      }
+
+      // ── Restore inventory counts ──
       const items = await db.prepare(`
         SELECT article_code, colour, size, COUNT(*) as count
         FROM outward_scan_items
@@ -41,36 +60,28 @@ export async function POST(req: NextRequest) {
         `).run(item.count, item.count, item.article_code, item.colour);
       }
 
-      // Get all scanned items to restore inventory and barcodes
+      // ── Restore barcode pool and purge outward scan history ──
       const itemsToRestore = await db.prepare(`
         SELECT barcode FROM outward_scan_items
         WHERE session_id = ? AND barcode IS NOT NULL
       `).all(session_id);
 
       for (const item of itemsToRestore) {
-        // Revert intake pool status
         await db.prepare(`
           UPDATE intake_barcode_pool
           SET status = 'available', outward_scanned_at = NULL
           WHERE barcode = ?
         `).run(item.barcode);
 
-        // Delete successful outward scan history records so they don't show up in logs as successfully scanned outward
         await db.prepare(`
           DELETE FROM scan_history 
           WHERE barcode = ? AND scan_type = 'outward' AND status = 'success_outward'
         `).run(item.barcode);
       }
 
-      // Delete scan items
-      await db.prepare(`
-        DELETE FROM outward_scan_items WHERE session_id = ?
-      `).run(session_id);
-
-      // Cancel session
-      await db.prepare(`
-        UPDATE outward_scan_sessions SET status = 'cancelled' WHERE id = ?
-      `).run(session_id);
+      // ── Delete scan items and mark session cancelled ──
+      await db.prepare(`DELETE FROM outward_scan_items WHERE session_id = ?`).run(session_id);
+      await db.prepare(`UPDATE outward_scan_sessions SET status = 'cancelled' WHERE id = ?`).run(session_id);
     });
 
     return NextResponse.json({ success: true, message: 'Session cancelled and inventory restored' });
