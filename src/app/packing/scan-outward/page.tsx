@@ -241,12 +241,14 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   // Custom Approval Modal State
   const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; message: string; pendingBarcode: string } | null>(null);
 
+  // MRP Warning Modal State
+  const [mrpWarningModal, setMrpWarningModal] = useState<{ isOpen: boolean; reason: string; lastScanData: any } | null>(null);
+
   // Sticker & MRP State
   const [mrpPopup, setMrpPopup] = useState(false);
   const [earlySealWarning, setEarlySealWarning] = useState(false);
   const [enteredMrp, setEnteredMrp] = useState('');
   const [sealedCartonData, setSealedCartonData] = useState<any>(null);
-  const [mrpWarningMsg, setMrpWarningMsg] = useState('');
 
   const barcodeInputRef = useRef<HTMLInputElement>(null);
 
@@ -313,10 +315,13 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           isScanningRef.current = false;
           return;
         } else if (res.ok) {
-          if (session.mrp && data.article.mrp && Number(session.mrp) !== Number(data.article.mrp)) {
-             setMrpWarningMsg(`⚠️ MRP Mismatch Detected! Expected: ₹${Number(session.mrp).toFixed(2)}, Scanned: ₹${Number(data.article.mrp).toFixed(2)}`);
-          } else {
-             setMrpWarningMsg('');
+          const artMrp = data.article?.mrp;
+          const sessMrp = session?.mrp;
+          let mrpIssueReason = '';
+          if (!artMrp || artMrp === '' || artMrp === null) {
+            mrpIssueReason = `The scanned barcode has NO MRP set. Article: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. Please verify before proceeding.`;
+          } else if (sessMrp && Number(sessMrp) !== Number(artMrp)) {
+            mrpIssueReason = `MRP Mismatch Detected!\n\nSession MRP: ₹${Number(sessMrp).toFixed(2)}\nScanned MRP: ₹${Number(artMrp).toFixed(2)}\n\nArticle: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. This may be a wrong article or incorrect data entry.`;
           }
           setScanResult({ success: true, message: data.message, data: data.article });
           // Optimistic UI update — zero perceived lag
@@ -331,6 +336,11 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             }
             return next;
           });
+          if (mrpIssueReason) {
+            setMrpWarningModal({ isOpen: true, reason: mrpIssueReason, lastScanData: data.article });
+            isScanningRef.current = false;
+            return;
+          }
         } else if (res.status === 409 && data.isDuplicate) {
           setScanResult({ success: false, message: data.error, isDuplicate: true });
         } else {
@@ -362,34 +372,43 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
       }).then(async forceRes => {
         const data = await forceRes.json();
         if (forceRes.ok) {
-          if (session.mrp && data.article.mrp && Number(session.mrp) !== Number(data.article.mrp)) {
-             setMrpWarningMsg(`⚠️ MRP Mismatch Detected! Expected: ₹${Number(session.mrp).toFixed(2)}, Scanned: ₹${Number(data.article.mrp).toFixed(2)}`);
-          } else {
-             setMrpWarningMsg('');
-          }
-          setScanResult({ success: true, message: data.message, data: data.article });
-          setProgress(prev => {
-            const next = [...prev];
-            const idx = next.findIndex(p => p.size === data.article.size);
-            if (idx >= 0) {
-              next[idx] = { ...next[idx], scanned: Number(next[idx].scanned) + 1, remaining: Math.max(0, Number(next[idx].remaining) - 1) };
-            } else {
-              next.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
-              next.sort((a, b) => parseInt(a.size) - parseInt(b.size));
-            }
-            return next;
-          });
-        } else {
-          setScanResult({ success: false, message: data.error });
+        const artMrp2 = data.article?.mrp;
+        const sessMrp2 = session?.mrp;
+        let mrpIssueReason2 = '';
+        if (!artMrp2 || artMrp2 === '' || artMrp2 === null) {
+          mrpIssueReason2 = `The scanned barcode has NO MRP set. Article: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. Please verify before proceeding.`;
+        } else if (sessMrp2 && Number(sessMrp2) !== Number(artMrp2)) {
+          mrpIssueReason2 = `MRP Mismatch Detected!\n\nSession MRP: ₹${Number(sessMrp2).toFixed(2)}\nScanned MRP: ₹${Number(artMrp2).toFixed(2)}\n\nArticle: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. This may be a wrong article or incorrect data entry.`;
         }
+        setScanResult({ success: true, message: data.message, data: data.article });
+        setProgress(prev => {
+          const next = [...prev];
+          const idx = next.findIndex(p => p.size === data.article.size);
+          if (idx >= 0) {
+            next[idx] = { ...next[idx], scanned: Number(next[idx].scanned) + 1, remaining: Math.max(0, Number(next[idx].remaining) - 1) };
+          } else {
+            next.push({ size: data.article.size, required: 0, scanned: 1, remaining: 0 });
+            next.sort((a, b) => parseInt(a.size) - parseInt(b.size));
+          }
+          return next;
+        });
+        if (mrpIssueReason2) {
+          setMrpWarningModal({ isOpen: true, reason: mrpIssueReason2, lastScanData: data.article });
+        } else {
+          processScanQueue();
+          barcodeInputRef.current?.focus();
+        }
+      } else {
+        setScanResult({ success: false, message: data.error });
         processScanQueue();
         barcodeInputRef.current?.focus();
-      }).catch(err => {
-        setScanResult({ success: false, message: err.message || 'Network error' });
-        processScanQueue();
-      });
-      return;
-    }
+      }
+    }).catch(err => {
+      setScanResult({ success: false, message: err.message || 'Network error' });
+      processScanQueue();
+    });
+    return;
+  }
 
     // Normal path: push to queue and process
     scanQueue.current.push(codeToScan);
@@ -407,6 +426,21 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const cancelApproval = () => {
     setApprovalModal(null);
     setScanResult({ success: false, message: 'Extra size variation rejected by user.' });
+    setTimeout(() => barcodeInputRef.current?.focus(), 100);
+  };
+
+  // MRP Warning Modal handlers
+  const approveMrpWarning = () => {
+    setMrpWarningModal(null);
+    processScanQueue();
+    setTimeout(() => barcodeInputRef.current?.focus(), 100);
+  };
+
+  const rejectMrpWarning = async () => {
+    setMrpWarningModal(null);
+    setScanResult({ success: false, message: '⚠️ Scan rejected due to MRP issue. Barcode has been removed.' });
+    // Refetch from server to get the corrected counts
+    await fetchSessionData();
     setTimeout(() => barcodeInputRef.current?.focus(), 100);
   };
 
@@ -547,6 +581,35 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
               </button>
               <button onClick={() => confirmManualSeal(enteredMrp || null)} className="btn-corp" style={{ flex: 1, padding: '16px', background: '#10b981', color: 'white', borderRadius: '12px', border: 'none', fontWeight: 800 }}>
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MRP WARNING MODAL */}
+      {mrpWarningModal?.isOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(15, 23, 42, 0.9)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+        }}>
+          <div className="card-clean" style={{ background: '#ffffff', padding: '40px', maxWidth: '480px', width: '100%', textAlign: 'center', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)', borderRadius: '24px', border: '3px solid #fbbf24' }}>
+            <div style={{ fontSize: '56px', marginBottom: '16px' }}>⚠️</div>
+            <h2 style={{ fontSize: '22px', fontWeight: 900, margin: '0 0 8px 0', color: '#92400e' }}>MRP Warning</h2>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px', margin: '16px 0 24px 0', textAlign: 'left' }}>
+              {mrpWarningModal.reason.split('\n').map((line, i) => (
+                <p key={i} style={{ margin: '4px 0', fontSize: '14px', color: '#78350f', fontWeight: line.includes('₹') || line.includes('MRP') ? 700 : 500 }}>{line}</p>
+              ))}
+            </div>
+            <p style={{ margin: '0 0 24px 0', color: '#475569', fontSize: '14px' }}>Do you want to <strong>approve</strong> this scan anyway, or <strong>reject</strong> and remove it?</p>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+              <button onClick={rejectMrpWarning} className="btn-corp" style={{ background: '#fef2f2', color: '#ef4444', border: '2px solid #fecaca', flex: 1, padding: '14px', fontSize: '15px', borderRadius: '12px', fontWeight: 800 }}>
+                ✕ Reject Scan
+              </button>
+              <button onClick={approveMrpWarning} className="btn-corp" style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', color: 'white', border: 'none', flex: 1, padding: '14px', fontSize: '15px', borderRadius: '12px', fontWeight: 800, boxShadow: '0 10px 25px -5px rgba(245, 158, 11, 0.4)' }}>
+                ✓ Approve Anyway
               </button>
             </div>
           </div>
@@ -728,11 +791,6 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             </p>
 
             <form onSubmit={handleScan} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
-              {mrpWarningMsg && (
-                <div style={{ background: '#fef3c7', border: '2px solid #f59e0b', color: '#b45309', padding: '12px 16px', borderRadius: '12px', fontWeight: 700, fontSize: '14px', animation: 'shake 0.4s ease' }}>
-                  {mrpWarningMsg}
-                </div>
-              )}
               <input
                 ref={barcodeInputRef}
                 type="text"
