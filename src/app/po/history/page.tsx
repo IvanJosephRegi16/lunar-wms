@@ -40,6 +40,15 @@ export default function POHistory() {
     loadData();
   }, []);
 
+  // Scroll to details table automatically when a PO is opened
+  useEffect(() => {
+    if (selectedPo) {
+      setTimeout(() => {
+        document.getElementById('po-details-table')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [selectedPo]);
+
   // ─── Force Edit Helpers ───────────────────────────────────────────────────
   const canForceEdit = ['admin', 'supervisor', 'pm'].includes(userRole);
 
@@ -507,8 +516,8 @@ export default function POHistory() {
               </div>
             )}
 
-            <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto' }}>
-              <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse', fontSize: '12px' }}>
+            <div id="po-details-table" style={{ border: '1px solid var(--border)', borderRadius: '8px', overflowX: 'auto', scrollMarginTop: '20px' }}>
+              <table style={{ width: '100%', minWidth: '750px', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
                     <th style={{ textAlign: 'left', padding: '10px 12px' }}>Category</th>
@@ -519,7 +528,8 @@ export default function POHistory() {
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Req Qty</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px', color: forceEditMode ? '#7c3aed' : undefined }}>Received Qty {forceEditMode && '✏️'}</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Pending Qty</th>
-                    <th style={{ textAlign: 'right', padding: '10px 12px', color: forceEditMode ? '#7c3aed' : undefined }}>Rate {forceEditMode && '✏️'}</th>
+                    <th style={{ textAlign: 'right', padding: '10px 12px' }}>Ordered Rate</th>
+                    <th style={{ textAlign: 'right', padding: '10px 12px', color: forceEditMode ? '#7c3aed' : undefined }}>Received Rate {forceEditMode && '✏️'}</th>
                     <th style={{ textAlign: 'right', padding: '10px 12px' }}>Amount</th>
                   </tr>
                 </thead>
@@ -556,7 +566,8 @@ export default function POHistory() {
                           )}
                         </td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 700, fontFamily: 'monospace', color: pendQty > 0 ? '#ef4444' : 'var(--text-muted)' }}>{pendQty.toLocaleString()} {item.unit || 'Pair'}</td>
-                        {/* Rate — editable in force edit mode */}
+                        <td style={{ textAlign: 'right', padding: '10px 12px', fontFamily: 'monospace' }}>₹{Number(item.original_order_rate || item.order_rate || 0).toFixed(2)}</td>
+                        {/* Received Rate — editable in force edit mode */}
                         <td style={{ textAlign: 'right', padding: '8px 12px', fontFamily: 'monospace' }}>
                           {forceEditMode ? (
                             <input

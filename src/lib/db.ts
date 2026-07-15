@@ -308,7 +308,8 @@ CREATE TABLE IF NOT EXISTS purchase_order_items (
   unit TEXT DEFAULT 'Pair',
   amount NUMERIC NOT NULL,
   vendor TEXT,
-  remarks TEXT
+  remarks TEXT,
+  original_order_rate NUMERIC
 );
 
 CREATE TABLE IF NOT EXISTS po_approval_history (
@@ -321,6 +322,10 @@ CREATE TABLE IF NOT EXISTS po_approval_history (
   timestamp TIMESTAMPTZ DEFAULT NOW(),
   ist_timestamp TEXT
 );
+
+-- Safely add new columns to purchase_orders and purchase_order_items if they don't exist
+ALTER TABLE purchase_order_items ADD COLUMN IF NOT EXISTS original_order_rate NUMERIC;
+UPDATE purchase_order_items SET original_order_rate = order_rate WHERE original_order_rate IS NULL;
 
 -- Safely add new columns to purchase_orders if they don't exist
 ALTER TABLE purchase_orders ADD COLUMN IF NOT EXISTS terms_delivery TEXT;

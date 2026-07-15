@@ -252,14 +252,15 @@ export async function POST(req: NextRequest) {
 
         await db.prepare(`
           INSERT INTO purchase_order_items (
-            po_id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            po_id, category, material_code, material_name, size_thickness, order_rate, original_order_rate, current_stock, current_stock_unit, required_qty, unit, amount, vendor, remarks
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           poId,
           item.category || '',
           item.material_code,
           item.material_name,
           item.size_thickness,
+          item.order_rate,
           item.order_rate,
           Number(item.current_stock) || 0,
           item.current_stock_unit || 'Pair',
