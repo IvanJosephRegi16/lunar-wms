@@ -1122,7 +1122,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         {isJokot ? (
           <div className="jokot-sticker" style={{
             display: 'grid',
-            gridTemplateRows: '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 0.8fr 1fr',
+            gridTemplateRows: '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr',
             width: widthStr,
             height: heightStr,
             border: '2.5px solid #000',
@@ -1184,15 +1184,16 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
                 <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border:'none', outline:'none', background:'transparent', fontSize:'8px', fontWeight:900, textTransform:'uppercase', width:'90%', textAlign:'center', margin:0, padding:0 }} />
               </div>
             </div>
-            {/* Row 8: Footer 1 */}
-            <div style={{ padding:'0 2px', borderBottom:'1.5px solid #000', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'hidden', boxSizing:'border-box', margin:0 }}>
-              <div style={{ fontSize:'5px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
-              <div style={{ fontSize:'5px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
-            </div>
-            {/* Row 9: Footer 2 */}
-            <div style={{ padding:'0 2px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'hidden', boxSizing:'border-box', margin:0 }}>
-              <div style={{ fontSize:'6px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Mktd.By : JOKOT INTERNATIONAL</div>
-              <div style={{ fontSize:'5px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Phone : +91 8867915043, Email : jokot.international@gmail.com</div>
+            {/* Row 8: Footer (Merged) */}
+            <div style={{ display:'flex', alignItems:'stretch', overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>
+              <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'0 3px', borderRight:'1.5px solid #000', overflow:'hidden', boxSizing:'border-box' }}>
+                <div style={{ fontSize:'8px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
+                <div style={{ fontSize:'7px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+              </div>
+              <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'0 3px', overflow:'hidden', boxSizing:'border-box' }}>
+                <div style={{ fontSize:'8px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Mktd.By : JOKOT INTERNATIONAL</div>
+                <div style={{ fontSize:'7px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Ph: +91 8867915043, Email: jokot.international@gmail.com</div>
+              </div>
             </div>
           </div>
         ) : (
