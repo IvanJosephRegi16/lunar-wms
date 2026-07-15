@@ -1112,19 +1112,21 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         </div>
       </div>
 
-      <div className="sticker-wrap">
+      <div className="sticker-wrap" style={{ padding: '20px', display: 'flex', justifyContent: 'center', width: '100%', overflow: 'auto' }}>
         {isJokot ? (
           <div className="jokot-sticker" style={{
             display: 'grid',
-            gridTemplateRows: '2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.2fr 1.2fr',
+            gridTemplateRows: '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.2fr 1.2fr',
             width: widthStr,
             height: heightStr,
-            border: '2px solid #000',
+            border: '2.5px solid #000',
             boxSizing: 'border-box',
             overflow: 'hidden',
             background: '#fff',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
             fontFamily: 'Arial, Helvetica, sans-serif',
-            color: '#000'
+            color: '#000',
+            margin: '0 auto'
           }}>
             {/* Row 1: ART NO */}
             <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', overflow:'hidden', boxSizing:'border-box' }}>
