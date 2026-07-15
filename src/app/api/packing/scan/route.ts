@@ -77,21 +77,28 @@ export async function POST(request: Request) {
       const recentDuplicate = await db.prepare(`
         SELECT barcode, created_at FROM scan_history
         WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
+        ORDER BY created_at DESC
         LIMIT 1
       `).get(barcode) as any;
 
       if (recentDuplicate) {
-        let scanTime = '';
-        try {
-          scanTime = new Date(recentDuplicate.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-        } catch(e) { scanTime = recentDuplicate.created_at; }
+        // Enforce 10-minute duplicate block in Javascript to be DB agnostic
+        const scanTimeMs = new Date(recentDuplicate.created_at).getTime();
+        const tenMinsAgo = Date.now() - 10 * 60 * 1000;
         
-        // Log the duplicate attempt in scan_history for forensic visibility
-        await db.prepare(`
-          INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
-          VALUES (?, ?, ?, ?, ?, 'error_duplicate', ?, 'intake')
-        `).run(barcode, article, colour, size, user.id, mrp);
-        throw Object.assign(new Error(`Duplicate Entry which you already scanned. Scanned on: ${scanTime}`), { isDuplicate: true });
+        if (scanTimeMs >= tenMinsAgo) {
+          let scanTime = '';
+          try {
+            scanTime = new Date(recentDuplicate.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+          } catch(e) { scanTime = recentDuplicate.created_at; }
+          
+          // Log the duplicate attempt in scan_history for forensic visibility
+          await db.prepare(`
+            INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+            VALUES (?, ?, ?, ?, ?, 'error_duplicate', ?, 'intake')
+          `).run(barcode, article, colour, size, user.id, mrp);
+          throw Object.assign(new Error(`Duplicate Entry which you already scanned. Scanned on: ${scanTime}`), { isDuplicate: true });
+        }
       }
       // ────────────────────────────────────────────────────────────────────────
 
@@ -129,10 +136,12 @@ export async function POST(request: Request) {
         VALUES (?, ?, ?, ?, ?, 'success', ?, 'intake')
       `).run(barcode, article, colour, size, user.id, mrp);
 
-      // Add to unique barcode pool for outward matching
+      // Add to unique barcode pool for outward matching, overwriting if reusing from old cycle
       await db.prepare(`
         INSERT INTO intake_barcode_pool (barcode, article_code, colour, size, status)
         VALUES (?, ?, ?, ?, 'available')
+        ON CONFLICT (barcode) DO UPDATE 
+        SET status = 'available', outward_scanned_at = NULL
       `).run(barcode, article, colour, size);
 
       return { article, colour, size, mrp };
