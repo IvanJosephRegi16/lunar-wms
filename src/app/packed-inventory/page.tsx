@@ -569,14 +569,51 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
         @page { size: ${dimensionStr}; margin: 0; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: ${widthStr}; height: ${heightStr}; overflow: hidden; }
+          html, body, main { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            width: ${widthStr} !important; 
+            height: ${heightStr} !important; 
+            max-width: ${widthStr} !important; 
+            max-height: ${heightStr} !important; 
+            min-height: 0 !important;
+            overflow: hidden !important; 
+            box-sizing: border-box !important;
+          }
           body * { visibility: hidden; }
-          .print-wrapper { background: white !important; padding: 0 !important; margin: 0 !important; min-height: unset !important; max-height: ${heightStr} !important; overflow: hidden !important; width: ${widthStr} !important; height: ${heightStr} !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
+          .print-wrapper { 
+            background: white !important; 
+            padding: 0 !important; 
+            margin: 0 !important;
+            width: ${widthStr} !important; 
+            height: ${heightStr} !important; 
+            min-height: 0 !important;
+            max-height: ${heightStr} !important;
+            overflow: hidden !important; 
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+          }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: absolute !important; left: 0 !important; top: 0 !important; width: ${widthStr} !important; height: ${heightStr} !important; padding: 0 !important; margin: 0 !important; border: none !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
+          .sticker-wrap {
+            position: absolute !important;
+            left: 2mm !important;
+            top: 2mm !important;
+            width: calc(${widthStr} - 4mm) !important;
+            height: calc(${heightStr} - 4mm) !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            border: none !important;
+            overflow: hidden !important;
+            page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+          }
           .no-print { display: none !important; }
-          .pi-sticker { box-shadow: none !important; border: 2px solid #000 !important; width: calc(100% - 6px) !important; height: calc(100% - 6px) !important; margin: 3px !important; overflow: hidden; }
-          .jokot-sticker { border: 2px solid #000 !important; box-shadow: none !important; width: calc(100% - 6px) !important; height: calc(100% - 6px) !important; margin: 3px !important; overflow: hidden !important; box-sizing: border-box !important; }
+          .pi-sticker { box-shadow: none !important; border: 2px solid #000 !important; width: 100% !important; height: 100% !important; margin: 0 !important; overflow: hidden; }
+          .jokot-sticker { border: 2px solid #000 !important; box-shadow: none !important; width: 100% !important; height: 100% !important; margin: 0 !important; overflow: hidden !important; box-sizing: border-box !important; }
         }
         
         .pi-sticker { width:${widthStr}; height:${heightStr}; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }

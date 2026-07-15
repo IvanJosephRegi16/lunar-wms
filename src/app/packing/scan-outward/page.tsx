@@ -959,13 +959,14 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         }
 
         @media print {
-          html, body { 
+          html, body, main { 
             margin: 0 !important; 
             padding: 0 !important; 
             width: ${widthStr} !important; 
             height: ${heightStr} !important; 
             max-width: ${widthStr} !important; 
             max-height: ${heightStr} !important; 
+            min-height: 0 !important;
             overflow: hidden !important; 
             box-sizing: border-box !important;
           }
@@ -976,19 +977,22 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             margin: 0 !important;
             width: ${widthStr} !important; 
             height: ${heightStr} !important; 
-            min-height: unset !important;
+            min-height: 0 !important;
             max-height: ${heightStr} !important;
             overflow: hidden !important; 
             page-break-after: avoid !important;
             page-break-inside: avoid !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
           }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
           .sticker-wrap {
             position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: ${widthStr} !important;
-            height: ${heightStr} !important;
+            left: 2mm !important;
+            top: 2mm !important;
+            width: calc(${widthStr} - 4mm) !important;
+            height: calc(${heightStr} - 4mm) !important;
             padding: 0 !important;
             margin: 0 !important;
             box-sizing: border-box !important;
@@ -1001,17 +1005,17 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
           .sticker {
             box-shadow: none !important;
             border: 2px solid #000 !important;
-            width: calc(100% - 6px) !important;
-            height: calc(100% - 6px) !important;
-            margin: 3px !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
             overflow: hidden !important;
             box-sizing: border-box !important;
           }
           .jokot-sticker {
             border: 2px solid #000 !important;
-            width: calc(100% - 6px) !important;
-            height: calc(100% - 6px) !important;
-            margin: 3px !important;
+            width: 100% !important;
+            height: 100% !important;
+            margin: 0 !important;
             overflow: hidden !important;
             box-sizing: border-box !important;
           }
