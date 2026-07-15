@@ -577,7 +577,7 @@ export default function POHistory() {
                               style={{ width: '90px', padding: '4px 6px', border: '1.5px solid #7c3aed', borderRadius: '6px', fontFamily: 'monospace', fontWeight: 700, textAlign: 'right', color: '#6d28d9', outline: 'none' }}
                             />
                           ) : (
-                            <>₹{rate.toFixed(2)}</>
+                            <>{selectedPo.status === 'completed' ? `₹${rate.toFixed(2)}` : <span style={{ color: 'var(--text-ghost)', fontWeight: 600 }}>Nil</span>}</>
                           )}
                         </td>
                         <td style={{ textAlign: 'right', padding: '10px 12px', fontWeight: 800, fontFamily: 'monospace' }}>₹{amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
