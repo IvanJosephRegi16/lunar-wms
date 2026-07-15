@@ -242,7 +242,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean; message: string; pendingBarcode: string } | null>(null);
 
   // MRP Warning Modal State
-  const [mrpWarningModal, setMrpWarningModal] = useState<{ isOpen: boolean; reason: string; lastScanData: any } | null>(null);
+  const [mrpWarningModal, setMrpWarningModal] = useState<{ isOpen: boolean; reason: string; barcode: string; lastScanData: any } | null>(null);
 
   // Sticker & MRP State
   const [mrpPopup, setMrpPopup] = useState(false);
@@ -337,7 +337,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             return next;
           });
           if (mrpIssueReason) {
-            setMrpWarningModal({ isOpen: true, reason: mrpIssueReason, lastScanData: data.article });
+            setMrpWarningModal({ isOpen: true, reason: mrpIssueReason, barcode: codeToScan, lastScanData: data.article });
             isScanningRef.current = false;
             return;
           }
@@ -393,7 +393,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           return next;
         });
         if (mrpIssueReason2) {
-          setMrpWarningModal({ isOpen: true, reason: mrpIssueReason2, lastScanData: data.article });
+          setMrpWarningModal({ isOpen: true, reason: mrpIssueReason2, barcode: codeToScan, lastScanData: data.article });
         } else {
           processScanQueue();
           barcodeInputRef.current?.focus();
@@ -437,9 +437,24 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
   };
 
   const rejectMrpWarning = async () => {
+    if (!mrpWarningModal) return;
+    const barcodeToUndo = mrpWarningModal.barcode;
     setMrpWarningModal(null);
-    setScanResult({ success: false, message: '⚠️ Scan rejected due to MRP issue. Barcode has been removed.' });
-    // Refetch from server to get the corrected counts
+    try {
+      const res = await fetch('/api/packing/outward/scan/unscan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId, barcode: barcodeToUndo })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setScanResult({ success: false, message: `⚠️ MRP issue: Barcode rejected and returned to Scan Intake. (${barcodeToUndo})` });
+      } else {
+        setScanResult({ success: false, message: `⚠️ Reject failed: ${data.error}` });
+      }
+    } catch {
+      setScanResult({ success: false, message: '⚠️ Network error while rejecting scan.' });
+    }
     await fetchSessionData();
     setTimeout(() => barcodeInputRef.current?.focus(), 100);
   };
