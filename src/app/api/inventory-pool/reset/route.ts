@@ -9,9 +9,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Restrict to Admin or PM
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Only administrators or managers can reset inventory.' }, { status: 403 });
+    // Restrict to Admin, PM, or Supervisor
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Only administrators, managers, or supervisors can reset inventory.' }, { status: 403 });
     }
 
     const { confirm } = await req.json();

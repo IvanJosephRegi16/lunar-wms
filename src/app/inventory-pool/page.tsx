@@ -115,7 +115,7 @@ export default function AggregatedInventoryPage() {
     const matchesArticle = item.article_code.toLowerCase().includes(filterArticle.toLowerCase());
     const matchesColour = item.colour.toLowerCase().includes(filterColour.toLowerCase());
     const matchesBrand = filterBrand === 'ALL' || item.brand === filterBrand;
-    const matchesZero = !hideZero || item.total_qty > 0;
+    const matchesZero = !hideZero || Number(item.total_qty) > 0;
     return matchesArticle && matchesColour && matchesBrand && matchesZero;
   });
 
@@ -307,7 +307,7 @@ export default function AggregatedInventoryPage() {
           </label>
         </div>
 
-        <button className={styles.resetBtn} onClick={handleResetFilters}>
+        <button type="button" className={styles.resetBtn} onClick={handleResetFilters}>
           🔄 Reset
         </button>
 
