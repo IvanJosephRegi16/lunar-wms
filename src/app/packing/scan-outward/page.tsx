@@ -906,35 +906,31 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             overflow: hidden !important; 
           }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { 
-            position: fixed !important; 
-            left: 0 !important; 
-            top: 0 !important; 
-            width: ${widthStr} !important; 
-            height: ${heightStr} !important; 
-            max-width: ${widthStr} !important; 
-            max-height: ${heightStr} !important; 
-            padding: 0 !important; 
-            margin: 0 !important; 
-            page-break-after: avoid !important; 
-            page-break-before: avoid !important;
-            page-break-inside: avoid !important;
+          .sticker-wrap {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: ${widthStr} !important;
+            height: ${heightStr} !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            border: 2px solid #000 !important;
             overflow: hidden !important;
           }
           .no-print { display: none !important; }
-          .sticker { 
-            box-shadow: none !important; 
-            margin: 0 !important; 
-            border: 2px solid #000 !important; 
-            width: 100% !important; 
-            height: 100% !important; 
-            overflow: hidden !important; 
+          .sticker {
+            box-shadow: none !important;
+            margin: 0 !important;
+            border: none !important;
+            width: 100% !important;
+            height: 100% !important;
+            overflow: hidden !important;
             box-sizing: border-box !important;
           }
           .jokot-sticker {
-            box-shadow: none !important;
+            border: none !important;
             margin: 0 !important;
-            border: 2px solid #000 !important;
             width: 100% !important;
             height: 100% !important;
             overflow: hidden !important;
