@@ -922,15 +922,21 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             overflow: hidden !important;
           }
           .no-print { display: none !important; }
-          .sticker, .jokot-sticker { 
+          .sticker { 
             box-shadow: none !important; 
             margin: 0 !important; 
             border: 2px solid #000 !important; 
             width: 100% !important; 
             height: 100% !important; 
-            max-width: ${widthStr} !important; 
-            max-height: ${heightStr} !important; 
             overflow: hidden !important; 
+            box-sizing: border-box !important;
+          }
+          .jokot-sticker {
+            box-shadow: none !important;
+            margin: 0 !important;
+            width: ${widthStr} !important;
+            height: ${heightStr} !important;
+            overflow: hidden !important;
             box-sizing: border-box !important;
           }
         }
@@ -969,18 +975,10 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         .packages-value span { font-size: 10px; font-weight: 800; color: #000; margin-left: 2px; letter-spacing: 1px; text-transform: uppercase; }
         .barcode-area { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px; flex: 1; }
 
-        /* JOKOT STYLES */
+        /* JOKOT STYLES - layout handled inline */
         .jokot-sticker {
-          width: ${widthStr};
-          height: ${heightStr};
-          max-width: 100%;
-          background: #ffffff;
-          border: 2px solid #000;
-          font-family: Arial, Helvetica, sans-serif;
           overflow: hidden;
           box-sizing: border-box;
-          display: flex;
-          flex-direction: column;
           color: #000;
         }
         .jk-row { display: flex; border-bottom: 1.5px solid #000; align-items: stretch; }
@@ -1044,88 +1042,89 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         </div>
       </div>
 
-      <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      <div className="sticker-wrap">
         {isJokot ? (
-          <div className="jokot-sticker">
+          <div className="jokot-sticker" style={{
+            display: 'grid',
+            gridTemplateRows: '2.8fr 1.5fr 1.5fr 1.5fr 1.8fr 1.8fr 1.5fr 1.6fr',
+            width: widthStr,
+            height: heightStr,
+            border: '2px solid #000',
+            boxSizing: 'border-box',
+            overflow: 'hidden',
+            background: '#fff',
+            fontFamily: 'Arial, Helvetica, sans-serif',
+            color: '#000'
+          }}>
 
             {/* Row 1: ART NO */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', flex:'0 0 38px', width:'100%', boxSizing:'border-box' }}>
+            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
               <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'13px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>ART NO:</div>
-              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'26px', fontWeight:900, boxSizing:'border-box' }}>{article}</div>
+              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'clamp(14px,2.5vw,26px)', fontWeight:900, boxSizing:'border-box', overflow:'hidden' }}>{article}</div>
             </div>
 
             {/* Row 2: COLOR */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', flex:'0 0 27px', width:'100%', boxSizing:'border-box' }}>
-              <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'13px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>COLOR</div>
-              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px', fontWeight:900, boxSizing:'border-box' }}>{colour}</div>
+            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
+              <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'12px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>COLOR</div>
+              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'clamp(12px,2vw,20px)', fontWeight:900, boxSizing:'border-box', overflow:'hidden' }}>{colour}</div>
             </div>
 
             {/* Row 3: SIZE range */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', flex:'0 0 27px', width:'100%', boxSizing:'border-box' }}>
-              <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'13px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>SIZE</div>
-              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px', fontWeight:900, boxSizing:'border-box' }}>{aggregatedSizeStr.replace('x','X')}</div>
+            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
+              <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'12px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>SIZE</div>
+              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'clamp(12px,2vw,20px)', fontWeight:900, boxSizing:'border-box', overflow:'hidden' }}>{aggregatedSizeStr.replace('x','X')}</div>
             </div>
 
             {/* Row 4: MRP */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', flex:'0 0 27px', width:'100%', boxSizing:'border-box' }}>
-              <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'13px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>MRP</div>
-              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'20px', fontWeight:900, boxSizing:'border-box' }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
+              <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'12px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>MRP</div>
+              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'clamp(12px,2vw,20px)', fontWeight:900, boxSizing:'border-box', overflow:'hidden' }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
             </div>
 
-            {/* Rows 5+6: SIZE/QTY – single CSS Grid for perfect column alignment */}
-            <div style={{
-              display:'grid',
-              gridTemplateColumns:`28% repeat(${activeSizes.length}, 1fr) 14%`,
-              gridTemplateRows:'27px 27px',
-              borderBottom:'1.5px solid #000',
-              flex:'0 0 54px',
-              width:'100%',
-              boxSizing:'border-box'
-            }}>
-              {/* SIZE header row */}
-              <div style={{ borderRight:'1.5px solid #000', borderBottom:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'13px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>SIZE</div>
+            {/* Row 5: SIZE headers */}
+            <div style={{ display:'grid', gridTemplateColumns:`28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
+              <div style={{ borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'11px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>SIZE</div>
               {activeSizes.map((s:any) => (
-                <div key={`sh-${s.size}`} style={{ borderRight:'1.5px solid #000', borderBottom:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'17px', fontWeight:900, boxSizing:'border-box' }}>{s.size}</div>
+                <div key={`sh-${s.size}`} style={{ borderRight:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'14px', fontWeight:900, boxSizing:'border-box' }}>{s.size}</div>
               ))}
-              <div style={{ borderBottom:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'12px', fontWeight:900, boxSizing:'border-box' }}>Total</div>
-              {/* QTY data row */}
-              <div style={{ borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'10px', fontWeight:900, textTransform:'uppercase', lineHeight:1.1, boxSizing:'border-box' }}>QTY<br/>(PAIR)</div>
-              {activeSizes.map((s:any) => (
-                <div key={`qd-${s.size}`} style={{ borderRight:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'17px', fontWeight:900, boxSizing:'border-box' }}>{Number(s.scanned)}</div>
-              ))}
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:'19px', fontWeight:900, boxSizing:'border-box' }}>{totalPairs}</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:'11px', fontWeight:900, boxSizing:'border-box' }}>Total</div>
             </div>
 
-            {/* Rows 7+8: NO OF PACKAGES + MADE IN INDIA + QR Code */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', flex:'0 0 54px', width:'100%', boxSizing:'border-box' }}>
+            {/* Row 6: QTY values */}
+            <div style={{ display:'grid', gridTemplateColumns:`28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
+              <div style={{ borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 8px', fontSize:'9px', fontWeight:900, textTransform:'uppercase', lineHeight:1.1, boxSizing:'border-box' }}>QTY<br/>(PAIR)</div>
+              {activeSizes.map((s:any) => (
+                <div key={`qd-${s.size}`} style={{ borderRight:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'15px', fontWeight:900, boxSizing:'border-box' }}>{Number(s.scanned)}</div>
+              ))}
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', fontSize:'16px', fontWeight:900, boxSizing:'border-box' }}>{totalPairs}</div>
+            </div>
+
+            {/* Row 7: NO OF PACKAGES + QR Code */}
+            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', width:'100%', boxSizing:'border-box', overflow:'hidden' }}>
               <div style={{ flex:1, display:'flex', flexDirection:'column', borderRight:'1.5px solid #000', boxSizing:'border-box', overflow:'hidden' }}>
                 <div style={{ flex:1, display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', boxSizing:'border-box' }}>
-                  <div style={{ width:'35%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 6px', fontSize:'10px', fontWeight:900, textTransform:'uppercase', lineHeight:1.2, boxSizing:'border-box' }}>NO OF<br/>PACKAGES</div>
-                  <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'22px', fontWeight:900, boxSizing:'border-box' }}>{totalPairs}</div>
+                  <div style={{ width:'35%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 6px', fontSize:'9px', fontWeight:900, textTransform:'uppercase', lineHeight:1.2, boxSizing:'border-box' }}>NO OF<br/>PACKAGES</div>
+                  <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'18px', fontWeight:900, boxSizing:'border-box' }}>{totalPairs}</div>
                 </div>
                 <div style={{ flex:1, display:'flex', alignItems:'stretch', boxSizing:'border-box' }}>
-                  <div style={{ width:'35%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 6px', fontSize:'10px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>MADE IN INDIA</div>
-                  <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontSize:'10px', fontWeight:900, boxSizing:'border-box', overflow:'hidden' }}>
+                  <div style={{ width:'35%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 6px', fontSize:'9px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box' }}>MADE IN INDIA</div>
+                  <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', fontSize:'9px', fontWeight:900, boxSizing:'border-box', overflow:'hidden' }}>
                     <span>Month of mF-</span>
-                    <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border:'none', outline:'none', background:'transparent', fontSize:'11px', fontWeight:900, textTransform:'uppercase', width:'90%', textAlign:'center', marginTop:'1px' }} />
+                    <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border:'none', outline:'none', background:'transparent', fontSize:'10px', fontWeight:900, textTransform:'uppercase', width:'90%', textAlign:'center', marginTop:'1px' }} />
                   </div>
                 </div>
               </div>
-              <div style={{ width:'22%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', padding:'3px', boxSizing:'border-box', overflow:'hidden' }}>
-                <QRCodeSVG value={barcodeValue || 'N/A'} style={{ width: '100%', height: 'auto', maxHeight: '100%' }} level="M" />
+              <div style={{ width:'22%', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', padding:'4px', boxSizing:'border-box', overflow:'hidden' }}>
+                <QRCodeSVG value={barcodeValue || 'N/A'} style={{ width:'100%', height:'100%', maxWidth:'100%', maxHeight:'100%', display:'block' }} level="M" />
               </div>
             </div>
 
-            {/* Footer Row 1 */}
-            <div style={{ padding:'4px 8px', borderBottom:'1.5px solid #000', flex:'0 0 auto' }}>
-              <div style={{ fontSize:'10px', fontWeight:800 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
-              <div style={{ fontSize:'10px', fontWeight:800 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
-            </div>
-
-            {/* Footer Row 2 */}
-            <div style={{ padding:'4px 8px', flex:1, display:'flex', flexDirection:'column', justifyContent:'center' }}>
-              <div style={{ fontSize:'10px', fontWeight:800 }}>Mktd.By : JOKOT INTERNATIONAL</div>
-              <div style={{ fontSize:'9px', fontWeight:800, marginTop:'2px' }}>Phone : +91 8867915043, Email : jokot.international@gmail.com</div>
+            {/* Row 8: Footer */}
+            <div style={{ display:'flex', flexDirection:'column', justifyContent:'center', boxSizing:'border-box', overflow:'hidden', padding:'3px 8px', gap:'1px' }}>
+              <div style={{ fontSize:'9px', fontWeight:800 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
+              <div style={{ fontSize:'9px', fontWeight:800 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+              <div style={{ fontSize:'9px', fontWeight:800, marginTop:'2px' }}>Mktd.By : JOKOT INTERNATIONAL</div>
+              <div style={{ fontSize:'8px', fontWeight:800 }}>Phone : +91 8867915043, Email : jokot.international@gmail.com</div>
             </div>
 
           </div>
