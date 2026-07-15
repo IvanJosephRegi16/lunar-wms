@@ -555,23 +555,31 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
   const defaultMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ');
   const [mfgMonth, setMfgMonth] = useState(defaultMonthYear);
 
+  const [printWidth, setPrintWidth] = useState<number>(10);
+  const [printHeight, setPrintHeight] = useState<number>(10);
+  const [printUnit, setPrintUnit] = useState<string>('cm');
+
+  const dimensionStr = `${printWidth}${printUnit} ${printHeight}${printUnit}`;
+  const widthStr = `${printWidth}${printUnit}`;
+  const heightStr = `${printHeight}${printUnit}`;
+
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
-        @page { size: 100mm 100mm; margin: 0; }
+        @page { size: ${dimensionStr}; margin: 0; }
         @media print {
-          html, body { margin: 0 !important; padding: 0 !important; width: 100mm; height: 100mm; overflow: hidden; }
+          html, body { margin: 0 !important; padding: 0 !important; width: ${widthStr}; height: ${heightStr}; overflow: hidden; }
           body * { visibility: hidden; }
-          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; overflow: hidden; width: 100mm; height: 100mm; }
+          .print-wrapper { background: white !important; padding: 0 !important; min-height: unset !important; overflow: hidden; width: ${widthStr}; height: ${heightStr}; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: absolute; left: 0; top: 0; width: 100mm; height: 100mm; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
+          .sticker-wrap { position: absolute; left: 0; top: 0; width: ${widthStr}; height: ${heightStr}; padding: 0 !important; margin: 0 !important; page-break-after: avoid; }
           .no-print { display: none !important; }
-          .pi-sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: 100mm !important; height: 100mm !important; overflow: hidden; }
+          .pi-sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: ${widthStr} !important; height: ${heightStr} !important; overflow: hidden; }
           .jokot-sticker { border: 2px solid #000 !important; }
         }
         
-        .pi-sticker { width:9cm; height:9cm; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
+        .pi-sticker { width:${widthStr}; height:${heightStr}; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
         .pi-body { display:flex; flex-direction:column; flex:1; overflow:hidden; }
         .pi-row { display:flex; align-items:stretch; border-bottom:1.5px solid #000; flex:1; }
         .pi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:4px 8px; min-width:60px; display:flex; align-items:center; border-right:1.5px solid #000; }
@@ -593,8 +601,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
 
         /* JOKOT STYLES */
         .jokot-sticker {
-          width: 10cm;
-          height: 10cm;
+          width: ${widthStr};
+          height: ${heightStr};
           background: #ffffff;
           border: 2px solid #000;
           font-family: Arial, Helvetica, sans-serif;
@@ -609,9 +617,54 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         .jk-val { font-size: 22px; font-weight: 900; padding: 4px 8px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
         .jk-input { border: none; font-size: 13px; font-weight: 900; width: 80px; text-transform: uppercase; outline: none; background: transparent; }
       `}</style>
-      <div className="no-print" style={{ display:'flex', gap:'12px', marginBottom:'24px' }}>
-        <button onClick={onClose} className="btn-corp" style={{ background:'#fff', color:'#475569', border:'1px solid #cbd5e1', padding:'12px 24px', borderRadius:'8px', fontWeight:700 }}>&larr; Back to Inventory</button>
-        <button onClick={() => window.print()} className="btn-corp" style={{ background:'#10b981', color:'white', border:'none', padding:'12px 24px', borderRadius:'8px', fontWeight:800 }}>Print Sticker</button>
+      <div className="no-print" style={{ 
+        display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', 
+        background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)',
+        padding: '24px', borderRadius: '20px', boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 10px 20px -10px rgba(0, 0, 0, 0.05)',
+        border: '1px solid rgba(255,255,255,1)',
+        width: '100%', maxWidth: '640px', margin: '0 auto 24px auto',
+        transform: 'translateZ(0)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1.5px solid #f1f5f9', paddingBottom: '16px' }}>
+          <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', color: '#fff', padding: '6px 10px', borderRadius: '8px', fontSize: '16px', boxShadow: '0 4px 10px rgba(37, 99, 235, 0.3)' }}>⚙️</span>
+            Print Configuration
+          </h3>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button onClick={onClose} className="btn-corp" style={{ background: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '10px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }} onMouseOver={e => e.currentTarget.style.background = '#f1f5f9'} onMouseOut={e => e.currentTarget.style.background = '#f8fafc'}>
+              ← Back to Inventory
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end', flexWrap: 'wrap', marginTop: '4px' }}>
+          <div style={{ flex: 1, minWidth: '110px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Width</label>
+            <div style={{ position: 'relative' }}>
+              <input type="number" value={printWidth} onChange={e => setPrintWidth(Number(e.target.value))} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '18px', fontWeight: 700, color: '#0f172a', outline: 'none', transition: 'all 0.2s', boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)', background: '#f8fafc' }} onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }} onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; e.target.style.boxShadow = 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'; }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: '110px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Height</label>
+            <div style={{ position: 'relative' }}>
+              <input type="number" value={printHeight} onChange={e => setPrintHeight(Number(e.target.value))} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '18px', fontWeight: 700, color: '#0f172a', outline: 'none', transition: 'all 0.2s', boxShadow: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)', background: '#f8fafc' }} onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.background = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }} onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc'; e.target.style.boxShadow = 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.02)'; }} />
+            </div>
+          </div>
+          <div style={{ flex: 1, minWidth: '130px' }}>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: '#475569', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Unit</label>
+            <select value={printUnit} onChange={e => setPrintUnit(e.target.value)} style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '2px solid #e2e8f0', fontSize: '16px', fontWeight: 700, color: '#0f172a', outline: 'none', appearance: 'none', background: '#f8fafc url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 14px center', backgroundSize: '12px', transition: 'all 0.2s' }} onFocus={e => { e.target.style.borderColor = '#3b82f6'; e.target.style.background = '#fff url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 14px center'; e.target.style.backgroundSize = '12px'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }} onBlur={e => { e.target.style.borderColor = '#e2e8f0'; e.target.style.background = '#f8fafc url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23475569%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E") no-repeat right 14px center'; e.target.style.backgroundSize = '12px'; e.target.style.boxShadow = 'none'; }}>
+              <option value="cm">cm (Centimeters)</option>
+              <option value="mm">mm (Millimeters)</option>
+              <option value="in">in (Inches)</option>
+            </select>
+          </div>
+          <div style={{ flex: '1 0 100%', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button onClick={() => window.print()} style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '14px 28px', borderRadius: '12px', fontSize: '18px', fontWeight: 800, boxShadow: '0 10px 20px -5px rgba(16, 185, 129, 0.4), 0 4px 6px -2px rgba(16, 185, 129, 0.2)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 24px -5px rgba(16, 185, 129, 0.5), 0 6px 10px -2px rgba(16, 185, 129, 0.3)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 20px -5px rgba(16, 185, 129, 0.4), 0 4px 6px -2px rgba(16, 185, 129, 0.2)'; }} onMouseDown={e => { e.currentTarget.style.transform = 'translateY(1px)'; e.currentTarget.style.boxShadow = '0 4px 10px -3px rgba(16, 185, 129, 0.3)'; }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              PRINT STICKER
+            </button>
+          </div>
+        </div>
       </div>
       <div className="sticker-wrap" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {isJokot ? (
