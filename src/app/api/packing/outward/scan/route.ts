@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
       
       db.prepare(`
         UPDATE intake_barcode_pool
-        SET status = 'scanned_outward', outward_scanned_at = NOW()
+        SET status = 'scanned_outward', outward_scanned_at = CURRENT_TIMESTAMP
         WHERE barcode = ?
       `).run(barcode)
     ]);
