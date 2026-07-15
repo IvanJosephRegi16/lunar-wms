@@ -77,8 +77,6 @@ export async function POST(request: Request) {
       const recentDuplicate = await db.prepare(`
         SELECT barcode, created_at FROM scan_history
         WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
-          AND created_at >= NOW() - INTERVAL '10 minutes'
-        ORDER BY created_at DESC
         LIMIT 1
       `).get(barcode) as any;
 
@@ -131,9 +129,9 @@ export async function POST(request: Request) {
         VALUES (?, ?, ?, ?, ?, 'success', ?, 'intake')
       `).run(barcode, article, colour, size, user.id, mrp);
 
-      // Add to unique barcode pool for outward matching (or update if reusing from a previous cycle)
+      // Add to unique barcode pool for outward matching
       await db.prepare(`
-        INSERT OR REPLACE INTO intake_barcode_pool (barcode, article_code, colour, size, status)
+        INSERT INTO intake_barcode_pool (barcode, article_code, colour, size, status)
         VALUES (?, ?, ?, ?, 'available')
       `).run(barcode, article, colour, size);
 
