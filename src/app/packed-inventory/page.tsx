@@ -573,10 +573,10 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
           body * { visibility: hidden; }
           .print-wrapper { background: white !important; padding: 0 !important; margin: 0 !important; min-height: unset !important; max-height: ${heightStr} !important; overflow: hidden !important; width: ${widthStr} !important; height: ${heightStr} !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
-          .sticker-wrap { position: absolute !important; left: 0 !important; top: 0 !important; width: ${widthStr} !important; height: ${heightStr} !important; padding: 0 !important; margin: 0 !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
+          .sticker-wrap { position: absolute !important; left: 0 !important; top: 0 !important; width: ${widthStr} !important; height: ${heightStr} !important; padding: 0 !important; margin: 0 !important; border: none !important; page-break-after: avoid !important; page-break-inside: avoid !important; }
           .no-print { display: none !important; }
-          .pi-sticker, .jokot-sticker { box-shadow: none !important; margin: 0 !important; border: none !important; width: ${widthStr} !important; height: ${heightStr} !important; overflow: hidden; }
-          .jokot-sticker { border: 2px solid #000 !important; }
+          .pi-sticker { box-shadow: none !important; border: 2px solid #000 !important; width: calc(100% - 6px) !important; height: calc(100% - 6px) !important; margin: 3px !important; overflow: hidden; }
+          .jokot-sticker { border: 2px solid #000 !important; box-shadow: none !important; width: calc(100% - 6px) !important; height: calc(100% - 6px) !important; margin: 3px !important; overflow: hidden !important; box-sizing: border-box !important; }
         }
         
         .pi-sticker { width:${widthStr}; height:${heightStr}; background:#fff; border:2px solid #000; font-family:'Barlow',sans-serif; overflow:hidden; box-sizing:border-box; display:flex; flex-direction:column; }
@@ -670,7 +670,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         {isJokot ? (
           <div className="jokot-sticker" style={{
             display: 'grid',
-            gridTemplateRows: '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.2fr 1.2fr',
+            gridTemplateRows: '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 0.8fr 1fr',
             width: widthStr,
             height: heightStr,
             border: '2.5px solid #000',
@@ -684,12 +684,12 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             padding: '0'
           }}>
             {/* Row 1: ART NO */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>
+            <div style={{ display:'flex', alignItems:'stretch', overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>
               <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 2px', fontSize:'9px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box', margin:0 }}>ART NO:</div>
               <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'clamp(11px,2vw,18px)', fontWeight:900, overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>{article}</div>
             </div>
             {/* Row 2: COLOR */}
-            <div style={{ display:'flex', alignItems:'stretch', borderBottom:'1.5px solid #000', overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>
+            <div style={{ display:'flex', alignItems:'stretch', borderTop:'1.5px solid #000', borderBottom:'1.5px solid #000', overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>
               <div style={{ width:'28%', flexShrink:0, borderRight:'1.5px solid #000', display:'flex', alignItems:'center', padding:'0 2px', fontSize:'9px', fontWeight:900, textTransform:'uppercase', boxSizing:'border-box', margin:0 }}>COLOR</div>
               <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', fontSize:'clamp(10px,1.5vw,14px)', fontWeight:900, overflow:'hidden', boxSizing:'border-box', margin:0, padding:0 }}>{colour}</div>
             </div>
@@ -734,13 +734,13 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             </div>
             {/* Row 8: Footer 1 */}
             <div style={{ padding:'0 2px', borderBottom:'1.5px solid #000', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'hidden', boxSizing:'border-box', margin:0 }}>
-              <div style={{ fontSize:'7px', fontWeight:800, margin:0, padding:0 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
-              <div style={{ fontSize:'7px', fontWeight:800, margin:0, padding:0 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+              <div style={{ fontSize:'5px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
+              <div style={{ fontSize:'5px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
             </div>
             {/* Row 9: Footer 2 */}
             <div style={{ padding:'0 2px', display:'flex', flexDirection:'column', justifyContent:'center', overflow:'hidden', boxSizing:'border-box', margin:0 }}>
-              <div style={{ fontSize:'7px', fontWeight:800, margin:0, padding:0 }}>Mktd.By : JOKOT INTERNATIONAL</div>
-              <div style={{ fontSize:'6px', fontWeight:800, margin:0, padding:0 }}>Phone : +91 8867915043, Email : jokot.international@gmail.com</div>
+              <div style={{ fontSize:'6px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Mktd.By : JOKOT INTERNATIONAL</div>
+              <div style={{ fontSize:'5px', fontWeight:800, margin:0, padding:0, lineHeight:1.2 }}>Phone : +91 8867915043, Email : jokot.international@gmail.com</div>
             </div>
           </div>
         ) : (
