@@ -77,6 +77,7 @@ export async function POST(request: Request) {
       const recentDuplicate = await db.prepare(`
         SELECT barcode, created_at FROM scan_history
         WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
+          AND created_at >= datetime('now', '-10 minutes')
         ORDER BY created_at DESC
         LIMIT 1
       `).get(barcode) as any;
