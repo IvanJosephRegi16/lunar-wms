@@ -1120,7 +1120,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             <label style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Design Style:</label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '1' ? 800 : 600, color: designStyle === '1' ? '#0f172a' : '#64748b' }}>
               <input type="radio" name="designStyle" value="1" checked={designStyle === '1'} onChange={() => setDesignStyle('1')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
-              1. Vertical Grid
+              1. Vertical Grid (Default)
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '2' ? 800 : 600, color: designStyle === '2' ? '#0f172a' : '#64748b' }}>
               <input type="radio" name="designStyle" value="2" checked={designStyle === '2'} onChange={() => setDesignStyle('2')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
