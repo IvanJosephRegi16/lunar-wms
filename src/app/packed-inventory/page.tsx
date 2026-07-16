@@ -563,8 +563,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
   const widthStr = `${printWidth}${printUnit}`;
   const heightStr = `${printHeight}${printUnit}`;
 
-  // Design Style — fixed to Style 2 (Horizontal Headers)
-  const [designStyle] = useState<'1' | '2'>('2');
+  // Design Style Toggle
+  const [designStyle, setDesignStyle] = useState<'1' | '2'>('1');
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
@@ -572,8 +572,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
         @page { size: ${dimensionStr}; margin: 0; }
         @media print {
-          * { page-break-inside: avoid !important; page-break-after: avoid !important; page-break-before: avoid !important; }
-          html, body { 
+          html, body, main { 
             margin: 0 !important; 
             padding: 0 !important; 
             width: ${widthStr} !important; 
@@ -596,13 +595,13 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             overflow: hidden !important; 
             page-break-after: avoid !important;
             page-break-inside: avoid !important;
-            position: fixed !important;
+            position: absolute !important;
             top: 0 !important;
             left: 0 !important;
           }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
           .sticker-wrap {
-            position: fixed !important;
+            position: absolute !important;
             left: 2mm !important;
             top: 2mm !important;
             width: calc(${widthStr} - 4mm) !important;
@@ -698,6 +697,17 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
               <option value="mm">mm (Millimeters)</option>
               <option value="in">in (Inches)</option>
             </select>
+          </div>
+          <div style={{ flex: '1 0 100%', marginTop: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <label style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Design Style:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '1' ? 800 : 600, color: designStyle === '1' ? '#0f172a' : '#64748b' }}>
+              <input type="radio" name="designStyle_inv" value="1" checked={designStyle === '1'} onChange={() => setDesignStyle('1')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
+              1. Vertical Grid
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '2' ? 800 : 600, color: designStyle === '2' ? '#0f172a' : '#64748b' }}>
+              <input type="radio" name="designStyle_inv" value="2" checked={designStyle === '2'} onChange={() => setDesignStyle('2')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
+              2. Horizontal Headers (Large Fonts)
+            </label>
           </div>
 
           <div style={{ flex: '1 0 100%', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
