@@ -948,6 +948,9 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
   const widthStr = `${printWidth}${printUnit}`;
   const heightStr = `${printHeight}${printUnit}`;
 
+  // Design Style Toggle
+  const [designStyle, setDesignStyle] = useState<'1' | '2'>('1');
+
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
       <style>{`
@@ -1113,6 +1116,17 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
               <option value="in">in (Inches)</option>
             </select>
           </div>
+          <div style={{ flex: '1 0 100%', marginTop: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <label style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Design Style:</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '1' ? 800 : 600, color: designStyle === '1' ? '#0f172a' : '#64748b' }}>
+              <input type="radio" name="designStyle" value="1" checked={designStyle === '1'} onChange={() => setDesignStyle('1')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
+              1. Vertical Grid (Default)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '2' ? 800 : 600, color: designStyle === '2' ? '#0f172a' : '#64748b' }}>
+              <input type="radio" name="designStyle" value="2" checked={designStyle === '2'} onChange={() => setDesignStyle('2')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
+              2. Horizontal Headers (Large Fonts)
+            </label>
+          </div>
           <div style={{ flex: '1 0 100%', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button onClick={() => window.print()} style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '14px 28px', borderRadius: '12px', fontSize: '18px', fontWeight: 800, boxShadow: '0 10px 20px -5px rgba(16, 185, 129, 0.4), 0 4px 6px -2px rgba(16, 185, 129, 0.2)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 24px -5px rgba(16, 185, 129, 0.5), 0 6px 10px -2px rgba(16, 185, 129, 0.3)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 20px -5px rgba(16, 185, 129, 0.4), 0 4px 6px -2px rgba(16, 185, 129, 0.2)'; }} onMouseDown={e => { e.currentTarget.style.transform = 'translateY(1px)'; e.currentTarget.style.boxShadow = '0 4px 10px -3px rgba(16, 185, 129, 0.3)'; }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -1126,7 +1140,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         {isJokot ? (
           <div className="jokot-sticker" style={{
             display: 'grid',
-            gridTemplateRows: '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr',
+            gridTemplateRows: designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr',
             width: widthStr,
             height: heightStr,
             border: '2.5px solid #000',
@@ -1139,26 +1153,51 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             margin: '0 auto',
             padding: '0'
           }}>
-            {/* Row 1: ART NO */}
-            <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>ART NO:</div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px,3vw,24px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{article}</div>
-            </div>
-            {/* Row 2: COLOR */}
-            <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1.5px solid #000', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>COLOR</div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{colour}</div>
-            </div>
-            {/* Row 3: SIZE range */}
-            <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
-            </div>
-            {/* Row 4: MRP */}
-            <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MRP</div>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
-            </div>
+            {designStyle === '1' ? (
+              <>
+                {/* Row 1: ART NO */}
+                <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>ART NO:</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px,3vw,24px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{article}</div>
+                </div>
+                {/* Row 2: COLOR */}
+                <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1.5px solid #000', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>COLOR</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{colour}</div>
+                </div>
+                {/* Row 3: SIZE range */}
+                <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+                </div>
+                {/* Row 4: MRP */}
+                <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MRP</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+                </div>
+              </>
+            ) : (
+              /* Style 2: Horizontal Headers */
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>ART NO</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(16px, 3.5vw, 28px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{article}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>COLOR</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 2.5vw, 22px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{colour}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>SIZE</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 2.5vw, 22px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                  <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>MRP</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 2.5vw, 22px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+                </div>
+              </div>
+            )}
+
             {/* Row 5: SIZE headers */}
             <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
               <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
@@ -1191,12 +1230,12 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             {/* Row 8: Footer (Merged) */}
             <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: '9px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>Mfd.&amp; Pkd. By: MATHEW RUBBERS</div>
-                <div style={{ fontSize: '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+                <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
+                <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: '9px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : JOKOT INTERNATIONAL</div>
-                <div style={{ fontSize: '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>Ph: +91 8867915043, Email: jokot.international@gmail.com</div>
+                <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : JOKOT INTERNATIONAL</div>
+                <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>Ph: +91 8867915043, Email: jokot.international@gmail.com</div>
               </div>
             </div>
           </div>
