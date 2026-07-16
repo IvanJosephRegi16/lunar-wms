@@ -1178,22 +1178,22 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
               </>
             ) : (
               /* Style 2: Horizontal Headers */
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 0.6fr 0.8fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>ART NO</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(16px, 3.5vw, 28px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{article}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1 }}>{article}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>COLOR</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 2.5vw, 22px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{colour}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(18px, 4vw, 32px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1 }}>{colour}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>SIZE</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 2.5vw, 22px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(18px, 4vw, 32px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px 4px', background: '#f8fafc', margin: 0 }}>MRP</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px, 2.5vw, 22px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(18px, 4vw, 32px)', fontWeight: 900, textAlign: 'center', padding: '4px', margin: 0, whiteSpace: 'normal', wordBreak: 'break-word', lineHeight: 1 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
                 </div>
               </div>
             )}
