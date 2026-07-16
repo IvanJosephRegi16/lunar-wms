@@ -563,8 +563,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
   const widthStr = `${printWidth}${printUnit}`;
   const heightStr = `${printHeight}${printUnit}`;
 
-  // Design Style Toggle
-  const [designStyle, setDesignStyle] = useState<'1' | '2'>('1');
+  // Design Style — fixed to Style 2 (Horizontal Headers)
+  const [designStyle] = useState<'1' | '2'>('2');
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
@@ -572,7 +572,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700;800;900&family=Barlow+Condensed:wght@600;700;800;900&display=swap');
         @page { size: ${dimensionStr}; margin: 0; }
         @media print {
-          html, body, main { 
+          * { page-break-inside: avoid !important; page-break-after: avoid !important; page-break-before: avoid !important; }
+          html, body { 
             margin: 0 !important; 
             padding: 0 !important; 
             width: ${widthStr} !important; 
@@ -595,13 +596,13 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             overflow: hidden !important; 
             page-break-after: avoid !important;
             page-break-inside: avoid !important;
-            position: absolute !important;
+            position: fixed !important;
             top: 0 !important;
             left: 0 !important;
           }
           .sticker-wrap, .sticker-wrap * { visibility: visible; }
           .sticker-wrap {
-            position: absolute !important;
+            position: fixed !important;
             left: 2mm !important;
             top: 2mm !important;
             width: calc(${widthStr} - 4mm) !important;
@@ -698,17 +699,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
               <option value="in">in (Inches)</option>
             </select>
           </div>
-          <div style={{ flex: '1 0 100%', marginTop: '8px', padding: '12px', background: '#f1f5f9', borderRadius: '12px', border: '1.5px solid #e2e8f0', display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <label style={{ fontSize: '13px', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Design Style:</label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '1' ? 800 : 600, color: designStyle === '1' ? '#0f172a' : '#64748b' }}>
-              <input type="radio" name="designStyle_inv" value="1" checked={designStyle === '1'} onChange={() => setDesignStyle('1')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
-              1. Vertical Grid (Default)
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: designStyle === '2' ? 800 : 600, color: designStyle === '2' ? '#0f172a' : '#64748b' }}>
-              <input type="radio" name="designStyle_inv" value="2" checked={designStyle === '2'} onChange={() => setDesignStyle('2')} style={{ accentColor: '#3b82f6', width: '16px', height: '16px', cursor: 'pointer' }} />
-              2. Horizontal Headers (Large Fonts)
-            </label>
-          </div>
+
           <div style={{ flex: '1 0 100%', display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
             <button onClick={() => window.print()} style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none', padding: '14px 28px', borderRadius: '12px', fontSize: '18px', fontWeight: 800, boxShadow: '0 10px 20px -5px rgba(16, 185, 129, 0.4), 0 4px 6px -2px rgba(16, 185, 129, 0.2)', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 14px 24px -5px rgba(16, 185, 129, 0.5), 0 6px 10px -2px rgba(16, 185, 129, 0.3)'; }} onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 20px -5px rgba(16, 185, 129, 0.4), 0 4px 6px -2px rgba(16, 185, 129, 0.2)'; }} onMouseDown={e => { e.currentTarget.style.transform = 'translateY(1px)'; e.currentTarget.style.boxShadow = '0 4px 10px -3px rgba(16, 185, 129, 0.3)'; }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
