@@ -625,7 +625,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         .pi-lbl { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:800; text-transform:uppercase; padding:4px 8px; min-width:60px; display:flex; align-items:center; border-right:1.5px solid #000; }
         .pi-val { font-family:'Barlow Condensed',sans-serif; font-size:18px; font-weight:900; padding:4px 8px; display:flex; align-items:center; flex:1; }
         .pi-val.art { font-size:24px; }
-        .pi-val.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size:32px; font-weight:900; letter-spacing:2px; color:#000; }
+        .pi-val.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size:32px; font-weight:900; letter-spacing:0; color:#000; }
         .pi-sizes { border-bottom:1.5px solid #000; }
         .pi-sh { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:800; text-transform:uppercase; padding:4px 0; text-align:center; border-right:1.5px solid #000; }
         .pi-sh:first-child { text-align:left; padding-left:8px; min-width:60px; }

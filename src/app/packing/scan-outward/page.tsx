@@ -1044,7 +1044,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
         .info-value.art { font-size: 24px; font-weight: 900; letter-spacing: 1px; }
         .info-value.mrp-val { font-size: 20px; font-weight: 900; }
         .info-value.mrp-val .rupee { font-size: 16px; margin-right: 2px; font-weight: 800; color: #000; }
-        .info-value.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 32px; font-weight: 900; letter-spacing: 2px; color: #000; }
+        .info-value.size-roman { font-family: Georgia, 'Times New Roman', Times, serif; font-size: 32px; font-weight: 900; letter-spacing: 0; color: #000; }
         .size-section { border-bottom: 1.5px solid #000; }
         .size-col-header { font-family: 'Barlow Condensed', sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; color: #000; background: #fff; padding: 4px 0; text-align: center; border-right: 1.5px solid #000; }
         .size-col-header:first-child { text-align: left; padding-left: 8px; min-width: 60px; }
