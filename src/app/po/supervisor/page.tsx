@@ -16,6 +16,8 @@ export default function StoreVerification() {
   const [receivedRate, setReceivedRate] = useState<Record<number, string>>({});
   const [userRole, setUserRole] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showPartialOnly, setShowPartialOnly] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -187,6 +189,43 @@ export default function StoreVerification() {
       {!selectedPO ? (
         /* ─── PO LIST TABLE ─── */
         <div style={{ background: 'white', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+          {/* Search bar + filter */}
+          <div style={{
+            padding: '14px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+            display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap'
+          }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', fontSize: '15px', color: '#94a3b8', pointerEvents: 'none' }}>🔍</span>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Search by Vendor, PO Number, Material, Creator..."
+                style={{
+                  width: '100%', padding: '9px 12px 9px 36px', borderRadius: '10px',
+                  border: '1.5px solid #e2e8f0', fontSize: '13px', fontWeight: 600, outline: 'none',
+                  boxSizing: 'border-box', transition: 'border-color 0.2s'
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = '#6366f1')}
+                onBlur={e => (e.currentTarget.style.borderColor = '#e2e8f0')}
+              />
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none',
+              background: showPartialOnly ? '#eff6ff' : 'white',
+              border: `1.5px solid ${showPartialOnly ? '#3b82f6' : '#e2e8f0'}`,
+              padding: '8px 14px', borderRadius: '10px', transition: 'all 0.2s', whiteSpace: 'nowrap'
+            }}>
+              <input
+                type="checkbox"
+                checked={showPartialOnly}
+                onChange={e => setShowPartialOnly(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: '#3b82f6', cursor: 'pointer' }}
+              />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: showPartialOnly ? '#1d4ed8' : '#475569' }}>
+                💾 Saved Partial Entries Only
+              </span>
+            </label>
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
@@ -200,18 +239,41 @@ export default function StoreVerification() {
                 </tr>
               </thead>
               <tbody>
-                {pos.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-ghost)' }}>
-                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
-                      <div style={{ fontWeight: 800, fontSize: '15px' }}>No POs Pending Verification</div>
-                      <div style={{ fontSize: '12px', marginTop: '6px', color: '#94a3b8' }}>All purchase orders have been verified. Check back later.</div>
-                    </td>
-                  </tr>
-                ) : pos.map(po => (
-                  <tr key={po.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                {(() => {
+                  const q = searchTerm.toLowerCase().trim();
+                  const filtered = pos.filter(po => {
+                    const hasPartial = showPartialOnly
+                      ? (po.items || []).some((it: any) => Number(it.received_qty) > 0)
+                      : true;
+                    if (!hasPartial) return false;
+                    if (!q) return true;
+                    const matchPO = (po.po_number || '').toLowerCase().includes(q);
+                    const matchVendor = (po.vendor || '').toLowerCase().includes(q);
+                    const matchCreator = (po.creator_name || '').toLowerCase().includes(q);
+                    const matchMaterial = (po.items || []).some((it: any) =>
+                      (it.material_name || '').toLowerCase().includes(q) ||
+                      (it.material_code || '').toLowerCase().includes(q) ||
+                      (it.category || '').toLowerCase().includes(q)
+                    );
+                    return matchPO || matchVendor || matchCreator || matchMaterial;
+                  });
+                  if (filtered.length === 0) return (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-ghost)' }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>{q || showPartialOnly ? '🔎' : '✅'}</div>
+                        <div style={{ fontWeight: 800, fontSize: '15px' }}>
+                          {q || showPartialOnly ? 'No matching POs found' : 'No POs Pending Verification'}
+                        </div>
+                        <div style={{ fontSize: '12px', marginTop: '6px', color: '#94a3b8' }}>
+                          {q ? `No results for "${searchTerm}"` : showPartialOnly ? 'No partial entries saved yet.' : 'All purchase orders have been verified.'}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                  return filtered.map(po => (
+                    <tr key={po.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.15s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                     <td style={{ padding: '14px 16px', fontWeight: 800, color: 'var(--primary)', fontFamily: 'monospace' }}>{po.po_number}</td>
                     <td style={{ padding: '14px 16px', fontWeight: 600 }}>{po.vendor}</td>
                     <td style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 700 }}>{po.items?.length || 0}</td>
@@ -242,8 +304,8 @@ export default function StoreVerification() {
                         🔍 Review & Verify
                       </button>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  ));})()} 
               </tbody>
             </table>
           </div>

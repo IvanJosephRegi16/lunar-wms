@@ -15,10 +15,19 @@ interface ScanResult {
   message?: string;
 }
 
+interface PendingApproval {
+  barcode: string;
+  article: string;
+  colour: string;
+  size: string;
+}
+
 export default function ScanningIntakePage() {
   const [scans, setScans] = useState<ScanResult[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionCount, setSessionCount] = useState(0);
+  const [pendingApproval, setPendingApproval] = useState<PendingApproval | null>(null);
+  const [approving, setApproving] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -113,6 +122,10 @@ export default function ScanningIntakePage() {
         if (isDuplicate) {
           addScan(barcode, 'warning', 'Repeated Scan in Session', data.product);
           playSound('warning');
+        } else if (data.product?.mrp === null || data.product?.mrp === undefined) {
+          // MRP missing — hold for manual approval
+          playSound('warning');
+          setPendingApproval({ barcode, article: data.product?.article || '-', colour: data.product?.colour || '-', size: data.product?.size || '-' });
         } else {
           addScan(barcode, 'success', data.message || 'Stock Added to Inventory', data.product);
           playSound('success');
@@ -124,6 +137,34 @@ export default function ScanningIntakePage() {
       playSound('warning');
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleApprove = () => {
+    if (!pendingApproval) return;
+    // Record already inserted by API — just accept it with a warning status (no MRP)
+    addScan(pendingApproval.barcode, 'warning', 'Approved — No MRP', pendingApproval);
+    setPendingApproval(null);
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  const handleReject = async () => {
+    if (!pendingApproval) return;
+    setApproving(true);
+    try {
+      await fetch('/api/packing/scan', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barcode: pendingApproval.barcode })
+      });
+      addScan(pendingApproval.barcode, 'error', 'Rejected — No MRP. Record Blocked.', pendingApproval);
+      playSound('warning');
+    } catch {
+      addScan(pendingApproval.barcode, 'error', 'Rejected (rollback failed — check manually)', pendingApproval);
+    } finally {
+      setApproving(false);
+      setPendingApproval(null);
+      setTimeout(() => inputRef.current?.focus(), 100);
     }
   };
 
@@ -156,15 +197,16 @@ export default function ScanningIntakePage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div className={styles.scannerInputWrapper}>
-          <span className={styles.scannerIcon}>⚡</span>
+          <span className={styles.scannerIcon}>{pendingApproval ? '⚠️' : '⚡'}</span>
           <input 
             ref={inputRef}
             type="text" 
-            placeholder="Awaiting scanner input..."
+            placeholder={pendingApproval ? 'Scanning paused — resolve warning above...' : 'Awaiting scanner input...'}
             onKeyDown={handleScan}
-            disabled={false}
+            disabled={!!pendingApproval || isProcessing}
             className={styles.scannerInput}
             autoFocus
+            style={pendingApproval ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
           />
         </div>
         <div className={styles.hotkeysInfo}>
@@ -172,6 +214,58 @@ export default function ScanningIntakePage() {
           <span><span className={styles.hotkey}>Alt + C</span> Clear Session Logs</span>
         </div>
       </div>
+
+      {/* ─── MRP Warning Modal ─── */}
+      {pendingApproval && (
+        <div style={{
+          background: 'linear-gradient(135deg, #fffbeb, #fef3c7)',
+          border: '2px solid #f59e0b',
+          borderRadius: '16px',
+          padding: '20px 24px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '16px',
+          boxShadow: '0 8px 24px rgba(245, 158, 11, 0.2)',
+          animation: 'pulse-warn 1s ease-in-out'
+        }}>
+          <div style={{ fontSize: '32px', lineHeight: 1 }}>⚠️</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 900, fontSize: '15px', color: '#92400e', marginBottom: '6px' }}>
+              MRP Not Found in Barcode
+            </div>
+            <div style={{ fontSize: '13px', color: '#78350f', marginBottom: '12px', lineHeight: 1.5 }}>
+              The barcode <strong style={{ fontFamily: 'monospace' }}>{pendingApproval.barcode}</strong> was scanned for <strong>{pendingApproval.article}</strong> / {pendingApproval.colour} / Size {pendingApproval.size},
+              but no MRP was detected. Please verify the item physically.
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={handleApprove}
+                disabled={approving}
+                style={{
+                  background: 'linear-gradient(135deg, #16a34a, #22c55e)', color: 'white',
+                  border: 'none', padding: '10px 22px', borderRadius: '10px',
+                  fontWeight: 800, fontSize: '13px', cursor: approving ? 'wait' : 'pointer',
+                  boxShadow: '0 4px 10px rgba(34, 197, 94, 0.3)'
+                }}
+              >
+                ✅ Approve — Accept Without MRP
+              </button>
+              <button
+                onClick={handleReject}
+                disabled={approving}
+                style={{
+                  background: 'linear-gradient(135deg, #dc2626, #ef4444)', color: 'white',
+                  border: 'none', padding: '10px 22px', borderRadius: '10px',
+                  fontWeight: 800, fontSize: '13px', cursor: approving ? 'wait' : 'pointer',
+                  boxShadow: '0 4px 10px rgba(220, 38, 38, 0.3)'
+                }}
+              >
+                ❌ Reject — Block This Scan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className={styles.tableSection}>
         <div className={styles.sectionTitle}>Live Aggregation Intake Stream</div>

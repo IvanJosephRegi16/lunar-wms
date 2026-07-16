@@ -185,3 +185,58 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// ─── REJECT / ROLLBACK: called when operator rejects a no-MRP scan ────────────
+export async function DELETE(request: Request) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const body = await request.json().catch(() => ({}));
+  const { barcode } = body;
+  if (!barcode) return NextResponse.json({ error: 'Barcode required' }, { status: 400 });
+
+  const db = getDb();
+
+  try {
+    // Look up the scan history entry to get article/colour/size for rollback
+    const histRow = await db.prepare(`
+      SELECT article_code, colour, size FROM scan_history
+      WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
+      ORDER BY created_at DESC LIMIT 1
+    `).get(barcode) as any;
+
+    if (histRow) {
+      const { article_code, colour, size } = histRow;
+      const sizeCol = `size_${size}`;
+      // Decrement inventory_pool
+      await db.prepare(`
+        UPDATE inventory_pool
+        SET ${sizeCol} = MAX(0, ${sizeCol} - 1), total_qty = MAX(0, total_qty - 1)
+        WHERE article_code = ? AND colour = ?
+      `).run(article_code, colour);
+
+      // Remove from intake barcode pool
+      await db.prepare(`DELETE FROM intake_barcode_pool WHERE barcode = ?`).run(barcode);
+    }
+
+    // Mark scan_history as rejected
+    await db.prepare(`
+      UPDATE scan_history SET status = 'rejected_no_mrp'
+      WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
+    `).run(barcode);
+
+    await logAudit({
+      userId: user.id,
+      username: user.username,
+      action: 'INWARD_SCAN_REJECTED',
+      module: 'inventory_pool',
+      recordId: 0,
+      description: `Operator rejected no-MRP scan for barcode ${barcode} — record rolled back`
+    });
+
+    return NextResponse.json({ success: true, message: 'Scan rejected and rolled back' });
+  } catch (error: any) {
+    console.error('Rollback error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
