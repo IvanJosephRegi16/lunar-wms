@@ -62,13 +62,13 @@ export default function ScanningIntakePage() {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.15);
       } else {
-        // Low, raspy warning buzz (130Hz sawtooth)
+        // Low, raspy warning buzz (130Hz sawtooth) - High Volume
         osc.frequency.setValueAtTime(130, ctx.currentTime);
         osc.type = 'sawtooth';
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.28);
+        gain.gain.setValueAtTime(1.0, ctx.currentTime); // High volume
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8); // Longer decay for buffer sound
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
+        osc.stop(ctx.currentTime + 0.8);
       }
     } catch (e) {
       console.warn('Audio feedback error:', e);

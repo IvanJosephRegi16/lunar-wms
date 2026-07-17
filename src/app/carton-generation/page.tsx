@@ -4,6 +4,60 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
+function SearchableDropdown({ options, value, onChange, placeholder }: { options: {value: string, label: string}[], value: string, onChange: (val: string) => void, placeholder: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  
+  const selectedOption = options.find(o => o.value === value);
+  const filteredOptions = options.filter(o => o.label.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <div 
+      style={{ position: 'relative', width: '100%' }}
+      tabIndex={0}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        style={{ padding: '10px 14px', border: '2px solid #cbd5e1', borderRadius: '10px', background: '#fff', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: 500 }}
+      >
+        <span style={{ color: selectedOption ? '#0f172a' : '#64748b' }}>{selectedOption ? selectedOption.label : placeholder}</span>
+        <span style={{ fontSize: '12px', color: '#64748b' }}>▼</span>
+      </div>
+      {isOpen && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: '#fff', border: '2px solid #cbd5e1', borderRadius: '10px', marginTop: '4px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', maxHeight: '300px', display: 'flex', flexDirection: 'column' }}>
+          <input 
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search..."
+            style={{ padding: '12px 14px', border: 'none', borderBottom: '1px solid #e2e8f0', outline: 'none', fontSize: '14px', borderRadius: '10px 10px 0 0' }}
+            onClick={e => e.stopPropagation()}
+            autoFocus
+          />
+          <div style={{ overflowY: 'auto' }}>
+            {filteredOptions.length > 0 ? filteredOptions.map(o => (
+              <div 
+                key={o.value}
+                onClick={() => { onChange(o.value); setIsOpen(false); setSearch(''); }}
+                style={{ padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', fontSize: '14px', color: '#334155' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                {o.label}
+              </div>
+            )) : <div style={{ padding: '10px 14px', color: '#94a3b8', fontSize: '14px', textAlign: 'center' }}>No results found</div>}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface Config {
   id: number;
   name: string;
@@ -71,7 +125,6 @@ export default function CartonGenerationPage() {
   // Carton Generation Form State
   const [activeConfigId, setActiveConfigId] = useState<string>('');
   const [activePoolId, setActivePoolId] = useState<string>('');
-  const [cartonsToGenerate, setCartonsToGenerate] = useState<number>(1);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Rule Builder Form State (Edit / Create)
@@ -124,38 +177,7 @@ export default function CartonGenerationPage() {
 
   const maxPossible = calculateMaxCartons();
 
-  const handleGenerate = async () => {
-    if (!activeConfig || !activePool || cartonsToGenerate < 1 || cartonsToGenerate > maxPossible) return;
-    
-    setIsGenerating(true);
-    try {
-      const res = await fetch('/api/packing/generate-cartons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          configId: activeConfig.id,
-          inventoryId: activePool.id,
-          numberOfCartons: cartonsToGenerate
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        alert(`Successfully generated ${cartonsToGenerate} carton(s)!\nIDs: ${data.generatedCartons.join(', ')}`);
-        // Refresh pool
-        const poolRes = await fetch('/api/inventory-pool').then(r => r.json());
-        if (poolRes.inventory) setPool(poolRes.inventory);
-        setActivePoolId('');
-        setCartonsToGenerate(1);
-      } else {
-        alert(data.error);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
+  // Removed auto generate handling
 
   // Rule Builder Helpers
   const handleSizeInputChange = (size: string, val: string) => {
@@ -327,124 +349,46 @@ export default function CartonGenerationPage() {
             
             <div className={styles.formGroup}>
               <label>Select Staging Pool Item (Article + Colour)</label>
-              <select value={activePoolId} onChange={e => setActivePoolId(e.target.value)}>
-                <option value="">-- Select Inventory Pool --</option>
-                {pool.map(p => (
-                  <option key={p.id} value={p.id}>{p.article_code} - {p.colour} ({p.total_qty} total loose pairs)</option>
-                ))}
-              </select>
+              <SearchableDropdown
+                options={pool.map(p => ({
+                  value: p.id.toString(),
+                  label: `${p.article_code} - ${p.colour} (${p.total_qty} total loose pairs)`
+                }))}
+                value={activePoolId}
+                onChange={setActivePoolId}
+                placeholder="-- Select Inventory Pool --"
+              />
             </div>
 
             <div className={styles.formGroup}>
               <label>Select Master Configuration Rule</label>
-              <select value={activeConfigId} onChange={e => setActiveConfigId(e.target.value)}>
-                <option value="">-- Select Rule --</option>
-                {configs.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.total_pairs} pairs/carton)
-                  </option>
-                ))}
-              </select>
+              <SearchableDropdown
+                options={configs.map(c => ({
+                  value: c.id.toString(),
+                  label: `${c.name} (${c.total_pairs} pairs/carton)`
+                }))}
+                value={activeConfigId}
+                onChange={setActiveConfigId}
+                placeholder="-- Select Rule --"
+              />
             </div>
 
-            {/* AI FEASIBILITY & GENERATION ADVISOR */}
-            <div 
-              className="ai-hologram-panel"
-              style={{
-                background: 'rgba(99, 102, 241, 0.03)',
-                border: '1.5px dashed rgba(99, 102, 241, 0.25)',
-                borderRadius: '14px',
-                padding: '16px',
-                marginTop: '16px',
-                marginBottom: '16px',
-                transition: 'all 0.3s'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span className="ai-floating-orb">🤖</span>
-                <strong style={{ fontSize: '12.5px', color: 'var(--text-main)', letterSpacing: '0.02em', textTransform: 'uppercase' }}>AI Feasibility Advisor</strong>
-              </div>
-
-              {!activeConfig || !activePool ? (
-                <p style={{ fontSize: '11.5px', color: 'var(--text-ghost)', margin: 0, lineHeight: 1.4 }}>
-                  Select a Staging Pool Item and a Master Configuration Rule to let the AI process packing feasibility and residual waste margins.
-                </p>
-              ) : (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>Packing Feasibility Index</span>
-                    <span style={{ fontSize: '12.5px', fontWeight: 900, color: 'var(--neon-violet)' }} className="num-mono">98.4%</span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 10px 0', lineHeight: 1.4 }}>
-                    This configuration fits the size distribution perfectly. AI recommends generating the maximum possible cartons to clear the staging pool with minimum residual waste.
-                  </p>
-                  
-                  {maxPossible > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => setCartonsToGenerate(maxPossible)}
-                      style={{
-                        width: '100%',
-                        background: 'linear-gradient(135deg, var(--neon-indigo) 0%, var(--neon-violet) 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        padding: '8px 12px',
-                        fontSize: '11px',
-                        fontWeight: 800,
-                        cursor: 'pointer',
-                        boxShadow: '0 2px 8px rgba(99, 102, 241, 0.15)',
-                        transition: 'transform 0.2s'
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
-                      onMouseLeave={e => e.currentTarget.style.transform = 'none'}
-                    >
-                      Apply AI Packing Config ({maxPossible} Cartons)
-                    </button>
-                  ) : (
-                    <div style={{ fontSize: '11px', color: '#dc2626', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span>⚠️</span>
-                      <span>Staging stock size quantities insufficient to compile a single carton under this rule.</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* Removed AI Feasibility Advisor */}
 
             {activeConfig && activePool && (
-              <div className={styles.generationBox}>
-                <div className={styles.genHeader}>
-                  <h3>2. Generation Setup</h3>
-                  <span className={styles.maxBadge}>Max Possible: {maxPossible}</span>
-                </div>
-                
-                <div className={styles.genInput}>
-                  <label>Number of Cartons:</label>
-                  <input 
-                    type="number" 
-                    min="1" 
-                    max={maxPossible || 1} 
-                    value={cartonsToGenerate}
-                    onChange={e => setCartonsToGenerate(parseInt(e.target.value) || 1)}
-                    disabled={maxPossible === 0}
-                  />
-                </div>
-
+              <div className={styles.generationBox} style={{ marginTop: '24px' }}>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button 
-                    className={styles.generateBtn} 
-                    onClick={handleGenerate}
-                    disabled={isGenerating || maxPossible === 0 || cartonsToGenerate > maxPossible || cartonsToGenerate < 1}
-                    style={{ flex: 1 }}
-                  >
-                    {isGenerating ? 'Generating...' : `Auto Generate ${cartonsToGenerate} Carton(s)`}
-                  </button>
                   <button 
                     className={styles.generateBtn}
                     onClick={handleStartScanOutward}
                     disabled={isGenerating}
-                    style={{ flex: 1, background: 'var(--neon-violet)', border: 'none', color: 'white' }}
+                    style={{ width: '100%', background: 'var(--neon-violet)', border: 'none', color: 'white', padding: '16px', fontSize: '16px' }}
                   >
+                    🔍 Start Scan Outward
+                  </button>
+                </div>
+              </div>
+            )}
                     🔍 Start Scan Outward
                   </button>
                 </div>
@@ -463,7 +407,6 @@ export default function CartonGenerationPage() {
                     <tr>
                       <th>Size</th>
                       <th>Required / Carton</th>
-                      <th>Total Required</th>
                       <th>Available Pool</th>
                       <th>Remaining Balance</th>
                     </tr>
@@ -473,7 +416,7 @@ export default function CartonGenerationPage() {
                       const reqPerCarton = activeConfig.sizes[size] as number || 0;
                       if (reqPerCarton === 0) return null;
                       
-                      const totalReq = reqPerCarton * cartonsToGenerate;
+                      const totalReq = reqPerCarton; // cartonsToGenerate is fixed to 1
                       const available = activePool[`size_${size}` as keyof PoolItem] as number || 0;
                       const remaining = available - totalReq;
                       const isShort = remaining < 0;
@@ -482,7 +425,6 @@ export default function CartonGenerationPage() {
                         <tr key={size} className={isShort ? styles.rowShort : ''}>
                           <td><strong>{size}</strong></td>
                           <td>{reqPerCarton}</td>
-                          <td>{totalReq}</td>
                           <td>{available}</td>
                           <td className={isShort ? styles.shortText : styles.safeText}>{remaining}</td>
                         </tr>
@@ -494,11 +436,11 @@ export default function CartonGenerationPage() {
                 <div className={styles.statsSummary}>
                   <div className={styles.statBox}>
                     <span>Total Pairs Consumed</span>
-                    <strong>{activeConfig.total_pairs * cartonsToGenerate}</strong>
+                    <strong>{activeConfig.total_pairs}</strong>
                   </div>
                   <div className={styles.statBox}>
                     <span>Pool Pairs Remaining</span>
-                    <strong>{activePool.total_qty - (activeConfig.total_pairs * cartonsToGenerate)}</strong>
+                    <strong>{activePool.total_qty - activeConfig.total_pairs}</strong>
                   </div>
                 </div>
               </>

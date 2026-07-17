@@ -262,6 +262,40 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
     barcodeInputRef.current?.focus();
   }, []);
 
+  // Web Audio API generator for high-fidelity auditory feedback
+  const playSound = (type: 'success' | 'warning') => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      if (type === 'success') {
+        // High, clean beep (A5 note)
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      } else {
+        // Low, raspy warning buzz (130Hz sawtooth) - High Volume
+        osc.frequency.setValueAtTime(130, ctx.currentTime);
+        osc.type = 'sawtooth';
+        gain.gain.setValueAtTime(1.0, ctx.currentTime); // High volume
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8); // Longer decay for buffer sound
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.8);
+      }
+    } catch (e) {
+      console.warn('Audio feedback error:', e);
+    }
+  };
+
   const fetchSessionData = async () => {
     try {
       const res = await fetch(`/api/packing/outward/session/${sessionId}`);
@@ -305,6 +339,7 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
         const data = await res.json();
 
         if (res.status === 200 && data.requireApproval) {
+          playSound('warning');
           setApprovalModal({
             isOpen: true,
             message: data.message,
@@ -320,8 +355,12 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           let mrpIssueReason = '';
           if (!artMrp || artMrp === '' || artMrp === null) {
             mrpIssueReason = `The scanned barcode has NO MRP set. Article: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. Please verify before proceeding.`;
+            playSound('warning');
           } else if (sessMrp && Number(sessMrp) !== Number(artMrp)) {
             mrpIssueReason = `MRP Mismatch Detected!\n\nSession MRP: ₹${Number(sessMrp).toFixed(2)}\nScanned MRP: ₹${Number(artMrp).toFixed(2)}\n\nArticle: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. This may be a wrong article or incorrect data entry.`;
+            playSound('warning');
+          } else {
+            playSound('success');
           }
           setScanResult({ success: true, message: data.message, data: data.article });
           // Optimistic UI update — zero perceived lag
@@ -342,11 +381,14 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             return;
           }
         } else if (res.status === 409 && data.isDuplicate) {
+          playSound('warning');
           setScanResult({ success: false, message: data.error, isDuplicate: true });
         } else {
+          playSound('warning');
           setScanResult({ success: false, message: data.error });
         }
       } catch (err: any) {
+        playSound('warning');
         setScanResult({ success: false, message: err.message || 'Network error' });
       } finally {
         isScanningRef.current = false;
@@ -377,8 +419,12 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
           let mrpIssueReason2 = '';
           if (!artMrp2 || artMrp2 === '' || artMrp2 === null) {
             mrpIssueReason2 = `The scanned barcode has NO MRP set. Article: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. Please verify before proceeding.`;
+            playSound('warning');
           } else if (sessMrp2 && Number(sessMrp2) !== Number(artMrp2)) {
             mrpIssueReason2 = `MRP Mismatch Detected!\n\nSession MRP: ₹${Number(sessMrp2).toFixed(2)}\nScanned MRP: ₹${Number(artMrp2).toFixed(2)}\n\nArticle: ${data.article?.article_code || ''}, Size: ${data.article?.size || ''}. This may be a wrong article or incorrect data entry.`;
+            playSound('warning');
+          } else {
+            playSound('success');
           }
           setScanResult({ success: true, message: data.message, data: data.article });
           setProgress(prev => {
@@ -399,11 +445,13 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
             barcodeInputRef.current?.focus();
           }
         } else {
+          playSound('warning');
           setScanResult({ success: false, message: data.error });
           processScanQueue();
           barcodeInputRef.current?.focus();
         }
       }).catch(err => {
+        playSound('warning');
         setScanResult({ success: false, message: err.message || 'Network error' });
         processScanQueue();
       });
