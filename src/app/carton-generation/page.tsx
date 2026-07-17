@@ -389,11 +389,6 @@ export default function CartonGenerationPage() {
                 </div>
               </div>
             )}
-                    🔍 Start Scan Outward
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className={styles.previewPanel}>
