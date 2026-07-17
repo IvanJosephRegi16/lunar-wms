@@ -62,13 +62,19 @@ export default function ScanningIntakePage() {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.15);
       } else {
-        // Low, raspy warning buzz (130Hz sawtooth) - High Volume
-        osc.frequency.setValueAtTime(130, ctx.currentTime);
-        osc.type = 'sawtooth';
+        // Emergency alarm buffer sound - 5 seconds
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, ctx.currentTime);
+        // Toggle frequency to simulate alarm
+        for(let i=0; i<10; i++) {
+          osc.frequency.setValueAtTime(600, ctx.currentTime + i*0.5);
+          osc.frequency.setValueAtTime(400, ctx.currentTime + i*0.5 + 0.25);
+        }
         gain.gain.setValueAtTime(1.0, ctx.currentTime); // High volume
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8); // Longer decay for buffer sound
+        gain.gain.setValueAtTime(1.0, ctx.currentTime + 4.9);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 5.0); // Decay
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.8);
+        osc.stop(ctx.currentTime + 5.0);
       }
     } catch (e) {
       console.warn('Audio feedback error:', e);
@@ -118,14 +124,13 @@ export default function ScanningIntakePage() {
       if (!res.ok) {
         addScan(barcode, 'error', data.error || 'API scan error');
         playSound('warning');
+      } else if (data.requireApproval) {
+        playSound('warning');
+        setPendingApproval({ barcode, article: data.product?.article || '-', colour: data.product?.colour || '-', size: data.product?.size || '-' });
       } else {
         if (isDuplicate) {
           addScan(barcode, 'warning', 'Repeated Scan in Session', data.product);
           playSound('warning');
-        } else if (data.product?.mrp === null || data.product?.mrp === undefined) {
-          // MRP missing — hold for manual approval
-          playSound('warning');
-          setPendingApproval({ barcode, article: data.product?.article || '-', colour: data.product?.colour || '-', size: data.product?.size || '-' });
         } else {
           addScan(barcode, 'success', data.message || 'Stock Added to Inventory', data.product);
           playSound('success');
@@ -140,32 +145,39 @@ export default function ScanningIntakePage() {
     }
   };
 
-  const handleApprove = () => {
-    if (!pendingApproval) return;
-    // Record already inserted by API — just accept it with a warning status (no MRP)
-    addScan(pendingApproval.barcode, 'warning', 'Approved — No MRP', pendingApproval);
-    setPendingApproval(null);
-    setTimeout(() => inputRef.current?.focus(), 100);
-  };
-
-  const handleReject = async () => {
+  const handleApprove = async () => {
     if (!pendingApproval) return;
     setApproving(true);
     try {
-      await fetch('/api/packing/scan', {
-        method: 'DELETE',
+      const res = await fetch('/api/packing/scan', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barcode: pendingApproval.barcode })
+        body: JSON.stringify({ barcode: pendingApproval.barcode, force: true })
       });
-      addScan(pendingApproval.barcode, 'error', 'Rejected — No MRP. Record Blocked.', pendingApproval);
-      playSound('warning');
+      const data = await res.json();
+      if (res.ok) {
+        addScan(pendingApproval.barcode, 'warning', 'Approved — No MRP', pendingApproval);
+        setSessionCount(prev => prev + 1);
+      } else {
+        addScan(pendingApproval.barcode, 'error', data.error || 'Failed to approve scan');
+        playSound('warning');
+      }
     } catch {
-      addScan(pendingApproval.barcode, 'error', 'Rejected (rollback failed — check manually)', pendingApproval);
+      addScan(pendingApproval.barcode, 'error', 'Network error during approval');
+      playSound('warning');
     } finally {
       setApproving(false);
       setPendingApproval(null);
       setTimeout(() => inputRef.current?.focus(), 100);
     }
+  };
+
+  const handleReject = () => {
+    if (!pendingApproval) return;
+    addScan(pendingApproval.barcode, 'error', 'Not have MRP', pendingApproval);
+    playSound('warning');
+    setPendingApproval(null);
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const addScan = (barcode: string, status: 'success' | 'warning' | 'error', message: string, parsed?: any) => {

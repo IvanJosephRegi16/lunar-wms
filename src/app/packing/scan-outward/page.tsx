@@ -283,13 +283,19 @@ function ActiveScanSession({ sessionId }: { sessionId: string }) {
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.15);
       } else {
-        // Low, raspy warning buzz (130Hz sawtooth) - High Volume
-        osc.frequency.setValueAtTime(130, ctx.currentTime);
-        osc.type = 'sawtooth';
+        // Emergency alarm buffer sound - 5 seconds
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, ctx.currentTime);
+        // Toggle frequency to simulate alarm
+        for(let i=0; i<10; i++) {
+          osc.frequency.setValueAtTime(600, ctx.currentTime + i*0.5);
+          osc.frequency.setValueAtTime(400, ctx.currentTime + i*0.5 + 0.25);
+        }
         gain.gain.setValueAtTime(1.0, ctx.currentTime); // High volume
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8); // Longer decay for buffer sound
+        gain.gain.setValueAtTime(1.0, ctx.currentTime + 4.9);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 5.0); // Decay
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.8);
+        osc.stop(ctx.currentTime + 5.0);
       }
     } catch (e) {
       console.warn('Audio feedback error:', e);

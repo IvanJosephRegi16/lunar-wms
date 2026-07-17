@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const body = await request.json().catch(() => ({}));
-  const { barcode } = body;
+  const { barcode, force } = body;
 
   if (!barcode) {
     return NextResponse.json({ error: 'Barcode is required' }, { status: 400 });
@@ -102,6 +102,10 @@ export async function POST(request: Request) {
       }
       // ────────────────────────────────────────────────────────────────────────
 
+      if (mrp === null && !force) {
+        throw Object.assign(new Error('Not have MRP'), { requireApproval: true, product: { article, colour, size, mrp } });
+      }
+
       // Upsert inventory pool safely – article_code+colour is the natural key
       const existing = await db.prepare(
         `SELECT article_code, ${sizeColumn}, mrp FROM inventory_pool WHERE article_code = ? AND colour = ?`
@@ -160,6 +164,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, message: 'Stock Added to Inventory', product: result });
   } catch (error: any) {
     const isDuplicate = error.isDuplicate === true;
+    const requireApproval = error.requireApproval === true;
+
+    if (requireApproval) {
+      return NextResponse.json(
+        { requireApproval: true, error: error.message, product: error.product },
+        { status: 200 }
+      );
+    }
+
     // Log error audit for traceability (skip if already logged as duplicate)
     if (!isDuplicate) {
       await logAudit({
