@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       JOIN carton_generation pc ON pt.config_id = pc.id
       WHERE (c.status = 'completed' OR c.status = 'pending' OR c.status = 'pending_validation')
       AND pt.is_deleted = 0
+      AND c.is_deleted = 0
     `;
     
     const params: any[] = [];
@@ -62,6 +63,47 @@ export async function GET(request: Request) {
     return NextResponse.json({ inventory });
   } catch (error: any) {
     console.error('Error fetching packed inventory:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const authorizedRoles = ['admin', 'pm', 'supervisor'];
+    if (!authorizedRoles.includes(user.role)) {
+      return NextResponse.json({ error: 'Only Admin, PM, or Supervisor can reset Packed Inventory.' }, { status: 403 });
+    }
+
+    const db = getDb();
+    const body = await request.json();
+    
+    if (body.action === 'preview') {
+      const countRow = await db.prepare(`SELECT COUNT(*) as count FROM packed_cartons c JOIN outward_transactions pt ON c.transaction_id = pt.id WHERE c.is_deleted = 0 AND pt.is_deleted = 0 AND (c.status = 'completed' OR c.status = 'pending' OR c.status = 'pending_validation')`).get() as any;
+      return NextResponse.json({ count: countRow?.count || 0 });
+    }
+
+    if (body.confirm !== 'CONFIRM_RESET') {
+      return NextResponse.json({ error: 'Invalid confirmation code' }, { status: 400 });
+    }
+
+    // Reset means we archive all currently visible packed cartons by setting their is_deleted flag
+    const result = await db.prepare(`
+      UPDATE packed_cartons 
+      SET is_deleted = 1 
+      WHERE is_deleted = 0 
+      AND (status = 'completed' OR status = 'pending' OR status = 'pending_validation')
+    `).run();
+
+    return NextResponse.json({
+      success: true,
+      message: `Packed inventory successfully reset. ${result.changes} records archived.`,
+      rows_deleted: result.changes
+    });
+  } catch (error: any) {
+    console.error('Error resetting packed inventory:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

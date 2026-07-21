@@ -26,6 +26,12 @@ export default function PackedInventoryPage() {
   const [viewMode, setViewMode] = useState<'today' | 'history'>('today');
   const [inventory, setInventory] = useState<PackedCarton[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  // Reset State
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetCount, setResetCount] = useState(0);
 
   // Filters State
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,6 +65,17 @@ export default function PackedInventoryPage() {
     }, 250); 
     return () => clearInterval(focusInterval);
   }, [selectedCarton]);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (!data.error) {
+          setUser(data.user);
+        }
+      })
+      .catch(err => console.error('Error fetching user:', err));
+  }, []);
 
   // Fetch Inventory based on viewMode and active date pickers
   const fetchInventoryData = async () => {
@@ -114,6 +131,50 @@ export default function PackedInventoryPage() {
     setStatusFilter('all');
     setFilterBrand('ALL');
   };
+
+  const handleResetClick = () => {
+    fetch('/api/packed-inventory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'preview' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.count !== undefined) {
+          setResetCount(data.count);
+          setShowResetModal(true);
+        } else {
+          alert(`Failed to fetch reset preview: ${data.error || JSON.stringify(data)}`);
+        }
+      })
+      .catch(err => alert('Error checking reset status.'));
+  };
+
+  const confirmReset = () => {
+    setIsResetting(true);
+    fetch('/api/packed-inventory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'CONFIRM_RESET' })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setIsResetting(false);
+        if (data.success) {
+          setShowResetModal(false);
+          alert(data.message || 'Packed inventory reset successfully.');
+          fetchInventoryData(); // Refresh table
+        } else {
+          alert(data.error || 'Reset failed.');
+        }
+      })
+      .catch(err => {
+        setIsResetting(false);
+        alert('An error occurred while resetting.');
+      });
+  };
+
+  const canReset = user && ['admin', 'pm', 'supervisor'].includes(user.role);
 
   const handleScanCarton = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -275,6 +336,26 @@ export default function PackedInventoryPage() {
           headers={exportData.headers}
           rows={exportData.rows}
         />
+        {viewMode === 'history' && canReset && (
+          <button 
+            onClick={handleResetClick}
+            style={{
+              background: '#ef4444',
+              color: 'white',
+              border: 'none',
+              padding: '12px 20px',
+              borderRadius: '8px',
+              fontWeight: 800,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 6px -1px rgba(239, 68, 68, 0.2)'
+            }}
+          >
+            ⚠️ Reset History
+          </button>
+        )}
       </div>
 
       {/* 1.5. Master Carton Verification Scanner */}
@@ -526,6 +607,35 @@ export default function PackedInventoryPage() {
           </table>
         </div>
       </div>
+
+      {showResetModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#fff', padding: '32px', borderRadius: '16px', maxWidth: '400px', width: '100%', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <h2 style={{ marginTop: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px' }}>⚠️ Reset Packed Inventory</h2>
+            <p style={{ color: '#475569', lineHeight: 1.6, marginBottom: '24px' }}>
+              Are you absolutely sure you want to reset the packed inventory history? 
+              This will archive <strong>{resetCount}</strong> records. 
+              They will be hidden from this view permanently.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button 
+                onClick={() => setShowResetModal(false)}
+                disabled={isResetting}
+                style={{ padding: '12px 20px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmReset}
+                disabled={isResetting}
+                style={{ padding: '12px 20px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', fontWeight: 700, cursor: 'pointer', opacity: isResetting ? 0.7 : 1 }}
+              >
+                {isResetting ? 'Resetting...' : 'Yes, Reset Data'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
