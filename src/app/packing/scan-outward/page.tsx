@@ -1003,7 +1003,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
   const heightStr = `${printHeight}${printUnit}`;
 
   // Design Style Toggle
-  const [designStyle, setDesignStyle] = useState<'1' | '2'>('1');
+  const [designStyle, setDesignStyle] = useState<'1' | '2'>('2');
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">

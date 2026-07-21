@@ -674,7 +674,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
   const heightStr = `${printHeight}${printUnit}`;
 
   // Design Style Toggle
-  const [designStyle, setDesignStyle] = useState<'1' | '2'>('1');
+  const [designStyle, setDesignStyle] = useState<'1' | '2'>('2');
 
   return (
     <div style={{ background: '#e2e8f0', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 20px' }} className="print-wrapper">
@@ -938,7 +938,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             </div>
             <div className="pi-body">
               <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
-              <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val size-roman">{aggregatedSizeStr.replace('x', ' × ')}</div></div>
+              <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val size-roman">{aggregatedSizeStr.replace('x', 'X')}</div></div>
               {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val"><span style={{fontSize:'16px',marginRight:'2px'}}>₹</span>{parseFloat(mrp).toFixed(2)}</div></div>)}
               <div className="pi-sizes">
                 <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
