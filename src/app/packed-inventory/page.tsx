@@ -784,8 +784,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         </div>
       </div>
       <div className="sticker-wrap" style={{ padding: '20px', display: 'flex', justifyContent: 'center', width: '100%', overflow: 'auto' }}>
-        {isJokot ? (
-          <div className="jokot-sticker" style={{
+        <div className="jokot-sticker" style={{
             display: 'grid',
             gridTemplateRows: designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr',
             width: widthStr,
@@ -880,44 +879,13 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
                 <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : JOKOT INTERNATIONAL</div>
-                <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>Ph: +91 8867915043, Email: jokot.international@gmail.com</div>
+                <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'LUNAR RUBBERS PVT LTD'}</div>
+                <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>{isJokot ? 'Ph: +91 8867915043, Email: jokot.international@gmail.com' : 'Ph: 0485-2835222, Email: customercare@lunars.in'}</div>
               </div>
             </div>
           </div>
-        ) : (
-          <div className="pi-sticker">
-            <div style={{ background:'#fff', color:'#000', borderBottom:'1.5px solid #000', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px' }}>
-              <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'20px', fontWeight:900, letterSpacing:'2px' }}>{article}</span>
-              <span style={{ fontFamily:'Barlow Condensed, sans-serif', fontSize:'9px', fontWeight:800, letterSpacing:'1px', background:'#fff', color:'#000', padding:'2px 6px', borderRadius:'2px', border:'1px solid #000', textTransform:'uppercase' }}>Master Carton</span>
-            </div>
-            <div className="pi-body">
-              <div className="pi-row"><div className="pi-lbl">Colour</div><div className="pi-val">{colour}</div></div>
-              <div className="pi-row"><div className="pi-lbl">Size</div><div className="pi-val size-roman">{aggregatedSizeStr.replace('x', 'X')}</div></div>
-              {mrp && (<div className="pi-row"><div className="pi-lbl">MRP</div><div className="pi-val"><span style={{fontSize:'16px',marginRight:'2px'}}>₹</span>{parseFloat(mrp).toFixed(2)}</div></div>)}
-              <div className="pi-sizes">
-                <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px`, borderBottom:'1px solid #000' }}>
-                  <div className="pi-sh">Size</div>
-                  {activeSizes.map((s: any) => <div key={s.size} className="pi-sh">{s.size}</div>)}
-                  <div className="pi-sh tc">Total</div>
-                </div>
-                <div style={{ display:'grid', gridTemplateColumns:`60px repeat(${activeSizes.length}, 1fr) 45px` }}>
-                  <div className="pi-sc lc">Qty(pr)</div>
-                  {activeSizes.map((s: any) => <div key={s.size} className="pi-sc">{s.scanned}</div>)}
-                  <div className="pi-sc tc">{totalPairs}</div>
-                </div>
-              </div>
-              <div className="pi-pkgs">
-                <span className="pi-pkgs-lbl">No. of Packages</span>
-                <span className="pi-pkgs-val">{totalPairs} <span>Pairs</span></span>
-              </div>
-              <div className="pi-bc">
-                <Barcode value={barcodeValue} format="CODE128" width={1.8} height={30} displayValue={false} margin={0} background="#ffffff" />
-              </div>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
-    </div>
   );
 }
+
