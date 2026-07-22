@@ -47,13 +47,13 @@ export async function POST(request: Request) {
   const colour  = parts[1].toUpperCase();
   const size    = parts[2];
 
-  // Determine MRP: 4th token is MRP only when it ends with ".00"
+  // Determine MRP: 4th token is MRP if it's a valid number
   let mrp: number | null = null;
   if (parts.length >= 4) {
     const candidate = parts[3];
-    if (candidate.endsWith('.00') || /^\d+(\.\d+)?$/.test(candidate)) {
+    if (/^\d+(\.\d+)?$/.test(candidate)) {
       const parsed = parseFloat(candidate);
-      if (!isNaN(parsed) && candidate.endsWith('.00')) {
+      if (!isNaN(parsed)) {
         mrp = parsed;
       }
       // else: it's a unique/serial code – mrp stays null

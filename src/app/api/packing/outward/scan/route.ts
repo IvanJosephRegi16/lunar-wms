@@ -15,12 +15,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Parse ARTICLE|COLOUR|SIZE or ARTICLE|COLOUR|SIZE|MRP format
-    // JOKOT format "ARTICLE COLOUR SIZE" (starts with J)
     let parts: string[] = [];
     if (barcode.includes('|')) {
       parts = barcode.split('|');
-    } else if (barcode.startsWith('J') || barcode.startsWith('j')) {
-      parts = barcode.split(' ');
+    } else {
+      const firstChar = barcode.trimStart()[0];
+      if (
+        firstChar === 'J' || firstChar === 'j' ||
+        (firstChar >= '0' && firstChar <= '9')
+      ) {
+        parts = barcode.trim().split(/\s+/);
+      }
     }
 
     if (parts.length < 3) {
@@ -30,7 +35,17 @@ export async function POST(req: NextRequest) {
     const scannedArticle = parts[0].toUpperCase();
     const scannedColour = parts[1].toUpperCase();
     const scannedSize = parts[2];
-    const mrp = parts.length >= 4 ? parseFloat(parts[3]) || null : null;
+    
+    let mrp: number | null = null;
+    if (parts.length >= 4) {
+      const candidate = parts[3];
+      if (/^\d+(\.\d+)?$/.test(candidate)) {
+        const parsed = parseFloat(candidate);
+        if (!isNaN(parsed)) {
+          mrp = parsed;
+        }
+      }
+    }
 
     const validSizes = ['5','6','7','8','9','10','11','12'];
     if (!validSizes.includes(scannedSize)) {
