@@ -1193,7 +1193,9 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
       <div className="sticker-wrap" style={{ padding: '20px', display: 'flex', justifyContent: 'center', width: '100%', overflow: 'auto' }}>
         <div className="jokot-sticker" style={{
           display: 'grid',
-          gridTemplateRows: designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr',
+          gridTemplateRows: isJokot
+            ? (designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr')
+            : (designStyle === '2' ? '0.8fr 1.8fr 1fr 1fr 2fr 1.5fr' : '0.6fr 1fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr'),
           width: widthStr,
           height: heightStr,
           border: '2.5px solid #000',
@@ -1206,6 +1208,11 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
           margin: '0 auto',
           padding: '0'
         }}>
+          {!isJokot && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0, background: '#f8fafc' }}>
+              <span style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Georgia", cursive', fontSize: 'clamp(16px, 4vw, 24px)', fontWeight: 700, letterSpacing: '1.5px' }}>Lunar's</span>
+            </div>
+          )}
           {designStyle === '1' ? (
             <>
               {/* Row 1: ART NO */}
@@ -1287,7 +1294,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
               <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
             </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'LUNAR RUBBERS PVT LTD'}</div>
+              <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'VIKING RUBBERS PVT LTD'}</div>
               <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>{isJokot ? 'Ph: +91 8867915043, Email: jokot.international@gmail.com' : 'Ph: 0485-2835222, Email: customercare@lunars.in'}</div>
             </div>
           </div>
