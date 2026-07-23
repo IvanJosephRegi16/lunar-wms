@@ -532,7 +532,7 @@ export default function PackedInventoryPage() {
                 </tr>
               ) : (
                 filteredInventory.map((item) => (
-                  <tr key={item.id} onClick={() => setSelectedCarton(item)} style={{ cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  <tr key={item.id} onPointerDown={() => setSelectedCarton(item)} style={{ cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                     <td>
                       <span style={{ 
                         padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
@@ -821,7 +821,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
                 {/* Row 3: SIZE range */}
                 <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{aggregatedSizeStr.replace(/\s+/g, '').replace('x', 'X')}</div>
                 </div>
                 {/* Row 4: MRP */}
                 <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
@@ -842,7 +842,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>SIZE</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{aggregatedSizeStr.replace('x', 'X')}</div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{aggregatedSizeStr.replace(/\s+/g, '').replace('x', 'X')}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
                   <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>MRP</div>
