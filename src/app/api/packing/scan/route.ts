@@ -72,32 +72,29 @@ export async function POST(request: Request) {
   try {
     const result = await db.transaction(async () => {
       // ─── DUPLICATE SCAN GUARD ────────────────────────────────────────────────
-      // Reject if this exact barcode was already successfully scanned in the
-      // last 10 minutes to protect against accidental double-scans.
-      const recentDuplicate = await db.prepare(`
-        SELECT barcode, created_at FROM scan_history
-        WHERE barcode = ? AND scan_type = 'intake' AND status = 'success'
-        ORDER BY created_at DESC
-        LIMIT 1
+      // Reject if this exact barcode already exists in the intake pool.
+      // This ensures a permanent block on duplicate scans, without any time limit.
+      const existingPool = await db.prepare(`
+        SELECT status, created_at FROM intake_barcode_pool
+        WHERE barcode = ?
       `).get(barcode) as any;
 
-      if (recentDuplicate) {
-        // Enforce 10-minute duplicate block in Javascript to be DB agnostic
-        const scanTimeMs = new Date(recentDuplicate.created_at).getTime();
-        const tenMinsAgo = Date.now() - 10 * 60 * 1000;
+      if (existingPool) {
+        let scanTime = '';
+        try {
+          scanTime = new Date(existingPool.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+        } catch(e) { scanTime = existingPool.created_at; }
         
-        if (scanTimeMs >= tenMinsAgo) {
-          let scanTime = '';
-          try {
-            scanTime = new Date(recentDuplicate.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
-          } catch(e) { scanTime = recentDuplicate.created_at; }
-          
-          // Log the duplicate attempt in scan_history for forensic visibility
-          await db.prepare(`
-            INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
-            VALUES (?, ?, ?, ?, ?, 'error_duplicate', ?, 'intake')
-          `).run(barcode, article, colour, size, user.id, mrp);
+        // Log the duplicate attempt in scan_history for forensic visibility
+        await db.prepare(`
+          INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
+          VALUES (?, ?, ?, ?, ?, 'error_duplicate', ?, 'intake')
+        `).run(barcode, article, colour, size, user.id, mrp);
+
+        if (existingPool.status === 'available') {
           throw Object.assign(new Error(`Duplicate Entry which you already scanned. Scanned on: ${scanTime}`), { isDuplicate: true });
+        } else if (existingPool.status === 'scanned_outward') {
+          throw Object.assign(new Error(`Duplicate Entry — this barcode was already scanned intake AND outward. Scanned on: ${scanTime}`), { isDuplicate: true });
         }
       }
       // ────────────────────────────────────────────────────────────────────────
