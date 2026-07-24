@@ -804,7 +804,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
           {!isJokot && (
             <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0, background: '#cc2200' }}>
               <img
-                src="/lunars-banner.png"
+                src="/lunars-banner-custom.jpg"
                 alt="Lunar's"
                 style={{
                   width: '100%',
