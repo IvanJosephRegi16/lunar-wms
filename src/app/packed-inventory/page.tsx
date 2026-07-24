@@ -44,7 +44,7 @@ export default function PackedInventoryPage() {
   // Scanning State
   const [scanBarcode, setScanBarcode] = useState('');
   const [isScanning, setIsScanning] = useState(false);
-  const [scanMessage, setScanMessage] = useState<{text: string, isError: boolean} | null>(null);
+  const [scanMessage, setScanMessage] = useState<{ text: string, isError: boolean } | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -56,13 +56,13 @@ export default function PackedInventoryPage() {
     const focusInterval = setInterval(() => {
       // Only focus if modal isn't open or user isn't clicking on other inputs like filters
       if (
-        document.activeElement !== inputRef.current && 
-        document.activeElement?.tagName !== 'INPUT' && 
+        document.activeElement !== inputRef.current &&
+        document.activeElement?.tagName !== 'INPUT' &&
         !selectedCarton
       ) {
         inputRef.current?.focus();
       }
-    }, 250); 
+    }, 250);
     return () => clearInterval(focusInterval);
   }, [selectedCarton]);
 
@@ -134,7 +134,7 @@ export default function PackedInventoryPage() {
 
   const handleResetClick = () => {
     if (!window.confirm("Are you sure you want to reset the packed inventory history?")) return;
-    
+
     setIsResetting(true);
     fetch('/api/packed-inventory', {
       method: 'POST',
@@ -165,7 +165,7 @@ export default function PackedInventoryPage() {
       const barcode = e.currentTarget.value.trim();
       e.currentTarget.value = '';
       if (!barcode || isScanning) return;
-      
+
       setIsScanning(true);
       setScanMessage(null);
       try {
@@ -192,15 +192,15 @@ export default function PackedInventoryPage() {
   // Real-time Client-side Search filter over the fetched date list
   const filteredInventory = inventory.filter(item => {
     const term = searchTerm.toLowerCase();
-    const matchesSearch = 
+    const matchesSearch =
       item.carton_id.toLowerCase().includes(term) ||
       item.article_code.toLowerCase().includes(term) ||
       item.colour.toLowerCase().includes(term) ||
       item.config_name.toLowerCase().includes(term);
-      
+
     const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
     const matchesBrand = filterBrand === 'ALL' || item.brand === filterBrand;
-    
+
     return matchesSearch && matchesStatus && matchesBrand;
   });
 
@@ -221,7 +221,7 @@ export default function PackedInventoryPage() {
     ]);
     const label = viewMode === 'today' ? 'Today' : 'History';
     const statusLabel = statusFilter === 'all' ? '' : `_${statusFilter}`;
-    const filename = `Packed_Inventory_${label}${statusLabel}_${new Date().toISOString().slice(0,10)}`;
+    const filename = `Packed_Inventory_${label}${statusLabel}_${new Date().toISOString().slice(0, 10)}`;
     return { headers, rows, filename };
   };
 
@@ -230,7 +230,7 @@ export default function PackedInventoryPage() {
   // Calculate live stats based on search
   const totalCartons = filteredInventory.length;
   const totalPairs = filteredInventory.reduce((acc, curr) => acc + (Number(curr.total_pairs) || 0), 0);
-  
+
   const uniqueModels = new Set(
     filteredInventory.map(item => `${item.article_code}-${item.colour}`)
   ).size;
@@ -288,8 +288,8 @@ export default function PackedInventoryPage() {
 
   return (
     <div className={styles.container}>
-      
-{/* 1. Header with View Toggle Buttons */}
+
+      {/* 1. Header with View Toggle Buttons */}
       <div className={styles.header}>
         <div className={styles.headerText}>
           <h1>Packed Inventory Storage</h1>
@@ -306,7 +306,7 @@ export default function PackedInventoryPage() {
           )}
         </div>
 
-        <button 
+        <button
           className={`${styles.toggleBtn} ${viewMode === 'today' ? '' : styles.toggleBtnToday}`}
           onClick={() => {
             setViewMode(prev => prev === 'today' ? 'history' : 'today');
@@ -315,13 +315,13 @@ export default function PackedInventoryPage() {
         >
           {viewMode === 'today' ? '📅 View Full History' : '⚡ View Today\'s Packing'}
         </button>
-        <ExportDropdown 
+        <ExportDropdown
           filename={exportData.filename}
           headers={exportData.headers}
           rows={exportData.rows}
         />
         {viewMode === 'history' && canReset && (
-          <button 
+          <button
             onClick={handleResetClick}
             style={{
               background: '#ef4444',
@@ -348,10 +348,10 @@ export default function PackedInventoryPage() {
         <p style={{ margin: '0 0 16px 0', fontSize: '14px', color: '#64748b' }}>Scan a newly packed Master Carton ID to verify and mark it as delivered/completed.</p>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <span style={{ fontSize: '24px' }}>⚡</span>
-          <input 
+          <input
             ref={inputRef}
-            type="text" 
-            placeholder={isScanning ? "Verifying..." : "Awaiting scanner input (e.g. CRT-...)"} 
+            type="text"
+            placeholder={isScanning ? "Verifying..." : "Awaiting scanner input (e.g. CRT-...)"}
             onKeyDown={handleScanCarton}
             className="corporate-input"
             style={{ flex: 1, padding: '14px 20px', fontSize: '16px', borderRadius: '12px', border: '2px solid #cbd5e1', fontWeight: 700 }}
@@ -370,11 +370,11 @@ export default function PackedInventoryPage() {
       <div className={styles.filterPanel}>
         <h3 className={styles.filterHeader}>🔍 Multi-Criteria Search & Date Filters</h3>
         <div className={styles.filterGrid}>
-          
+
           <div className={styles.filterGroup}>
             <label>Search Text</label>
-            <input 
-              type="text" 
+            <input
+              type="text"
               className={styles.filterInput}
               placeholder="Search Carton ID, Article, Colour, Rule..."
               value={searchTerm}
@@ -384,7 +384,7 @@ export default function PackedInventoryPage() {
 
           <div className={styles.filterGroup}>
             <label>Brand</label>
-            <select 
+            <select
               className={styles.filterInput}
               value={filterBrand}
               onChange={e => setFilterBrand(e.target.value)}
@@ -394,10 +394,10 @@ export default function PackedInventoryPage() {
               <option value="JOKOT">Jokot</option>
             </select>
           </div>
-          
+
           <div className={styles.filterGroup}>
             <label>Verification Status</label>
-            <select 
+            <select
               className={styles.filterInput}
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
@@ -413,8 +413,8 @@ export default function PackedInventoryPage() {
             <>
               <div className={styles.filterGroup}>
                 <label>Single Date Pickup</label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   className={styles.filterInput}
                   value={singleDate}
                   onChange={e => {
@@ -428,8 +428,8 @@ export default function PackedInventoryPage() {
               <div className={styles.filterGroup}>
                 <label>Date Range (From → To)</label>
                 <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className={styles.filterInput}
                     value={fromDate}
                     onChange={e => {
@@ -437,8 +437,8 @@ export default function PackedInventoryPage() {
                       setSingleDate('');
                     }}
                   />
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     className={styles.filterInput}
                     value={toDate}
                     onChange={e => {
@@ -525,8 +525,8 @@ export default function PackedInventoryPage() {
               ) : filteredInventory.length === 0 ? (
                 <tr>
                   <td colSpan={9} className={styles.emptyCell}>
-                    {viewMode === 'today' 
-                      ? "No cartons packed today yet. Use Carton Generation to prepare dispatch orders!" 
+                    {viewMode === 'today'
+                      ? "No cartons packed today yet. Use Carton Generation to prepare dispatch orders!"
                       : "No cartons match your historical filter criteria."}
                   </td>
                 </tr>
@@ -534,7 +534,7 @@ export default function PackedInventoryPage() {
                 filteredInventory.map((item) => (
                   <tr key={item.id} onPointerDown={() => setSelectedCarton(item)} style={{ cursor: 'pointer', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = '#f8fafc'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
                     <td>
-                      <span style={{ 
+                      <span style={{
                         padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 800,
                         background: item.brand === 'JOKOT' ? '#fef3c7' : '#e0e7ff',
                         color: item.brand === 'JOKOT' ? '#d97706' : '#4338ca'
@@ -616,7 +616,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
   const aggregatedSizeStr = getAggregatedSizeStr(progress);
   const barcodeValue = carton || 'UNKNOWN';
   const isJokot = article && article.toUpperCase().startsWith('J');
-  
+
   const defaultMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ');
   const [mfgMonth, setMfgMonth] = useState(defaultMonthYear);
 
@@ -722,8 +722,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         .jk-val { font-size: 22px; font-weight: 900; padding: 4px 8px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; }
         .jk-input { border: none; font-size: 13px; font-weight: 900; width: 80px; text-transform: uppercase; outline: none; background: transparent; }
       `}</style>
-      <div className="no-print" style={{ 
-        display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px', 
+      <div className="no-print" style={{
+        display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px',
         background: 'rgba(255, 255, 255, 0.85)', backdropFilter: 'blur(12px)',
         padding: '24px', borderRadius: '20px', boxShadow: '0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 10px 20px -10px rgba(0, 0, 0, 0.05)',
         border: '1px solid rgba(255,255,255,1)',
@@ -785,114 +785,125 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
       </div>
       <div className="sticker-wrap" style={{ padding: '20px', display: 'flex', justifyContent: 'center', width: '100%', overflow: 'auto' }}>
         <div className="jokot-sticker" style={{
-            display: 'grid',
-            gridTemplateRows: isJokot
-              ? (designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr')
-              : (designStyle === '2' ? '0.8fr 1.8fr 1fr 1fr 2fr 1.5fr' : '0.6fr 1fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr'),
-            width: widthStr,
-            height: heightStr,
-            border: '2.5px solid #000',
-            boxSizing: 'border-box',
-            overflow: 'hidden',
-            background: '#fff',
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
-            fontFamily: 'Arial, Helvetica, sans-serif',
-            color: '#000',
-            margin: '0 auto',
-            padding: '0'
-          }}>
-            {!isJokot && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0, background: '#e52020' }}>
-                <img src="/lunars-logo.png" alt="Lunar's" style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
-              </div>
-            )}
-            {designStyle === '1' ? (
-              <>
-                {/* Row 1: ART NO */}
-                <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>ART NO:</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px,3vw,24px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{article}</div>
-                </div>
-                {/* Row 2: COLOR */}
-                <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1.5px solid #000', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>COLOR</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{colour}</div>
-                </div>
-                {/* Row 3: SIZE range */}
-                <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{aggregatedSizeStr.replace(/\s+/g, '').replace('x', 'X')}</div>
-                </div>
-                {/* Row 4: MRP */}
-                <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MRP</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
-                </div>
-              </>
-            ) : (
-              /* Style 2: Horizontal Headers */
-              <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 0.6fr 0.8fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>ART NO</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(26px, 6vw, 52px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{article}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>COLOR</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{colour}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>SIZE</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{aggregatedSizeStr.replace(/\s+/g, '').replace('x', 'X')}</div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-                  <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>MRP</div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
-                </div>
-              </div>
-            )}
-            {/* Row 5: SIZE headers */}
-            <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
-              {activeSizes.map((s: any) => (
-                <div key={`sh-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{s.size}</div>
-              ))}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>Total</div>
+          display: 'grid',
+          gridTemplateRows: isJokot
+            ? (designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr')
+            : (designStyle === '2' ? '1fr 1.8fr 1fr 1fr 2fr 1.5fr' : '0.8fr 1fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr'),
+          width: widthStr,
+          height: heightStr,
+          border: '2.5px solid #000',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          background: '#fff',
+          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.2)',
+          fontFamily: 'Arial, Helvetica, sans-serif',
+          color: '#000',
+          margin: '0 auto',
+          padding: '0'
+        }}>
+          {!isJokot && (
+            <div style={{ display: 'flex', alignItems: 'stretch', justifyContent: 'center', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0, background: '#cc2200' }}>
+              <img
+                src="/lunars-banner.png"
+                alt="Lunar's"
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'fill',
+                  display: 'block',
+                  margin: 0,
+                  padding: 0,
+                }}
+              />
             </div>
-            {/* Row 6: QTY values */}
-            <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.1, boxSizing: 'border-box', margin: 0 }}>QTY<br />(PAIR)</div>
-              {activeSizes.map((s: any) => (
-                <div key={`qd-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{Number(s.scanned)}</div>
-              ))}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{totalPairs}</div>
-            </div>
-            {/* Row 7: NO OF PACKAGES + MADE IN INDIA + QR (nested 2-row grid, QR spans both) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '28% 1fr 22%', gridTemplateRows: '1fr 1fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ gridRow: '1', gridColumn: '1', borderRight: '1.5px solid #000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.3, boxSizing: 'border-box', margin: 0 }}>NO OF<br />PACKAGES</div>
-              <div style={{ gridRow: '1', gridColumn: '2', borderRight: '1.5px solid #000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{totalPairs}</div>
-              <div style={{ gridRow: '1 / 3', gridColumn: '3', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0', boxSizing: 'border-box', overflow: 'hidden', margin: 0 }}>
-                <QRCodeSVG value={barcodeValue || 'N/A'} style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', display: 'block' }} level="M" />
+          )}
+          {designStyle === '1' ? (
+            <>
+              {/* Row 1: ART NO */}
+              <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>ART NO:</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(14px,3vw,24px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{article}</div>
               </div>
-              <div style={{ gridRow: '2', gridColumn: '1', borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MADE IN INDIA</div>
-              <div style={{ gridRow: '2', gridColumn: '2', borderRight: '1.5px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, boxSizing: 'border-box', overflow: 'hidden', margin: 0, padding: 0 }}>
-                <span style={{ fontSize: '9px', fontWeight: 900, margin: 0, padding: 0 }}>Month of mF-</span>
-                <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', width: '95%', textAlign: 'center', margin: 0, padding: 0 }} />
+              {/* Row 2: COLOR */}
+              <div style={{ display: 'flex', alignItems: 'stretch', borderTop: '1.5px solid #000', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>COLOR</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{colour}</div>
+              </div>
+              {/* Row 3: SIZE range */}
+              <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{aggregatedSizeStr.replace(/\s+/g, '').replace('x', 'X')}</div>
+              </div>
+              {/* Row 4: MRP */}
+              <div style={{ display: 'flex', alignItems: 'stretch', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ width: '28%', flexShrink: 0, borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MRP</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(12px,2vw,18px)', fontWeight: 900, overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
+              </div>
+            </>
+          ) : (
+            /* Style 2: Horizontal Headers */
+            <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr 0.6fr 0.8fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>ART NO</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(26px, 6vw, 52px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{article}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>COLOR</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{colour}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>SIZE</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{aggregatedSizeStr.replace(/\s+/g, '').replace('x', 'X')}</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', borderBottom: '1.5px solid #000', padding: '2px', background: '#f8fafc', margin: 0, textAlign: 'center' }}>MRP</div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'clamp(20px, 4.5vw, 36px)', fontWeight: 900, textAlign: 'center', padding: '0 2px', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', lineHeight: 1 }}>{mrp ? parseFloat(mrp).toFixed(2) : '0.00'}</div>
               </div>
             </div>
-            {/* Row 8: Footer (Merged) */}
-            <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
-                <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
-              </div>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
-                <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'VIKING RUBBERS PVT LTD'}</div>
-                <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>{isJokot ? 'Ph: +91 8867915043, Email: jokot.international@gmail.com' : 'Ph: 0485-2835222, Email: customercare@lunars.in'}</div>
-              </div>
+          )}
+          {/* Row 5: SIZE headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+            <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
+            {activeSizes.map((s: any) => (
+              <div key={`sh-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{s.size}</div>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>Total</div>
+          </div>
+          {/* Row 6: QTY values */}
+          <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+            <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.1, boxSizing: 'border-box', margin: 0 }}>QTY<br />(PAIR)</div>
+            {activeSizes.map((s: any) => (
+              <div key={`qd-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{Number(s.scanned)}</div>
+            ))}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{totalPairs}</div>
+          </div>
+          {/* Row 7: NO OF PACKAGES + MADE IN INDIA + QR (nested 2-row grid, QR spans both) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '28% 1fr 22%', gridTemplateRows: '1fr 1fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+            <div style={{ gridRow: '1', gridColumn: '1', borderRight: '1.5px solid #000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.3, boxSizing: 'border-box', margin: 0 }}>NO OF<br />PACKAGES</div>
+            <div style={{ gridRow: '1', gridColumn: '2', borderRight: '1.5px solid #000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{totalPairs}</div>
+            <div style={{ gridRow: '1 / 3', gridColumn: '3', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0', boxSizing: 'border-box', overflow: 'hidden', margin: 0 }}>
+              <QRCodeSVG value={barcodeValue || 'N/A'} style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', display: 'block' }} level="M" />
+            </div>
+            <div style={{ gridRow: '2', gridColumn: '1', borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MADE IN INDIA</div>
+            <div style={{ gridRow: '2', gridColumn: '2', borderRight: '1.5px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, boxSizing: 'border-box', overflow: 'hidden', margin: 0, padding: 0 }}>
+              <span style={{ fontSize: '9px', fontWeight: 900, margin: 0, padding: 0 }}>Month of mF-</span>
+              <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', width: '95%', textAlign: 'center', margin: 0, padding: 0 }} />
+            </div>
+          </div>
+          {/* Row 8: Footer (Merged) */}
+          <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
+              <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'VIKING RUBBERS PVT LTD'}</div>
+              <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>{isJokot ? 'Ph: +91 8867915043, Email: jokot.international@gmail.com' : 'Customer Care: 9843588136, Email: vikingcbe@lunars.com'}</div>
             </div>
           </div>
         </div>
       </div>
+    </div>
   );
 }
 
