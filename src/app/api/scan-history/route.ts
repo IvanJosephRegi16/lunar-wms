@@ -14,13 +14,12 @@ export async function GET(request: Request) {
     const endDate = searchParams.get('endDate');
     const preview = searchParams.get('preview');
 
-    // Preview mode: return count for reset confirmation
     if (preview === '1') {
       const authorizedRoles = ['admin', 'pm', 'supervisor'];
       if (!authorizedRoles.includes(user.role)) {
         return NextResponse.json({ error: 'Not authorized to reset scan history' }, { status: 403 });
       }
-      const countRow = await db.prepare(`SELECT COUNT(*) as count FROM scan_history WHERE is_deleted = 0`).get() as any;
+      const countRow = await db.prepare(`SELECT COUNT(*) as count FROM scan_history`).get() as any;
       return NextResponse.json({ count: countRow?.count || 0 });
     }
 
@@ -78,11 +77,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid confirmation code' }, { status: 400 });
     }
 
-    const result = await db.prepare(`UPDATE scan_history SET is_deleted = 1 WHERE is_deleted = 0`).run();
+    // Hard delete all scan history records to completely reset the database
+    const result = await db.prepare(`DELETE FROM scan_history`).run();
 
     return NextResponse.json({
       success: true,
-      message: `Scan history successfully reset. ${result.changes} records archived.`,
+      message: `Scan history successfully wiped. ${result.changes} records permanently deleted.`,
       rows_deleted: result.changes
     });
   } catch (error: any) {

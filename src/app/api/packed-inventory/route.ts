@@ -81,7 +81,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     
     if (body.action === 'preview') {
-      const countRow = await db.prepare(`SELECT COUNT(*) as count FROM packed_cartons c JOIN outward_transactions pt ON c.transaction_id = pt.id WHERE c.is_deleted = 0 AND pt.is_deleted = 0 AND (c.status = 'completed' OR c.status = 'pending' OR c.status = 'pending_validation')`).get() as any;
+      const countRow = await db.prepare(`SELECT COUNT(*) as count FROM packed_cartons c JOIN outward_transactions pt ON c.transaction_id = pt.id WHERE c.status IN ('completed', 'pending', 'pending_validation')`).get() as any;
       return NextResponse.json({ count: countRow?.count || 0 });
     }
 
@@ -89,17 +89,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid confirmation code' }, { status: 400 });
     }
 
-    // Reset means we archive all currently visible packed cartons by setting their is_deleted flag
+    // Hard delete all packed cartons to completely wipe the database as requested
     const result = await db.prepare(`
-      UPDATE packed_cartons 
-      SET is_deleted = 1 
-      WHERE is_deleted = 0 
-      AND (status = 'completed' OR status = 'pending' OR status = 'pending_validation')
+      DELETE FROM packed_cartons 
+      WHERE status IN ('completed', 'pending', 'pending_validation')
     `).run();
 
     return NextResponse.json({
       success: true,
-      message: `Packed inventory successfully reset. ${result.changes} records archived.`,
+      message: `Packed inventory successfully wiped. ${result.changes} records permanently deleted.`,
       rows_deleted: result.changes
     });
   } catch (error: any) {

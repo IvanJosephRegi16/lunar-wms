@@ -21,8 +21,10 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
 
-    // Delete all records in inventory pool
+    // Delete all records in inventory pool and associated intake tracking
     await db.prepare('DELETE FROM inventory_pool').run();
+    await db.prepare('DELETE FROM intake_barcode_pool').run();
+    await db.prepare('DELETE FROM inward_inventory_transactions').run();
 
     await logAudit({
       userId: user.id,
