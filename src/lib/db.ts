@@ -1015,6 +1015,24 @@ ON CONFLICT (username) DO NOTHING;
       try { await client.query(idx); } catch { /* index already exists */ }
     }
 
+    // ── One-Time Cleanup of Old Packing Data ──────────────────────────────
+    try {
+      const { rows: [cleanupFlag] } = await client.query(`SELECT value FROM system_settings WHERE key = 'hard_cleanup_2026_07_24'`);
+      if (!cleanupFlag) {
+        console.log('[MIGRATION] Running one-time hard cleanup of packing data from before 2026-07-24...');
+        const cutoffDateStr = '2026-07-24 00:00:00+05:30';
+        await client.query(`DELETE FROM scan_history WHERE created_at < $1`, [cutoffDateStr]);
+        await client.query(`DELETE FROM intake_barcode_pool WHERE created_at < $1`, [cutoffDateStr]);
+        await client.query(`DELETE FROM inward_inventory_transactions WHERE created_at < $1`, [cutoffDateStr]);
+        await client.query(`DELETE FROM outward_scan_items WHERE session_id IN (SELECT id FROM outward_scan_sessions WHERE created_at < $1)`, [cutoffDateStr]);
+        await client.query(`DELETE FROM outward_scan_sessions WHERE created_at < $1`, [cutoffDateStr]);
+        await client.query(`DELETE FROM packed_cartons WHERE created_at < $1`, [cutoffDateStr]);
+        
+        await client.query(`INSERT INTO system_settings (key, value) VALUES ('hard_cleanup_2026_07_24', '1') ON CONFLICT DO NOTHING`);
+        console.log('[MIGRATION] One-time hard cleanup completed successfully.');
+      }
+    } catch (e: any) { console.warn('[MIGRATION] Hard cleanup skipped:', e.message); }
+
     console.log('[DATABASE] Schema migration complete.');
   } catch (err: any) {
     console.error('[DATABASE MIGRATION ERROR]', err.message);
