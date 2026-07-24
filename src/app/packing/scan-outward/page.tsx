@@ -1209,8 +1209,8 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
           padding: '0'
         }}>
           {!isJokot && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0, background: '#f8fafc' }}>
-              <img src="/lunars-logo.png" alt="Lunar's" style={{ height: '100%', objectFit: 'contain', padding: '1px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0, background: '#e52020' }}>
+              <img src="/lunars-logo.png" alt="Lunar's" style={{ width: '100%', height: '100%', objectFit: 'fill', display: 'block' }} />
             </div>
           )}
           {designStyle === '1' ? (
