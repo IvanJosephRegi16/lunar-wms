@@ -991,7 +991,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
   const isJokot = article && article.toUpperCase().startsWith('J');
 
   // State for editable month/year
-  const defaultMonthYear = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ');
+  const defaultMonthYear = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
   const [mfgMonth, setMfgMonth] = useState(defaultMonthYear);
 
   const [printWidth, setPrintWidth] = useState<number>(10);
@@ -1283,8 +1283,8 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
             </div>
             <div style={{ gridRow: '2', gridColumn: '1', borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MADE IN INDIA</div>
             <div style={{ gridRow: '2', gridColumn: '2', borderRight: '1.5px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, boxSizing: 'border-box', overflow: 'hidden', margin: 0, padding: 0 }}>
-              <span style={{ fontSize: '9px', fontWeight: 900, margin: 0, padding: 0 }}>Month of mF-</span>
-              <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', width: '95%', textAlign: 'center', margin: 0, padding: 0 }} />
+              <span style={{ fontSize: '7.5px', fontWeight: 900, margin: 0, padding: 0 }}>Month of manufacturing-</span>
+              <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', width: '98%', textAlign: 'center', margin: 0, padding: 0 }} />
             </div>
           </div>
           {/* Row 8: Footer (Merged) */}

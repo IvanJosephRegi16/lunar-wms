@@ -86,8 +86,15 @@ export default function StoreVerification() {
       const payloadItems = selectedPO.items.map((item: any, i: number) => {
         const prevReceived = Number(item.received_qty || 0);
         const pending = Math.max(0, item.required_qty - prevReceived);
-        const nowReceiving = receivedQty[i] !== undefined ? Number(receivedQty[i]) : pending;
-        const finalRate = receivedRate[i] !== undefined ? Number(receivedRate[i]) : Number(item.order_rate || 0);
+        
+        let nowReceiving = 0;
+        // Only receive the quantity if the green tick is checked
+        if (checkedItems[i]) {
+          nowReceiving = receivedQty[i] !== undefined && receivedQty[i] !== '' ? Number(receivedQty[i]) : pending;
+        }
+        
+        const finalRate = receivedRate[i] !== undefined && receivedRate[i] !== '' ? Number(receivedRate[i]) : Number(item.order_rate || 0);
+        
         return {
           id: item.id,
           received_qty: prevReceived + nowReceiving,
@@ -284,15 +291,27 @@ export default function StoreVerification() {
                         setSelectedPO(po); 
                         setCheckedItems({}); 
                         setRemarks(''); 
-                        // Initialize receivedQty map
+                        // Initialize receivedQty map and checked status based on previously saved data
                         const initQty: Record<number, string> = {};
                         const initRate: Record<number, string> = {};
+                        const initChecked: Record<number, boolean> = {};
+                        
                         (po.items || []).forEach((item: any, i: number) => {
-                           initQty[i] = item.received_qty > 0 ? item.received_qty.toString() : item.required_qty.toString();
+                           const prevReceived = Number(item.received_qty || 0);
+                           const pending = Math.max(0, item.required_qty - prevReceived);
+                           
+                           initQty[i] = pending.toString();
                            initRate[i] = (item.order_rate || 0).toString();
+                           
+                           // If it was already fully received, check the green tick by default
+                           if (prevReceived > 0 && prevReceived >= item.required_qty) {
+                             initChecked[i] = true;
+                           }
                         });
+                        
                         setReceivedQty(initQty);
                         setReceivedRate(initRate);
+                        setCheckedItems(initChecked);
                       }}
                         style={{
                           background: 'linear-gradient(135deg, #4f46e5, #6366f1)', color: 'white', border: 'none',

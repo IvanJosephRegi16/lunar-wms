@@ -87,6 +87,19 @@ export async function POST(req: NextRequest) {
       
       packedCarton = cartonIdStr;
 
+      // Assign the generated carton_id to the scan history records for these barcodes
+      const sessionBarcodes = await db.prepare(`SELECT barcode FROM outward_scan_items WHERE session_id = ?`).all(session_id) as any[];
+      const barcodes = sessionBarcodes.map((b: any) => b.barcode);
+      
+      if (barcodes.length > 0) {
+        const placeholders = barcodes.map(() => '?').join(',');
+        await db.prepare(`
+          UPDATE scan_history 
+          SET carton_id = ? 
+          WHERE scan_type = 'outward' AND carton_id IS NULL AND barcode IN (${placeholders})
+        `).run(cartonIdStr, ...barcodes);
+      }
+
       // Update session status
       await db.prepare(`
         UPDATE outward_scan_sessions 
