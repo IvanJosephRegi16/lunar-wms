@@ -303,8 +303,8 @@ export default function StoreVerification() {
                            initQty[i] = pending.toString();
                            initRate[i] = (item.order_rate || 0).toString();
                            
-                           // If it was already fully received, check the green tick by default
-                           if (prevReceived > 0 && prevReceived >= item.required_qty) {
+                           // If it was previously ticked and partially or fully received, check the green tick by default
+                           if (prevReceived > 0) {
                              initChecked[i] = true;
                            }
                         });
