@@ -1195,7 +1195,7 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
           display: 'grid',
           gridTemplateRows: isJokot
             ? (designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr')
-            : (designStyle === '2' ? '0.8fr 1.8fr 1fr 1fr 2fr 1.5fr' : '0.6fr 1fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr'),
+            : (designStyle === '2' ? '0.8fr 1.8fr 1fr 1fr 2fr 1.8fr' : '0.6fr 1fr 1fr 1fr 1fr 1fr 1fr 2fr 1.8fr'),
           width: widthStr,
           height: heightStr,
           border: '2.5px solid #000',
@@ -1289,13 +1289,16 @@ function MasterCartonSticker({ cartonData, onClose, onCancel }: { cartonData: an
           </div>
           {/* Row 8: Footer (Merged) */}
           <div style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box' }}>
+            <div style={{ flex: 0.85, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', borderRight: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box' }}>
               <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mfd.&amp; Pkd. By : MATHEW RUBBERS</div>
               <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>5/37/8, K.G Chavadi, Coimbatore-105</div>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
-              <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.2 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'VIKING RUBBERS PVT LTD'}</div>
-              <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.2 }}>{isJokot ? 'Ph: +91 8867915043, Email: jokot.international@gmail.com' : 'Ph: 0485-2835222, Email: customercare@lunars.in'}</div>
+            <div style={{ flex: 1.15, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 3px', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ fontSize: designStyle === '2' ? '11px' : '9px', fontWeight: 900, margin: 0, padding: 0, lineHeight: 1.1 }}>Mktd.By : {isJokot ? 'JOKOT INTERNATIONAL' : 'VIKING RUBBERS PVT LTD'}</div>
+              {!isJokot && (
+                <div style={{ fontSize: designStyle === '2' ? '8.5px' : '7.5px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.1 }}>37/8, Nethajipuram, K.G Chavadi, Coimbatore, 641105.</div>
+              )}
+              <div style={{ fontSize: designStyle === '2' ? '9.5px' : '8px', fontWeight: 800, margin: 0, padding: 0, lineHeight: 1.1 }}>{isJokot ? 'Ph: +91 8867915043, Email: jokot.international@gmail.com' : 'Ph: 0485-2835222, Email: customercare@lunars.in'}</div>
             </div>
           </div>
         </div>
