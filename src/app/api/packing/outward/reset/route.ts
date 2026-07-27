@@ -9,8 +9,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (user.role !== 'admin' && user.role !== 'pm') {
-      return NextResponse.json({ error: 'Only administrators or managers can reset outward scanning history.' }, { status: 403 });
+    if (user.role !== 'admin' && user.role !== 'pm' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Only administrators, managers, or supervisors can reset outward scanning history.' }, { status: 403 });
     }
 
     const { confirm } = await req.json();
@@ -20,9 +20,12 @@ export async function POST(req: NextRequest) {
 
     const db = getDb();
 
-    // Reset outward scan tables
+    // Hard delete ALL outward-related data from the database
     await db.prepare('DELETE FROM outward_scan_items').run();
     await db.prepare('DELETE FROM outward_scan_sessions').run();
+    await db.prepare('DELETE FROM outward_items').run();
+    await db.prepare('DELETE FROM outward_transactions').run();
+    await db.prepare('DELETE FROM packed_cartons').run();
 
     await logAudit({
       userId: user.id,

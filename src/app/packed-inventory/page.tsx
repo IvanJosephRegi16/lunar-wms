@@ -787,8 +787,8 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
         <div className="jokot-sticker" style={{
           display: 'grid',
           gridTemplateRows: isJokot
-            ? (designStyle === '2' ? '2.5fr 1fr 1fr 2fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 2fr 1.5fr')
-            : (designStyle === '2' ? '1fr 1.8fr 1fr 1fr 2fr 1.8fr' : '0.8fr 1fr 1fr 1fr 1fr 1fr 1fr 2fr 1.8fr'),
+            ? (designStyle === '2' ? '2.5fr 1fr 1fr 1.5fr 1.5fr' : '1.2fr 1fr 1fr 1fr 1fr 1fr 1.5fr 1.5fr')
+            : (designStyle === '2' ? '1fr 1.8fr 1fr 1fr 1.5fr 1.8fr' : '0.8fr 1fr 1fr 1fr 1fr 1fr 1fr 1.5fr 1.8fr'),
           width: widthStr,
           height: heightStr,
           border: '2.5px solid #000',
@@ -867,7 +867,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             {activeSizes.map((s: any) => (
               <div key={`sh-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{s.size}</div>
             ))}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>Total</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: '0 1px', textAlign: 'center', lineHeight: 1.1, textTransform: 'uppercase' }}>No of<br />Packages</div>
           </div>
           {/* Row 6: QTY values */}
           <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
@@ -877,17 +877,15 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             ))}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{totalPairs}</div>
           </div>
-          {/* Row 7: NO OF PACKAGES + MADE IN INDIA + QR (nested 2-row grid, QR spans both) */}
-          <div style={{ display: 'grid', gridTemplateColumns: '28% 1fr 22%', gridTemplateRows: '1fr 1fr', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
-            <div style={{ gridRow: '1', gridColumn: '1', borderRight: '1.5px solid #000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', lineHeight: 1.3, boxSizing: 'border-box', margin: 0 }}>NO OF<br />PACKAGES</div>
-            <div style={{ gridRow: '1', gridColumn: '2', borderRight: '1.5px solid #000', borderBottom: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{totalPairs}</div>
-            <div style={{ gridRow: '1 / 3', gridColumn: '3', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0', boxSizing: 'border-box', overflow: 'hidden', margin: 0 }}>
-              <QRCodeSVG value={barcodeValue || 'N/A'} style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', display: 'block' }} level="M" />
-            </div>
-            <div style={{ gridRow: '2', gridColumn: '1', borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MADE IN INDIA</div>
-            <div style={{ gridRow: '2', gridColumn: '2', borderRight: '1.5px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, boxSizing: 'border-box', overflow: 'hidden', margin: 0, padding: 0 }}>
+          {/* Row 7: MADE IN INDIA + Month of manufacturing + QR */}
+          <div style={{ display: 'grid', gridTemplateColumns: '28% 1fr 22%', borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+            <div style={{ gridColumn: '1', borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '10px', textAlign: 'center', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>MADE IN INDIA</div>
+            <div style={{ gridColumn: '2', borderRight: '1.5px solid #000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: 900, boxSizing: 'border-box', overflow: 'hidden', margin: 0, padding: 0 }}>
               <span style={{ fontSize: '7.5px', fontWeight: 900, margin: 0, padding: 0 }}>Month of manufacturing-</span>
               <input type="text" value={mfgMonth} onChange={e => setMfgMonth(e.target.value)} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', width: '98%', textAlign: 'center', margin: 0, padding: 0 }} />
+            </div>
+            <div style={{ gridColumn: '3', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0', boxSizing: 'border-box', overflow: 'hidden', margin: 0 }}>
+              <QRCodeSVG value={barcodeValue || 'N/A'} style={{ width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%', display: 'block' }} level="M" />
             </div>
           </div>
           {/* Row 8: Footer (Merged) */}

@@ -89,11 +89,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid confirmation code' }, { status: 400 });
     }
 
-    // Hard delete all packed cartons to completely wipe the database as requested
-    const result = await db.prepare(`
-      DELETE FROM packed_cartons 
-      WHERE status IN ('completed', 'pending', 'pending_validation')
-    `).run();
+    // Hard delete all packed cartons and related outward data to completely wipe the database
+    await db.prepare(`DELETE FROM packed_cartons`).run();
+    await db.prepare(`DELETE FROM outward_items`).run();
+    const result = await db.prepare(`DELETE FROM outward_transactions`).run();
 
     return NextResponse.json({
       success: true,
