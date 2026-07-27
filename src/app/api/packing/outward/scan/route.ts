@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     // Check if the unique barcode exists and is available in the intake pool (case-insensitive)
     const poolRecord = await db.prepare(`
       SELECT barcode as actual_barcode, status, outward_scanned_at FROM intake_barcode_pool
-      WHERE barcode COLLATE NOCASE = ?
+      WHERE LOWER(barcode) = LOWER(?)
     `).get(barcode) as any;
 
     const actualBarcode = poolRecord ? poolRecord.actual_barcode : barcode;
@@ -118,10 +118,13 @@ export async function POST(req: NextRequest) {
     }
     // ──────────────────────────────────────────────────────────────────
 
-    // 2. Match article and colour
-    if (scannedArticle !== session.article_code || scannedColour !== session.colour) {
+    // 2. Match article and colour (case-insensitive)
+    if (
+      (scannedArticle || '').toUpperCase() !== (session.article_code || '').toUpperCase() || 
+      (scannedColour || '').toUpperCase() !== (session.colour || '').toUpperCase()
+    ) {
       return NextResponse.json({ 
-        error: `Article mismatch. Expected ${session.article_code} - ${session.colour}, got ${scannedArticle} - ${scannedColour}` 
+        error: `Article/Colour mismatch. Expected ${session.article_code} - ${session.colour}, got ${scannedArticle} - ${scannedColour}` 
       }, { status: 400 });
     }
 
