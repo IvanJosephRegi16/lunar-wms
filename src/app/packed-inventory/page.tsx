@@ -862,7 +862,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             </div>
           )}
           {/* Row 5: SIZE headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `22% repeat(${activeSizes.length}, 1fr) 20%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
             <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', boxSizing: 'border-box', margin: 0 }}>SIZE</div>
             {activeSizes.map((s: any) => (
               <div key={`sh-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{s.size}</div>
@@ -870,7 +870,7 @@ function PackedStickerView({ cartonData, totalPairs, onClose }: { cartonData: an
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: '0 1px', textAlign: 'center', lineHeight: 1.1, textTransform: 'uppercase' }}>No of<br />Packages</div>
           </div>
           {/* Row 6: QTY values */}
-          <div style={{ display: 'grid', gridTemplateColumns: `28% repeat(${activeSizes.length}, 1fr) 14%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `22% repeat(${activeSizes.length}, 1fr) 20%`, borderBottom: '1.5px solid #000', overflow: 'hidden', boxSizing: 'border-box', margin: 0, padding: 0 }}>
             <div style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 2px', fontSize: '11px', fontWeight: 900, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.1, boxSizing: 'border-box', margin: 0 }}>QTY<br />(PAIR)</div>
             {activeSizes.map((s: any) => (
               <div key={`qd-${s.size}`} style={{ borderRight: '1.5px solid #000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900, boxSizing: 'border-box', margin: 0, padding: 0 }}>{Number(s.scanned)}</div>
