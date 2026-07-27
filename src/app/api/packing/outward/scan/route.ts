@@ -82,20 +82,22 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── UNIQUE BARCODE POOL GUARD ──────────────────────────────────────────
-    // Check if the unique barcode exists and is available in the intake pool
+    // Check if the unique barcode exists and is available in the intake pool (case-insensitive)
     const poolRecord = await db.prepare(`
-      SELECT status, outward_scanned_at FROM intake_barcode_pool
-      WHERE barcode = ?
+      SELECT barcode as actual_barcode, status, outward_scanned_at FROM intake_barcode_pool
+      WHERE barcode COLLATE NOCASE = ?
     `).get(barcode) as any;
+
+    const actualBarcode = poolRecord ? poolRecord.actual_barcode : barcode;
 
     if (!poolRecord) {
       // Log the invalid attempt visibly in scan_history
       await db.prepare(`
         INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, scan_type)
         VALUES (?, ?, ?, ?, ?, 'error_not_in_intake', 'outward')
-      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id);
+      `).run(actualBarcode, scannedArticle, scannedColour, scannedSize, user.id);
       return NextResponse.json({
-        error: `⚠️ NOT FOUND IN INTAKE: Barcode "${barcode}" was never successfully scanned during intake. Only items scanned intake can be scanned outward.`
+        error: `⚠️ NOT FOUND IN INTAKE: Barcode "${actualBarcode}" was never successfully scanned during intake. Only items scanned intake can be scanned outward.`
       }, { status: 400 });
     }
 
@@ -108,7 +110,7 @@ export async function POST(req: NextRequest) {
       await db.prepare(`
         INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, scan_type)
         VALUES (?, ?, ?, ?, ?, 'error_duplicate', 'outward')
-      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id);
+      `).run(actualBarcode, scannedArticle, scannedColour, scannedSize, user.id);
       return NextResponse.json({
         error: `Duplicate Entry which you already scanned outward. Scanned on: ${scanTime}`,
         isDuplicate: true
@@ -154,7 +156,7 @@ export async function POST(req: NextRequest) {
       db.prepare(`
         INSERT INTO outward_scan_items (session_id, article_code, colour, size, barcode)
         VALUES (?, ?, ?, ?, ?)
-      `).run(session_id, scannedArticle, scannedColour, scannedSize, barcode),
+      `).run(session_id, scannedArticle, scannedColour, scannedSize, actualBarcode),
       
       db.prepare(`
         UPDATE inventory_pool 
@@ -165,13 +167,13 @@ export async function POST(req: NextRequest) {
       db.prepare(`
         INSERT INTO scan_history (barcode, article_code, colour, size, operator_id, status, mrp, scan_type)
         VALUES (?, ?, ?, ?, ?, 'success_outward', ?, 'outward')
-      `).run(barcode, scannedArticle, scannedColour, scannedSize, user.id, mrp),
+      `).run(actualBarcode, scannedArticle, scannedColour, scannedSize, user.id, mrp),
       
       db.prepare(`
         UPDATE intake_barcode_pool
         SET status = 'scanned_outward', outward_scanned_at = CURRENT_TIMESTAMP
         WHERE barcode = ?
-      `).run(barcode)
+      `).run(actualBarcode)
     ]);
 
     return NextResponse.json({
