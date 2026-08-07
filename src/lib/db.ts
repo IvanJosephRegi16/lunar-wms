@@ -8,9 +8,10 @@ import { Pool } from 'pg';
 // ─────────────────────────────────────────────────────────────────────────────
 export const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://postgres:ivan@localhost:5432/Lunar',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  max: 200, // Massively increased for maximum load balancing and concurrency
+  idleTimeoutMillis: 10000, // Faster cleanup of idle connections to free up pool
+  connectionTimeoutMillis: 5000, // Fail fast on connection timeouts instead of hanging
+  statement_timeout: 30000, // 30 seconds max per query to prevent database lockups
 });
 
 pgPool.on('error', (err: any) => {
