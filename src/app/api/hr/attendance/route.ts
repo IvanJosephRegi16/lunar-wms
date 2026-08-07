@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin' && user.role !== 'supervisor' && user.role !== 'accountant') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month'); // YYYY-MM
     
@@ -43,13 +49,18 @@ export async function GET(request: Request) {
 
   } catch (error: any) {
     console.error('Fetch attendance error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 // Batch save attendance records
 export async function POST(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const data = await request.json();
     const { updates, month } = data; // updates = array of { emp_id, date, status, ... }
     
@@ -91,6 +102,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, count: updates.length });
   } catch (error: any) {
     console.error('Save attendance batch error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

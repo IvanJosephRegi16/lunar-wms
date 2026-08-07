@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDb, logAudit } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category') || '';
     const search = searchParams.get('search') || '';
@@ -45,12 +48,17 @@ export async function GET(request: Request) {
     return NextResponse.json({ inventory, categories, units, suppliers });
   } catch (error: any) {
     console.error('Fetch inventory error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const data = await request.json();
     const db = getDb();
 
@@ -108,6 +116,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, id: materialId });
   } catch (error: any) {
     console.error('Create material error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

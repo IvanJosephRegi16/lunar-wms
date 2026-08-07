@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const material_id = searchParams.get('material_id');
     const type = searchParams.get('type'); // optional filter by movement_type
@@ -30,6 +33,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ movements });
   } catch (error: any) {
     console.error('Fetch movements error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getDb, logAudit } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 // GET: Fetch purchase history with filtering
 export async function GET(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const { searchParams } = new URL(request.url);
     const material_id = searchParams.get('material_id');
     const supplier_id = searchParams.get('supplier_id');
@@ -51,13 +54,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ purchases, materials, suppliers });
   } catch (error: any) {
     console.error('Fetch purchases error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 // POST: Atomic purchase transaction
 export async function POST(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin' && user.role !== 'supervisor') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const data = await request.json();
     const db = getDb();
 
@@ -164,6 +172,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
   } catch (error: any) {
     console.error('Buying API error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

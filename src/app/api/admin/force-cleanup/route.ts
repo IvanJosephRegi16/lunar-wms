@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET() {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+
     const db = getDb();
     
     // Get start of today in IST
@@ -41,6 +46,7 @@ export async function GET() {
     });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[FORCE-CLEANUP] Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 export async function GET(req: Request) {
+  const user = await getAuthUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { searchParams } = new URL(req.url);
   const article_code = searchParams.get('article_code');
   const colour = searchParams.get('colour');
