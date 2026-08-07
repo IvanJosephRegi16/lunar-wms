@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const db = getDb();
 
     // Verify PO exists
-    const po = await db.prepare(`SELECT id, po_number FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(po_id) as any;
+    const po = await db.prepare(`SELECT id, po_number FROM purchase_orders WHERE id = ? AND COALESCE(is_deleted, 0) = 0`).get(po_id) as any;
     if (!po) return NextResponse.json({ error: 'PO not found' }, { status: 404 });
 
     await db.transaction(async () => {

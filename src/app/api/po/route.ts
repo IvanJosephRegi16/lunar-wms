@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
              split_part(u.full_name, ' ', 1) as creator_first_name
       FROM purchase_orders po
       JOIN users u ON po.created_by = u.id
-      WHERE po.is_deleted = 0
+      WHERE COALESCE(po.is_deleted, 0) = 0
     `;
     const params: any[] = [];
 
@@ -333,7 +333,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const db = getDb();
-    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(id) as any;
+    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND COALESCE(is_deleted, 0) = 0`).get(id) as any;
 
     if (!po) {
       return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });

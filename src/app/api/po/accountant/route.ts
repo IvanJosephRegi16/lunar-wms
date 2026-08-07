@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     if (!id) return NextResponse.json({ error: 'Missing PO id' }, { status: 400 });
 
     const db = getDb();
-    const po = await db.prepare('SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0').get(id) as any;
+    const po = await db.prepare('SELECT * FROM purchase_orders WHERE id = ? AND COALESCE(is_deleted, 0) = 0').get(id) as any;
     if (!po) return NextResponse.json({ error: 'PO not found' }, { status: 404 });
     
     // Allow payment/financial updates on accountant_processing, supervisor_review, and completed POs

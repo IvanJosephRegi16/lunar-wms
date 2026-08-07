@@ -55,7 +55,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       SELECT po.*, u.full_name as creator_name 
       FROM purchase_orders po
       JOIN users u ON po.created_by = u.id
-      WHERE po.id = ? AND po.is_deleted = 0
+      WHERE po.id = ? AND COALESCE(po.is_deleted, 0) = 0
     `).get(poId) as any;
 
     if (!po) return NextResponse.json({ error: 'Purchase order not found or deleted' }, { status: 404 });
@@ -106,7 +106,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const db = getDb();
 
     // Fetch existing PO
-    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(poId) as any;
+    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND COALESCE(is_deleted, 0) = 0`).get(poId) as any;
     if (!po) return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
 
     // Strict role check: PMs can ONLY edit draft, returned, or pending_pm_approval POs
@@ -293,7 +293,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const poId = resolvedParams.id;
     const db = getDb();
 
-    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND is_deleted = 0`).get(poId) as any;
+    const po = await db.prepare(`SELECT * FROM purchase_orders WHERE id = ? AND COALESCE(is_deleted, 0) = 0`).get(poId) as any;
     if (!po) return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
 
     // Only allow deletion of deletable statuses unless admin

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       SELECT po.*, u.full_name as creator_name, u.id as creator_user_id
       FROM purchase_orders po
       JOIN users u ON po.created_by = u.id
-      WHERE po.id = ? AND po.is_deleted = 0
+      WHERE po.id = ? AND COALESCE(po.is_deleted, 0) = 0
     `).get(id) as any;
     if (!po) return NextResponse.json({ error: 'Purchase order not found' }, { status: 404 });
 

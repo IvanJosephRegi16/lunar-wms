@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
              split_part(u.full_name, ' ', 1) as creator_first_name
       FROM purchase_orders po
       LEFT JOIN users u ON po.created_by = u.id
-      WHERE po.is_deleted = 0
+      WHERE COALESCE(po.is_deleted, 0) = 0
       ORDER BY po.id DESC
     `).all() as any[];
 

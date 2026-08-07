@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
       SELECT po.*, u.full_name as creator_name
       FROM purchase_orders po
       LEFT JOIN users u ON po.created_by = u.id
-      WHERE po.status = 'supervisor_review' AND po.is_deleted = 0
+      WHERE po.status = 'supervisor_review' AND COALESCE(po.is_deleted, 0) = 0
       ORDER BY po.updated_at DESC
     `).all() as any[];
 
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       SELECT po.*, u.full_name as creator_name, u.id as creator_user_id
       FROM purchase_orders po
       LEFT JOIN users u ON po.created_by = u.id
-      WHERE po.id = ? AND po.is_deleted = 0
+      WHERE po.id = ? AND COALESCE(po.is_deleted, 0) = 0
     `).get(id) as any;
 
     if (!po) return NextResponse.json({ error: 'PO not found' }, { status: 404 });

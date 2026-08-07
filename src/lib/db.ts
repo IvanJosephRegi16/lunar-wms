@@ -894,10 +894,18 @@ ON CONFLICT (username) DO NOTHING;
       }
     }
 
-    // Backfill NULL is_deleted values to 0 for carton_generation
-    try {
-      await client.query(`UPDATE carton_generation SET is_deleted = 0 WHERE is_deleted IS NULL`);
-    } catch { /* table may not exist yet */ }
+    // Backfill NULL is_deleted values to 0 for ALL tables that have the column
+    // CRITICAL: PostgreSQL treats NULL != 0, so WHERE is_deleted = 0 would exclude rows with NULL.
+    // This backfill ensures every existing row is visible after the column is added.
+    const isDeletedTables = [
+      'carton_generation', 'purchase_orders', 'outward_transactions',
+      'packed_cartons', 'inventory_pool', 'scan_history', 'v_strap',
+    ];
+    for (const tbl of isDeletedTables) {
+      try {
+        await client.query(`UPDATE ${tbl} SET is_deleted = 0 WHERE is_deleted IS NULL`);
+      } catch { /* table may not exist yet — safe to skip */ }
+    }
 
     // ── Constraint migrations (fix CHECK constraints for new status values) ──
     try {
