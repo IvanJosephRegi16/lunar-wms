@@ -16,7 +16,11 @@ export async function POST(req: Request) {
   try {
     // Accept cron token OR admin session
     const authHeader = req.headers.get('authorization');
-    const isCron = authHeader === `Bearer ${process.env.CRON_SECRET || 'lunar-backup-secret'}`;
+    const fallbackCronSecret = process.env.NODE_ENV === 'production'
+      ? `secure-cron-${Math.random().toString(36).slice(2)}`
+      : 'lunar-backup-secret';
+    
+    const isCron = authHeader === `Bearer ${process.env.CRON_SECRET || fallbackCronSecret}`;
 
     if (!isCron) {
       const user = await getAuthUser();

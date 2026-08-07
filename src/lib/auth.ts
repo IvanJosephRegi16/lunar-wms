@@ -1,7 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'upper-stock-secret-key-2026-private');
+const fallbackSecret = process.env.NODE_ENV === 'production'
+  ? `secure-runtime-key-${Math.random().toString(36).slice(2)}-${Date.now()}`
+  : 'upper-stock-secret-key-2026-private';
+
+const SECRET = new TextEncoder().encode(process.env.JWT_SECRET || fallbackSecret);
 
 export interface AuthUser {
   id: number;

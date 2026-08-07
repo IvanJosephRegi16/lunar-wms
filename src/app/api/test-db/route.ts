@@ -8,6 +8,6 @@ export async function GET() {
     const users = await db.prepare("SELECT * FROM users").all();
     return NextResponse.json({ cwd: process.cwd(), tables, users });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
+    return NextResponse.json({ error: 'Internal database connection error.' }, { status: 500 });
   }
 }

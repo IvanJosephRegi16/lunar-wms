@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
     
     response.cookies.set('auth_token', token, {
       httpOnly: true,
-      secure: false, // Disabled for local network access
+      secure: process.env.NODE_ENV === 'production', // Secure in production, false for local network
       sameSite: 'lax',
       maxAge: 60 * 60 * 24, // 24 hours
       path: '/',
@@ -70,6 +70,6 @@ export async function POST(req: NextRequest) {
     return response;
   } catch (err: any) {
     console.error('Login error:', err);
-    return NextResponse.json({ error: err.message, stack: err.stack }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error occurred during login.' }, { status: 500 });
   }
 }

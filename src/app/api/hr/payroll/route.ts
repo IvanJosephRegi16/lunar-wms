@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getDb, logAudit } from '@/lib/db';
+import { getAuthUser } from '@/lib/auth';
 
 // PF/ESI Constants (Indian statutory defaults)
 const PF_RATE = 0.12;        // 12% of Basic
@@ -11,6 +12,12 @@ const PT_AMOUNT = 200;       // Professional Tax flat ₹200/month (configurable
 // GET: Fetch payroll runs, or a specific run's slip data
 export async function GET(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin' && user.role !== 'supervisor' && user.role !== 'accountant') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const runId = searchParams.get('run_id');
@@ -53,6 +60,12 @@ export async function GET(request: Request) {
 // POST: Process payroll or update stage
 export async function POST(request: Request) {
   try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin' && user.role !== 'supervisor' && user.role !== 'accountant') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const data = await request.json();
     const { action } = data;
     const db = getDb();

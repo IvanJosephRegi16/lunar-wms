@@ -4,9 +4,14 @@ import { getAuthUser } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   const user = await getAuthUser();
-  // Allowed for authorized users for now as requested
+  
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // CRITICAL SECURITY: Only admins and supervisors can wipe the database
+  if (user.role !== 'admin' && user.role !== 'supervisor') {
+    return NextResponse.json({ error: 'Forbidden: Insufficient privileges to reset system data.' }, { status: 403 });
   }
 
   const { confirm } = await req.json();
