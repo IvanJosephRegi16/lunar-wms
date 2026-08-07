@@ -207,7 +207,7 @@ export default function ScanHistoryPage() {
       <div className={styles.header}>
         <div>
           <h1>Scan History Audit</h1>
-          <p>Operational audit trail for all scanning activities</p>
+          <p>Operational audit trail for all scanning activities. <span style={{ color: '#f59e0b', fontSize: '12px' }}>(Showing latest 2000 records for performance. Use date filters for older data.)</span></p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           {canReset && (

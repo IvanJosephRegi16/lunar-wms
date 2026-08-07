@@ -37,14 +37,14 @@ export async function GET(request: Request) {
     const params: any[] = [];
     
     if (startDate && endDate) {
-      query += ` AND date(s.created_at) >= ? AND date(s.created_at) <= ?`;
-      params.push(startDate, endDate);
+      query += ` AND s.created_at >= ? AND s.created_at <= ?`;
+      params.push(`${startDate} 00:00:00`, `${endDate} 23:59:59`);
     } else if (startDate) {
-      query += ` AND date(s.created_at) = ?`;
-      params.push(startDate);
+      query += ` AND s.created_at >= ? AND s.created_at <= ?`;
+      params.push(`${startDate} 00:00:00`, `${startDate} 23:59:59`);
     }
     
-    query += ` ORDER BY s.created_at DESC`;
+    query += ` ORDER BY s.created_at DESC LIMIT 2000`;
     
     const history = await db.prepare(query).all(...params);
 

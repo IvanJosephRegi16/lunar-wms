@@ -207,8 +207,12 @@ CREATE TABLE IF NOT EXISTS scan_history (
   operator_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   status TEXT DEFAULT 'success',
   carton_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  is_deleted INTEGER DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS idx_scan_history_created_at ON scan_history(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_scan_history_is_deleted ON scan_history(is_deleted);
+
 
 CREATE TABLE IF NOT EXISTS intake_barcode_pool (
   barcode TEXT PRIMARY KEY,
