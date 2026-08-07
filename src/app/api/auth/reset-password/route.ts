@@ -31,8 +31,8 @@ export async function POST(req: NextRequest) {
 
     // Hash the password and save
     const hash = bcrypt.hashSync(newPassword, 10);
-    await db.prepare('UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?')
-      .run(hash, newPassword, user.id);
+    await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .run(hash, user.id);
 
     // Completely consume the OTP (status 2) so it cannot be reused
     await db.prepare('UPDATE otp_verifications SET verified = 2 WHERE id = ?').run(record.id);

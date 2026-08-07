@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await db.prepare(
-      'INSERT INTO users (username, password_hash, full_name, phone, role, is_active, plain_password) VALUES (?, ?, ?, ?, ?, 0, ?)'
-    ).run(username, passwordHash, full_name, phone || null, role, password);
+      'INSERT INTO users (username, password_hash, full_name, phone, role, is_active) VALUES (?, ?, ?, ?, ?, 0)'
+    ).run(username, passwordHash, full_name, phone || null, role);
 
     const newUserId = result.lastInsertRowid;
 

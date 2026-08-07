@@ -55,8 +55,8 @@ export async function POST(req: NextRequest) {
       console.log(`[PROFILE UPDATE] User ${authUser.username} (id=${authUser.id}) is changing password.`);
       const hash = bcrypt.hashSync(password.trim(), 10);
       const pwResult = await db.prepare(
-        'UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?'
-      ).run(hash, password.trim(), authUser.id) as any;
+        'UPDATE users SET password_hash = ? WHERE id = ?'
+      ).run(hash, authUser.id) as any;
       console.log(`[PROFILE UPDATE] Password hash updated. Changes: ${pwResult?.changes ?? 'unknown'}`);
     }
 

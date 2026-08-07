@@ -1374,28 +1374,8 @@ export default function AdminPage() {
                             <span>Pass</span>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                               <strong style={{ color: '#334155', fontFamily: 'monospace' }}>
-                                {revealedPasswords[u.id] ? u.plain_password || 'admin123' : '••••••••'}
+                                ••••••••
                               </strong>
-                              <button
-                                onClick={() => togglePasswordReveal(u.id)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  padding: '2px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  outline: 'none',
-                                  fontSize: '11px',
-                                  opacity: 0.6,
-                                  transition: 'opacity 0.2s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                                onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
-                                title={revealedPasswords[u.id] ? 'Hide Credentials' : 'Reveal Credentials'}
-                              >
-                                {revealedPasswords[u.id] ? '🙈' : '👁️'}
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -2029,10 +2009,7 @@ export default function AdminPage() {
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</span>
                             <span style={{ fontSize: '12px', fontWeight: 700, color: '#334155', fontFamily: 'monospace', background: '#e2e8f0', padding: '2px 8px', borderRadius: '6px' }}>
-                              {revealedPasswords[u.id] ? (u.plain_password || '—') : '••••••••'}
-                              <button onClick={() => togglePasswordReveal(u.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '12px', marginLeft: '6px', opacity: 0.6 }} title="Reveal">
-                                {revealedPasswords[u.id] ? '🙈' : '👁️'}
-                              </button>
+                              ••••••••
                             </span>
                           </div>
                           <div style={{ height: '1px', background: '#e2e8f0' }} />

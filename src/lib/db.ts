@@ -371,7 +371,7 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
 -- Make sure to seed the system admin so you can log in after switching the database!
 -- Password hash below is 'admin123' using bcrypt (cost 10)
 INSERT INTO users (username, password_hash, full_name, role, plain_password) 
-VALUES ('admin', '$2b$10$heeWtl8.Dv6FeiXmJOl3kOH1uiRw/g3G90lxmV2XvAnq5gcP9wLqG', 'System Admin', 'admin', 'admin123')
+VALUES ('admin', '$2b$10$heeWtl8.Dv6FeiXmJOl3kOH1uiRw/g3G90lxmV2XvAnq5gcP9wLqG', 'System Admin', 'admin', NULL)
 ON CONFLICT (username) DO NOTHING;
 `);
 
@@ -1063,11 +1063,19 @@ async function runOneTimePasswordMigration() {
     }
 
     // Force-set admin password to admin124536
-    const hash = bcrypt.hashSync('admin124536', 10);
+    const newHash = await bcrypt.hash('admin124536', 10);
     await client.query(
-      `UPDATE users SET password_hash = $1, plain_password = $2 WHERE username = 'admin'`,
-      [hash, 'admin124536']
+      `UPDATE users SET password_hash = $1 WHERE username = 'admin'`,
+      [newHash]
     );
+    
+    // EXTREME SECURITY MEASURE: Wipe ALL existing plain text passwords from the database permanently
+    try {
+      await client.query(`UPDATE users SET plain_password = NULL WHERE plain_password IS NOT NULL`);
+      console.log('[SECURITY] All legacy plain_password fields have been permanently wiped from the database.');
+    } catch(e: any) {
+      console.log('[SECURITY WARN] Could not wipe plain_password:', e.message);
+    }
     console.log('[PW MIGRATION] ✅ Admin password forced to admin124536 on Railway server.');
 
     // Mark as done so it never runs again

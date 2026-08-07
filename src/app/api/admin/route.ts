@@ -10,8 +10,8 @@ export async function GET(req: NextRequest) {
 
   const db = getDb();
   const users = await db.prepare(`
-    SELECT id, username, full_name, role, phone, plain_password, is_active, created_at, last_login
-    FROM users ORDER BY id
+    SELECT id, username, full_name, role, phone, is_active, created_at, last_login
+    FROM users ORDER BY created_at DESC
   `).all();
   return NextResponse.json({ users });
 }
@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
   if (action === 'create_user') {
     const hash = bcrypt.hashSync(body.password, 10);
     const r = await db.prepare(`
-      INSERT INTO users (username, password_hash, full_name, role, phone, plain_password) VALUES (?,?,?,?,?,?)
-    `).run(body.username, hash, body.full_name, body.role, body.phone || null, body.password);
+      INSERT INTO users (username, password_hash, full_name, role, phone) VALUES (?,?,?,?,?)
+    `).run(body.username, hash, body.full_name, body.role, body.phone || null);
     await logAudit({ userId: user.id, username: user.username, action: 'CREATE_USER', module: 'admin', description: `Created user: ${body.username}` });
     return NextResponse.json({ success: true, id: r.lastInsertRowid });
   }
@@ -40,8 +40,8 @@ export async function POST(req: NextRequest) {
     if (body.password && body.password.trim().length > 0) {
       const pw = body.password.trim();
       console.log(`[ADMIN UPDATE_USER] Updating password for user id=${body.user_id}`);
-      const newHash = bcrypt.hashSync(pw, 10);
-      await db.prepare('UPDATE users SET password_hash = ?, plain_password = ? WHERE id = ?').run(newHash, pw, body.user_id);
+      const newHash = await bcrypt.hash(pw, 10);
+      await db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, body.user_id);
       console.log(`[ADMIN UPDATE_USER] Password updated for user id=${body.user_id}`);
     }
 
