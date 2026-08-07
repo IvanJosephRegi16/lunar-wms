@@ -207,11 +207,8 @@ CREATE TABLE IF NOT EXISTS scan_history (
   operator_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
   status TEXT DEFAULT 'success',
   carton_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  is_deleted INTEGER DEFAULT 0
+  created_at TIMESTAMPTZ DEFAULT NOW()
 );
-CREATE INDEX IF NOT EXISTS idx_scan_history_created_at ON scan_history(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_scan_history_is_deleted ON scan_history(is_deleted);
 
 
 CREATE TABLE IF NOT EXISTS intake_barcode_pool (
@@ -1023,6 +1020,10 @@ ON CONFLICT (username) DO NOTHING;
       `CREATE INDEX IF NOT EXISTS idx_inward_outward_lookup ON inward_outward (entry_date, article_code, is_deleted)`,
       `CREATE INDEX IF NOT EXISTS idx_scan_history_lookup ON scan_history (article_code, is_deleted)`,
       `CREATE INDEX IF NOT EXISTS idx_articles_lookup ON articles (article_code, is_deleted)`,
+      // Scan history performance indexes — safe here because each runs in its own try-catch
+      `CREATE INDEX IF NOT EXISTS idx_scan_history_created_at ON scan_history (created_at DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_scan_history_is_deleted ON scan_history (is_deleted)`,
+      `CREATE INDEX IF NOT EXISTS idx_purchase_orders_is_deleted ON purchase_orders (is_deleted)`,
     ];
     for (const idx of indexes) {
       try { await client.query(idx); } catch { /* index already exists */ }
