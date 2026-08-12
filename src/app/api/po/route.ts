@@ -14,19 +14,38 @@ export async function GET(req: NextRequest) {
              u.role as creator_role,
              split_part(u.full_name, ' ', 1) as creator_first_name
       FROM purchase_orders po
-      JOIN users u ON po.created_by = u.id
+      LEFT JOIN users u ON po.created_by = u.id
       WHERE COALESCE(po.is_deleted, 0) = 0
     `;
     const params: any[] = [];
 
     // Role-based visibility
+    const configKey = `menu_visibility_config_${user.role}`;
+    let configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get(configKey) as { value: string } | undefined;
+    if (!configRow) {
+      configRow = await db.prepare('SELECT value FROM system_settings WHERE "key" = ?').get('menu_visibility_config') as { value: string } | undefined;
+    }
+    let isPoPendingVisible = true;
+    if (user.role !== 'admin' && configRow) {
+      try {
+        const parsed = JSON.parse(configRow.value);
+        if (parsed.po_pending === false) {
+          isPoPendingVisible = false;
+        }
+      } catch {}
+    }
+
     if (user.role === 'pm') {
       // PMs see POs pending their pre-approval, returned by admin, plus their own POs, and any POs they rejected or returned
       query += ` AND (po.status IN ('pending_pm_approval', 'returned_by_admin', 'returned_by_pm', 'rejected') OR po.created_by = ?)`;
       params.push(user.id);
     } else if (user.role === 'supervisor') {
-      // Supervisors see POs they created, plus POs returned by PM to creator
-      query += ` AND (po.created_by = ? OR po.status = 'returned_by_pm')`;
+      // Supervisors see POs they created, plus POs returned by PM to creator, plus pending admin approval if they have menu access
+      if (isPoPendingVisible) {
+        query += ` AND (po.created_by = ? OR po.status = 'returned_by_pm' OR po.status = 'pending_admin_approval')`;
+      } else {
+        query += ` AND (po.created_by = ? OR po.status = 'returned_by_pm')`;
+      }
       params.push(user.id);
     } else if (user.role === 'accountant') {
       // Accountant can ONLY see POs that are approved (processing or completed)
