@@ -95,24 +95,34 @@ export async function GET(req: NextRequest) {
       return poObj;
     }
 
-    // Include raw material items instead of sizes
-    const mergedPos = await Promise.all(pos.map(async p => {
-      const healed = await healPoData(p);
-      const items = await db.prepare(`
-        SELECT id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, received_qty, unit, amount, vendor, remarks 
-        FROM purchase_order_items 
-        WHERE po_id = ?
-      `).all(healed.id) as any[];
-      
-      // Collect unique non-empty categories from items
-      const uniqueCategories = [...new Set(items.map((it: any) => it.category).filter(Boolean))];
-      
-      return {
-        ...healed,
-        items,
-        categories: uniqueCategories
-      };
-    }));
+    // Include raw material items instead of sizes with resilience
+    const mergedPos = (await Promise.all(pos.map(async p => {
+      try {
+        const healed = await healPoData(p);
+        let items: any[] = [];
+        try {
+          items = await db.prepare(`
+            SELECT * 
+            FROM purchase_order_items 
+            WHERE po_id = ?
+          `).all(healed.id) as any[];
+        } catch (e) {
+          console.warn('Failed to fetch items for PO', healed.id, e);
+        }
+        
+        // Collect unique non-empty categories from items
+        const uniqueCategories = [...new Set(items.map((it: any) => it.category).filter(Boolean))];
+        
+        return {
+          ...healed,
+          items,
+          categories: uniqueCategories
+        };
+      } catch (err) {
+        console.warn('Failed to process PO', p.id, err);
+        return null;
+      }
+    }))).filter(Boolean);
 
     // Calculate next PO number globally
     const existingPos = await db.prepare(`SELECT po_number FROM purchase_orders WHERE po_number LIKE '%-%'`).all() as { po_number: string }[];

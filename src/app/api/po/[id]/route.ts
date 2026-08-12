@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     let po = await db.prepare(`
       SELECT po.*, u.full_name as creator_name 
       FROM purchase_orders po
-      JOIN users u ON po.created_by = u.id
+      LEFT JOIN users u ON po.created_by = u.id
       WHERE po.id = ? AND COALESCE(po.is_deleted, 0) = 0
     `).get(poId) as any;
 
@@ -68,7 +68,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Raw Material items
     const items = await db.prepare(`
-      SELECT id, category, material_code, material_name, size_thickness, order_rate, current_stock, current_stock_unit, required_qty, received_qty, unit, amount, vendor, remarks 
+      SELECT * 
       FROM purchase_order_items 
       WHERE po_id = ?
     `).all(poId) as any[];
